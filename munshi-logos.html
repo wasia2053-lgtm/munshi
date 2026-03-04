@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Munshi — Logo Collection</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0D2420;
+    font-family: 'DM Sans', sans-serif;
+    color: #F7E7CE;
+    padding: 48px;
+  }
+  h1 { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: #D4A853; margin-bottom: 8px; letter-spacing: 2px; }
+  p { font-size: 13px; color: #8A7560; margin-bottom: 48px; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+    color: #8A7560; margin-bottom: 20px; margin-top: 40px;
+    padding-bottom: 10px; border-bottom: 1px solid #2A4A42;
+  }
+
+  .logos-row {
+    display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 16px;
+  }
+
+  .logo-box {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 32px; border-radius: 16px; border: 1px solid #2A4A42;
+    background: #102C26;
+    cursor: pointer; transition: all .25s ease;
+    position: relative;
+  }
+  .logo-box:hover { border-color: rgba(212,168,83,.35); box-shadow: 0 8px 32px rgba(0,0,0,.4); transform: translateY(-3px); }
+  .logo-box.dark-bg { background: #0D2420; }
+  .logo-box.white-bg { background: #F7F3EE; }
+  .logo-box.gold-bg { background: linear-gradient(135deg, #D4A853, #C4983F); }
+
+  .logo-name { font-size: 11px; color: #8A7560; letter-spacing: 1px; text-transform: uppercase; }
+
+  .download-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(212,168,83,.12); border: 1px solid rgba(212,168,83,.2);
+    color: #D4A853; font-size: 11px; padding: 4px 10px; border-radius: 6px;
+    cursor: pointer; opacity: 0; transition: opacity .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .logo-box:hover .download-btn { opacity: 1; }
+</style>
+</head>
+<body>
+
+<h1>MUNSHI — Logo Collection</h1>
+<p>Click any logo to download as SVG. All variations included.</p>
+
+<div class="section-label">✦ Primary Logo — Icon + Wordmark</div>
+<div class="logos-row">
+
+  <!-- VERSION 1: Seal/Stamp style -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('logo-v1', 'munshi-primary-dark')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-v1" width="220" height="80" viewBox="0 0 220 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="50%" stop-color="#D4A853"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+        <linearGradient id="goldGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#D4A853"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Icon: Octagonal Seal -->
+      <polygon points="28,6 52,6 66,20 66,52 52,66 28,66 14,52 14,20" 
+               fill="none" stroke="url(#goldGrad1)" stroke-width="1.5"/>
+      <polygon points="31,11 49,11 61,23 61,49 49,61 31,61 19,49 19,23" 
+               fill="rgba(212,168,83,0.08)" stroke="none"/>
+
+      <!-- M letterform inside seal -->
+      <text x="40" y="47" 
+            font-family="Cormorant Garamond, serif" 
+            font-size="36" font-weight="700" 
+            fill="url(#goldGrad1)" 
+            text-anchor="middle" 
+            dominant-baseline="auto">M</text>
+
+      <!-- Dot accent -->
+      <circle cx="40" cy="55" r="2" fill="#D4A853" opacity="0.6"/>
+
+      <!-- Wordmark -->
+      <text x="82" y="38" 
+            font-family="Cormorant Garamond, serif" 
+            font-size="32" font-weight="700" 
+            fill="#F7E7CE" 
+            letter-spacing="4">MUNSHI</text>
+
+      <!-- Tagline -->
+      <text x="83" y="56" 
+            font-family="DM Sans, sans-serif" 
+            font-size="9.5" font-weight="400" 
+            fill="#8A7560" 
+            letter-spacing="2.5">AI WHATSAPP SECRETARY</text>
+
+      <!-- Gold line under wordmark -->
+      <line x1="82" y1="42" x2="210" y2="42" stroke="url(#goldGrad2)" stroke-width="0.8" opacity="0.4"/>
+    </svg>
+    <div class="logo-name">Primary — Dark BG</div>
+  </div>
+
+  <!-- VERSION 1 on white -->
+  <div class="logo-box white-bg" onclick="downloadSVG('logo-v1-white', 'munshi-primary-light')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-v1-white" width="220" height="80" viewBox="0 0 220 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#C4983F"/>
+          <stop offset="100%" stop-color="#9A7420"/>
+        </linearGradient>
+      </defs>
+      <polygon points="28,6 52,6 66,20 66,52 52,66 28,66 14,52 14,20" 
+               fill="none" stroke="#C4983F" stroke-width="1.5"/>
+      <polygon points="31,11 49,11 61,23 61,49 49,61 31,61 19,49 19,23" 
+               fill="rgba(196,152,63,0.08)" stroke="none"/>
+      <text x="40" y="47" font-family="Cormorant Garamond, serif" font-size="36" font-weight="700" fill="#C4983F" text-anchor="middle">M</text>
+      <circle cx="40" cy="55" r="2" fill="#C4983F" opacity="0.5"/>
+      <text x="82" y="38" font-family="Cormorant Garamond, serif" font-size="32" font-weight="700" fill="#102C26" letter-spacing="4">MUNSHI</text>
+      <text x="83" y="56" font-family="DM Sans, sans-serif" font-size="9.5" font-weight="400" fill="#8A7560" letter-spacing="2.5">AI WHATSAPP SECRETARY</text>
+      <line x1="82" y1="42" x2="210" y2="42" stroke="#C4983F" stroke-width="0.8" opacity="0.3"/>
+    </svg>
+    <div class="logo-name" style="color:#8A7560">Primary — Light BG</div>
+  </div>
+
+</div>
+
+<div class="section-label">✦ Icon Only — App Icon / Favicon</div>
+<div class="logos-row">
+
+  <!-- ICON V1: Seal -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('icon-v1', 'munshi-icon-seal')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="icon-v1" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+      </defs>
+      <polygon points="40,4 62,12 74,32 74,52 62,68 40,76 18,68 6,52 6,32 18,12" 
+               fill="none" stroke="url(#g1)" stroke-width="1.8"/>
+      <polygon points="40,10 58,17 69,34 69,50 58,63 40,70 22,63 11,50 11,34 22,17" 
+               fill="rgba(212,168,83,0.07)"/>
+      <text x="40" y="56" font-family="Cormorant Garamond, serif" font-size="44" font-weight="700" fill="url(#g1)" text-anchor="middle">M</text>
+      <circle cx="40" cy="66" r="2.5" fill="#D4A853" opacity="0.7"/>
+    </svg>
+    <div class="logo-name">Icon — Seal</div>
+  </div>
+
+  <!-- ICON V2: Circle with quill -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('icon-v2', 'munshi-icon-circle')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="icon-v2" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+        <linearGradient id="bgCircle" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1A3D35"/>
+          <stop offset="100%" stop-color="#102C26"/>
+        </linearGradient>
+      </defs>
+      <!-- Outer ring -->
+      <circle cx="40" cy="40" r="37" fill="url(#bgCircle)" stroke="url(#g2)" stroke-width="1.5"/>
+      <!-- Inner decoration ring -->
+      <circle cx="40" cy="40" r="31" fill="none" stroke="rgba(212,168,83,0.15)" stroke-width="0.8"/>
+      <!-- M -->
+      <text x="40" y="54" font-family="Cormorant Garamond, serif" font-size="40" font-weight="700" fill="url(#g2)" text-anchor="middle">M</text>
+      <!-- Corner ornaments -->
+      <circle cx="40" cy="14" r="2" fill="#D4A853" opacity="0.5"/>
+      <circle cx="40" cy="66" r="2" fill="#D4A853" opacity="0.5"/>
+      <circle cx="14" cy="40" r="2" fill="#D4A853" opacity="0.3"/>
+      <circle cx="66" cy="40" r="2" fill="#D4A853" opacity="0.3"/>
+    </svg>
+    <div class="logo-name">Icon — Circle</div>
+  </div>
+
+  <!-- ICON V3: Diamond -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('icon-v3', 'munshi-icon-diamond')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="icon-v3" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+      </defs>
+      <!-- Diamond shape -->
+      <path d="M 40 4 L 74 28 L 74 52 L 40 76 L 6 52 L 6 28 Z" 
+            fill="rgba(212,168,83,0.06)" stroke="url(#g3)" stroke-width="1.5"/>
+      <!-- Inner diamond -->
+      <path d="M 40 14 L 64 30 L 64 50 L 40 66 L 16 50 L 16 30 Z" 
+            fill="none" stroke="rgba(212,168,83,0.2)" stroke-width="0.7"/>
+      <!-- M -->
+      <text x="40" y="54" font-family="Cormorant Garamond, serif" font-size="38" font-weight="700" fill="url(#g3)" text-anchor="middle">M</text>
+    </svg>
+    <div class="logo-name">Icon — Diamond</div>
+  </div>
+
+  <!-- ICON V4: Square rounded - App Icon style -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('icon-v4', 'munshi-icon-app')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="icon-v4" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g4bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1E4438"/>
+          <stop offset="100%" stop-color="#102C26"/>
+        </linearGradient>
+        <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+      </defs>
+      <!-- App icon bg -->
+      <rect width="80" height="80" rx="18" fill="url(#g4bg)"/>
+      <!-- Border -->
+      <rect x="1" y="1" width="78" height="78" rx="17" fill="none" stroke="rgba(212,168,83,0.2)" stroke-width="1"/>
+      <!-- Corner dots decoration -->
+      <circle cx="16" cy="16" r="1.5" fill="#D4A853" opacity="0.3"/>
+      <circle cx="64" cy="16" r="1.5" fill="#D4A853" opacity="0.3"/>
+      <circle cx="16" cy="64" r="1.5" fill="#D4A853" opacity="0.3"/>
+      <circle cx="64" cy="64" r="1.5" fill="#D4A853" opacity="0.3"/>
+      <!-- M letterform -->
+      <text x="40" y="56" font-family="Cormorant Garamond, serif" font-size="46" font-weight="700" fill="url(#g4)" text-anchor="middle">M</text>
+      <!-- Underline accent -->
+      <line x1="24" y1="62" x2="56" y2="62" stroke="url(#g4)" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+    </svg>
+    <div class="logo-name">Icon — App (Rounded)</div>
+  </div>
+
+</div>
+
+<div class="section-label">✦ Horizontal Compact — Navbar Use</div>
+<div class="logos-row">
+
+  <!-- COMPACT DARK -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('logo-compact', 'munshi-navbar-dark')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-compact" width="160" height="44" viewBox="0 0 160 44" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gc1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+      </defs>
+      <!-- Mini icon -->
+      <polygon points="18,3 30,3 37,10 37,32 30,39 18,39 11,32 11,10" 
+               fill="none" stroke="url(#gc1)" stroke-width="1.3"/>
+      <text x="24" y="30" font-family="Cormorant Garamond, serif" font-size="22" font-weight="700" fill="url(#gc1)" text-anchor="middle">M</text>
+      <!-- Wordmark -->
+      <text x="48" y="26" font-family="Cormorant Garamond, serif" font-size="22" font-weight="700" fill="#F7E7CE" letter-spacing="3">MUNSHI</text>
+      <!-- Dot -->
+      <circle cx="24" cy="35" r="1.5" fill="#D4A853" opacity="0.6"/>
+    </svg>
+    <div class="logo-name">Navbar — Dark</div>
+  </div>
+
+  <!-- COMPACT WHITE BG -->
+  <div class="logo-box white-bg" onclick="downloadSVG('logo-compact-light', 'munshi-navbar-light')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-compact-light" width="160" height="44" viewBox="0 0 160 44" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="18,3 30,3 37,10 37,32 30,39 18,39 11,32 11,10" 
+               fill="none" stroke="#C4983F" stroke-width="1.3"/>
+      <text x="24" y="30" font-family="Cormorant Garamond, serif" font-size="22" font-weight="700" fill="#C4983F" text-anchor="middle">M</text>
+      <text x="48" y="26" font-family="Cormorant Garamond, serif" font-size="22" font-weight="700" fill="#102C26" letter-spacing="3">MUNSHI</text>
+      <circle cx="24" cy="35" r="1.5" fill="#C4983F" opacity="0.5"/>
+    </svg>
+    <div class="logo-name" style="color:#8A7560">Navbar — Light</div>
+  </div>
+
+  <!-- GOLD BG -->
+  <div class="logo-box gold-bg" onclick="downloadSVG('logo-gold', 'munshi-navbar-gold')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-gold" width="160" height="44" viewBox="0 0 160 44" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="18,3 30,3 37,10 37,32 30,39 18,39 11,32 11,10" 
+               fill="none" stroke="#102C26" stroke-width="1.3" opacity="0.5"/>
+      <text x="24" y="30" font-family="Cormorant Garamond, serif" font-size="22" font-weight="700" fill="#102C26" text-anchor="middle">M</text>
+      <text x="48" y="26" font-family="Cormorant Garamond, serif" font-size="22" font-weight="700" fill="#102C26" letter-spacing="3">MUNSHI</text>
+      <circle cx="24" cy="35" r="1.5" fill="#102C26" opacity="0.4"/>
+    </svg>
+    <div class="logo-name" style="color:rgba(16,44,38,0.6)">Navbar — Gold BG</div>
+  </div>
+
+</div>
+
+<div class="section-label">✦ Stacked — Social Media / Square Use</div>
+<div class="logos-row">
+
+  <!-- STACKED DARK -->
+  <div class="logo-box dark-bg" onclick="downloadSVG('logo-stacked', 'munshi-stacked-dark')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-stacked" width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gs1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F0C96A"/>
+          <stop offset="100%" stop-color="#C4983F"/>
+        </linearGradient>
+      </defs>
+      <!-- Icon centered -->
+      <polygon points="80,8 106,8 118,22 118,56 106,70 80,70 54,70 42,56 42,22 54,8" 
+               fill="none" stroke="url(#gs1)" stroke-width="1.8"/>
+      <polygon points="80,15 102,15 112,27 112,51 102,63 80,63 58,63 48,51 48,27 58,15" 
+               fill="rgba(212,168,83,0.06)"/>
+      <text x="80" y="57" font-family="Cormorant Garamond, serif" font-size="44" font-weight="700" fill="url(#gs1)" text-anchor="middle">M</text>
+      <circle cx="80" cy="66" r="2" fill="#D4A853" opacity="0.6"/>
+      <!-- Wordmark centered -->
+      <text x="80" y="92" font-family="Cormorant Garamond, serif" font-size="26" font-weight="700" fill="#F7E7CE" text-anchor="middle" letter-spacing="5">MUNSHI</text>
+      <!-- Tagline -->
+      <text x="80" y="108" font-family="DM Sans, sans-serif" font-size="8" font-weight="400" fill="#8A7560" text-anchor="middle" letter-spacing="2">AI WHATSAPP SECRETARY</text>
+    </svg>
+    <div class="logo-name">Stacked — Dark</div>
+  </div>
+
+  <!-- STACKED WHITE -->
+  <div class="logo-box white-bg" onclick="downloadSVG('logo-stacked-light', 'munshi-stacked-light')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-stacked-light" width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="80,8 106,8 118,22 118,56 106,70 80,70 54,70 42,56 42,22 54,8" 
+               fill="none" stroke="#C4983F" stroke-width="1.8"/>
+      <polygon points="80,15 102,15 112,27 112,51 102,63 80,63 58,63 48,51 48,27 58,15" 
+               fill="rgba(196,152,63,0.06)"/>
+      <text x="80" y="57" font-family="Cormorant Garamond, serif" font-size="44" font-weight="700" fill="#C4983F" text-anchor="middle">M</text>
+      <circle cx="80" cy="66" r="2" fill="#C4983F" opacity="0.5"/>
+      <text x="80" y="92" font-family="Cormorant Garamond, serif" font-size="26" font-weight="700" fill="#102C26" text-anchor="middle" letter-spacing="5">MUNSHI</text>
+      <text x="80" y="108" font-family="DM Sans, sans-serif" font-size="8" font-weight="400" fill="#8A7560" text-anchor="middle" letter-spacing="2">AI WHATSAPP SECRETARY</text>
+    </svg>
+    <div class="logo-name" style="color:#8A7560">Stacked — Light</div>
+  </div>
+
+  <!-- STACKED MINIMAL -->
+  <div class="logo-box" style="background:#1A3D35" onclick="downloadSVG('logo-minimal', 'munshi-minimal')">
+    <button class="download-btn">↓ Download</button>
+    <svg id="logo-minimal" width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gm1" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#D4A853"/>
+          <stop offset="100%" stop-color="#F0C96A"/>
+        </linearGradient>
+      </defs>
+      <!-- Just big M with ornament -->
+      <text x="80" y="72" font-family="Cormorant Garamond, serif" font-size="72" font-style="italic" font-weight="600" fill="url(#gm1)" text-anchor="middle">M</text>
+      <!-- decorative lines left right -->
+      <line x1="8" y1="82" x2="52" y2="82" stroke="rgba(212,168,83,0.3)" stroke-width="0.8"/>
+      <line x1="108" y1="82" x2="152" y2="82" stroke="rgba(212,168,83,0.3)" stroke-width="0.8"/>
+      <circle cx="80" cy="82" r="2" fill="#D4A853" opacity="0.5"/>
+      <text x="80" y="100" font-family="Cormorant Garamond, serif" font-size="18" font-weight="700" fill="#F7E7CE" text-anchor="middle" letter-spacing="6">MUNSHI</text>
+    </svg>
+    <div class="logo-name">Italic Minimal</div>
+  </div>
+
+</div>
+
+<div class="section-label">✦ Favicon — 32×32 optimized</div>
+<div class="logos-row">
+  <div class="logo-box dark-bg" onclick="downloadSVG('favicon-svg', 'munshi-favicon')">
+    <button class="download-btn">↓ Download</button>
+    <div style="display:flex;align-items:center;gap:24px;">
+      <svg id="favicon-svg" width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="7" fill="#102C26"/>
+        <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="rgba(212,168,83,0.3)" stroke-width="1"/>
+        <text x="16" y="23" font-family="Cormorant Garamond, serif" font-size="20" font-weight="700" fill="#D4A853" text-anchor="middle">M</text>
+      </svg>
+      <svg width="64" height="64" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="7" fill="#102C26"/>
+        <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="rgba(212,168,83,0.3)" stroke-width="1"/>
+        <text x="16" y="23" font-family="Cormorant Garamond, serif" font-size="20" font-weight="700" fill="#D4A853" text-anchor="middle">M</text>
+      </svg>
+      <svg width="128" height="128" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="7" fill="#102C26"/>
+        <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="rgba(212,168,83,0.3)" stroke-width="1"/>
+        <text x="16" y="23" font-family="Cormorant Garamond, serif" font-size="20" font-weight="700" fill="#D4A853" text-anchor="middle">M</text>
+      </svg>
+    </div>
+    <div class="logo-name">Favicon — 32px / 64px / 128px preview</div>
+  </div>
+</div>
+
+<script>
+function downloadSVG(svgId, filename) {
+  const svg = document.getElementById(svgId);
+  const serializer = new XMLSerializer();
+  let svgStr = serializer.serializeToString(svg);
+  
+  // Add proper namespace and font embed note
+  if (!svgStr.includes('xmlns="http://www.w3.org/2000/svg"')) {
+    svgStr = svgStr.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+  
+  const blob = new Blob([svgStr], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename + '.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
