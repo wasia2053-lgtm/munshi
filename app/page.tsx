@@ -32,23 +32,24 @@ export default function Home() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    const c = canvas;
+    const resize = () => { c.width = window.innerWidth; c.height = window.innerHeight; };
     resize();
     window.addEventListener('resize', resize);
     class Particle {
-      x = Math.random() * canvas.width;
-      y = Math.random() * canvas.height;
+      x = Math.random() * c.width;
+      y = Math.random() * c.height;
       vx = (Math.random() - 0.5) * 0.3;
       vy = (Math.random() - 0.5) * 0.3;
       r = Math.random() * 1.5 + 0.5;
       alpha = Math.random() * 0.4 + 0.1;
       reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        this.x = Math.random() * c.width;
+        this.y = Math.random() * c.height;
       }
       update() {
         this.x += this.vx; this.y += this.vy;
-        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+        if (this.x < 0 || this.x > c.width || this.y < 0 || this.y > c.height) this.reset();
       }
       draw() {
         ctx.beginPath();
@@ -60,7 +61,7 @@ export default function Home() {
     const particles = Array.from({ length: 80 }, () => new Particle());
     let rafId: number;
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, c.width, c.height);
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -82,6 +83,7 @@ export default function Home() {
     };
     animate();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafId); };
+
   }, []);
 
   useEffect(() => {
