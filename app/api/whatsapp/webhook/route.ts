@@ -125,6 +125,9 @@ async function processIncomingMessage(message: any) {
         console.log('AI Response:', aiResponse)
         console.log('Would send to WhatsApp:', from)
         
+        // Send response via WhatsApp API
+        await sendWhatsAppMessage(from, aiResponse)
+        
       } else {
         console.error('Failed to get AI response')
       }
@@ -134,5 +137,31 @@ async function processIncomingMessage(message: any) {
 
   } catch (error) {
     console.error('Error processing incoming message:', error)
+  }
+}
+
+async function sendWhatsAppMessage(customerPhone: string, message: string) {
+  try {
+    const response = await fetch(`https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: customerPhone,
+        type: 'text',
+        text: { body: message }
+      })
+    })
+
+    if (!response.ok) {
+      console.error('Failed to send WhatsApp message:', await response.text())
+    } else {
+      console.log('WhatsApp message sent successfully to:', customerPhone)
+    }
+  } catch (error) {
+    console.error('Error sending WhatsApp message:', error)
   }
 }
