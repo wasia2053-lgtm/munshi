@@ -1,8 +1,45 @@
-import React from 'react'
+'use client'
+
+import React, { useState } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import Link from 'next/link'
 
 export default function DashboardPage() {
+  const [testMessage, setTestMessage] = useState('')
+  const [aiResponse, setAiResponse] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const testAI = async () => {
+    if (!testMessage.trim()) return
+    
+    setIsLoading(true)
+    setAiResponse('')
+    
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: testMessage,
+          businessId: 'test'
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        setAiResponse(`Error: ${data.error}`)
+      } else {
+        setAiResponse(data.response)
+      }
+    } catch (error) {
+      setAiResponse('Error: Failed to connect to API')
+    } finally {
+      setIsLoading(false)
+    }
+  }
   return (
     <DashboardLayout 
       title="Dashboard" 
@@ -209,6 +246,42 @@ export default function DashboardPage() {
               153 messages left. <span className="text-[#D4A853] hover:text-[#F0C96A] cursor-pointer transition-colors">Upgrade for 5,000 msgs →</span>
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* AI Chat Test Section */}
+      <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
+        <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-4">Test AI Chat</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#C4A882] mb-2">
+              Test Message
+            </label>
+            <input
+              type="text"
+              value={testMessage}
+              onChange={(e) => setTestMessage(e.target.value)}
+              placeholder="Type a message to test the AI..."
+              className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
+              onKeyPress={(e) => e.key === 'Enter' && testAI()}
+            />
+          </div>
+          
+          <button
+            onClick={testAI}
+            disabled={isLoading || !testMessage.trim()}
+            className="px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Testing...' : 'Test AI'}
+          </button>
+          
+          {aiResponse && (
+            <div className="mt-4 p-4 bg-[#0D2420] border border-[#2A4A42] rounded-lg">
+              <div className="text-xs text-[#8A7560] mb-2">AI Response:</div>
+              <div className="text-sm text-[#F7E7CE] leading-relaxed">{aiResponse}</div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
