@@ -14,6 +14,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const { message, businessId } = await request.json()
+
     if (!message || !businessId) {
       return NextResponse.json(
         { error: 'Message and businessId are required' },
