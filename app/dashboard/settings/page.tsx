@@ -13,6 +13,10 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<'growth' | 'pro'>('growth')
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [paymentSubmitted, setPaymentSubmitted] = useState(false)
 
   const handleSavePersonality = () => {
     // Save bot personality settings
@@ -31,6 +35,47 @@ export default function SettingsPage() {
     }
     // Save password settings
     console.log('Saving password settings')
+  }
+
+  const handleUpgrade = (plan: 'growth' | 'pro') => {
+    setSelectedPlan(plan)
+    setShowPaymentModal(true)
+    setPaymentSubmitted(false)
+  }
+
+  const handlePaymentSubmit = async () => {
+    setIsProcessingPayment(true)
+    
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create',
+          plan: selectedPlan,
+          userId: 'current-user' // Replace with actual user ID from auth
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setPaymentSubmitted(true)
+        setTimeout(() => {
+          setShowPaymentModal(false)
+          setPaymentSubmitted(false)
+        }, 3000)
+      } else {
+        alert('Failed to process payment')
+      }
+    } catch (error) {
+      console.error('Payment error:', error)
+      alert('Failed to process payment')
+    } finally {
+      setIsProcessingPayment(false)
+    }
   }
 
   return (
@@ -236,11 +281,77 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <button className="w-full px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all">
+          <button 
+            onClick={() => handleUpgrade('growth')}
+            className="w-full px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
+          >
             Upgrade to Growth Plan
           </button>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-8 max-w-md w-full">
+            {!paymentSubmitted ? (
+              <>
+                <h3 className="font-serif text-2xl font-bold text-[#F7E7CE] mb-2">
+                  Upgrade to {selectedPlan === 'growth' ? 'Growth' : 'Pro'} Plan
+                </h3>
+                <div className="text-3xl font-bold text-[#D4A853] mb-6">
+                  PKR {selectedPlan === 'growth' ? '7,000' : '20,000'}
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
+                    <div className="text-sm text-[#8A7560] mb-1">JazzCash</div>
+                    <div className="text-lg font-semibold text-[#F7E7CE]">03XX-XXXXXXX</div>
+                  </div>
+                  <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
+                    <div className="text-sm text-[#8A7560] mb-1">EasyPaisa</div>
+                    <div className="text-lg font-semibold text-[#F7E7CE]">03XX-XXXXXXX</div>
+                  </div>
+                  <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
+                    <div className="text-sm text-[#8A7560] mb-1">Reference Number</div>
+                    <div className="text-lg font-semibold text-[#D4A853]">MUNSHI-CURRENTUSER</div>
+                  </div>
+                </div>
+
+                <div className="text-sm text-[#8A7560] mb-6">
+                  Payment screenshot send karne ke baad "I have paid" button click karein
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowPaymentModal(false)}
+                    className="flex-1 px-4 py-3 border border-[#2A4A42] text-[#C4A882] rounded-lg hover:bg-[#0D2420] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePaymentSubmit}
+                    disabled={isProcessingPayment}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50"
+                  >
+                    {isProcessingPayment ? 'Processing...' : 'I have paid'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">✅</div>
+                <div className="text-lg font-semibold text-[#D4A853] mb-2">
+                  Payment Under Review
+                </div>
+                <div className="text-sm text-[#C4A882]">
+                  24 hours mein activate ho jaye ga
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
