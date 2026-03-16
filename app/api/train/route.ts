@@ -142,11 +142,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Training API Error:', error)
-    return NextResponse.json({ 
-      error: error.message || 'Unknown error',
-      details: error 
+    return NextResponse.json({
+      error: error?.message || 'Unknown error',
+      details: String(error)
     }, { status: 500 })
   }
 }
