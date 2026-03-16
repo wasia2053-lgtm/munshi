@@ -20,6 +20,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -62,10 +63,35 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   return (
     <div className="flex min-h-screen bg-[#102C26]">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <aside className="w-[240px] bg-[#0D2420] border-r border-[#2A4A42] fixed left-0 top-0 bottom-0 z-50 flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-[#2A4A42]">
+      <aside className={`
+        fixed left-0 top-0 bottom-0 z-50 flex flex-col
+        w-[240px] bg-[#0D2420] border-r border-[#2A4A42]
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        lg:static lg:z-auto
+      `}>
+        {/* Mobile Close Button */}
+        <div className="lg:hidden flex justify-between items-center p-4 border-b border-[#2A4A42]">
+          <LogoCompact className="h-8" />
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="text-[#C4A882] hover:text-[#F7E7CE] text-2xl"
+          >
+            ✕
+          </button>
+        </div>
+        
+        {/* Desktop Logo */}
+        <div className="hidden lg:block p-6 border-b border-[#2A4A42]">
           <LogoCompact className="h-11" />
         </div>
 
@@ -160,16 +186,26 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       </aside>
 
       {/* Main Content */}
-      <div className="ml-[240px] flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-[240px]">
         {/* Topbar */}
-        <header className="h-16 bg-[rgba(16,44,38,0.8)] backdrop-blur-xl border-b border-[#2A4A42] flex items-center px-8 sticky top-0 z-40 justify-between">
-          <div className="flex flex-col">
-            <h1 className="font-serif text-xl font-bold text-[#F7E7CE]">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="text-xs text-[#8A7560] mt-1">{subtitle}</p>
-            )}
+        <header className="h-16 bg-[rgba(16,44,38,0.8)] backdrop-blur-xl border-b border-[#2A4A42] flex items-center px-4 lg:px-8 sticky top-0 z-40 justify-between">
+          <div className="flex items-center gap-4">
+            {/* Mobile Hamburger Menu */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden text-[#C4A882] hover:text-[#F7E7CE] text-2xl"
+            >
+              ☰
+            </button>
+            
+            <div className="flex flex-col">
+              <h1 className="font-serif text-lg lg:text-xl font-bold text-[#F7E7CE]">
+                {title}
+              </h1>
+              {subtitle && (
+                <p className="text-xs text-[#8A7560] mt-1">{subtitle}</p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <button className="w-9 h-9 rounded-full bg-[#1A3D35] border border-[#2A4A42] flex items-center justify-center text-base hover:border-[rgba(212,168,83,0.3)] hover:bg-[#223D37] transition-all relative">
@@ -183,7 +219,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-4 lg:p-8">
           {children}
         </main>
       </div>

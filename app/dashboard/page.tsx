@@ -101,15 +101,15 @@ export default function DashboardPage() {
       subtitle="Good morning! Here's your bot activity."
     >
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 mb-6 lg:mb-7">
         {/* Messages Stat */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-11 h-11 rounded-xl bg-[rgba(212,168,83,0.1)] border border-[rgba(212,168,83,0.2)] flex items-center justify-center text-xl">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 lg:p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-2px] lg:hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
+          <div className="flex items-center gap-3 lg:gap-4 mb-3 lg:mb-4">
+            <div className="w-9 h-9 lg:w-11 lg:h-11 rounded-lg lg:rounded-xl bg-[rgba(212,168,83,0.1)] border border-[rgba(212,168,83,0.2)] flex items-center justify-center text-lg lg:text-xl">
               💬
             </div>
           </div>
-          <div className="font-serif text-4xl font-bold text-[#F7E7CE] mb-1">1,247</div>
+          <div className="font-serif text-2xl lg:text-4xl font-bold text-[#F7E7CE] mb-1">1,247</div>
           <div className="text-xs text-[#8A7560] mb-2">Total Messages</div>
           <div className="text-xs flex items-center gap-1 text-[#4CAF82]">
             ↑ +12% this week
@@ -117,28 +117,28 @@ export default function DashboardPage() {
         </div>
 
         {/* Conversations Stat */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-11 h-11 rounded-xl bg-[rgba(212,168,83,0.1)] border border-[rgba(212,168,83,0.2)] flex items-center justify-center text-xl">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 lg:p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-2px] lg:hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
+          <div className="flex items-center gap-3 lg:gap-4 mb-3 lg:mb-4">
+            <div className="w-9 h-9 lg:w-11 lg:h-11 rounded-lg lg:rounded-xl bg-[rgba(212,168,83,0.1)] border border-[rgba(212,168,83,0.2)] flex items-center justify-center text-lg lg:text-xl">
               👥
             </div>
           </div>
-          <div className="font-serif text-4xl font-bold text-[#F7E7CE] mb-1">89</div>
-          <div className="text-xs text-[#8A7560] mb-2">Conversations</div>
+          <div className="font-serif text-2xl lg:text-4xl font-bold text-[#F7E7CE] mb-1">89</div>
+          <div className="text-xs text-[#8A7560] mb-2">Total Conversations</div>
           <div className="text-xs flex items-center gap-1 text-[#4CAF82]">
-            ↑ +5 today
+            ↑ +8% this week
           </div>
         </div>
 
         {/* WhatsApp Status */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-11 h-11 rounded-xl bg-[rgba(212,168,83,0.1)] border border-[rgba(212,168,83,0.2)] flex items-center justify-center text-xl">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 lg:p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-2px] lg:hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
+          <div className="flex items-center gap-3 lg:gap-4 mb-3 lg:mb-4">
+            <div className="w-9 h-9 lg:w-11 lg:h-11 rounded-lg lg:rounded-xl bg-[rgba(212,168,83,0.1)] border border-[rgba(212,168,83,0.2)] flex items-center justify-center text-lg lg:text-xl">
               📱
             </div>
           </div>
           <div className="mb-1">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
+            <span className="inline-flex items-center gap-1 px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82] animate-pulse"></span>
               Connected
             </span>
@@ -165,37 +165,33 @@ export default function DashboardPage() {
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Recent Conversations */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 lg:p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
           <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-[#F7E7CE]">Recent Conversations</h3>
-              <p className="text-xs text-[#8A7560]">Last 5 customer chats</p>
-            </div>
+            <h3 className="font-serif text-lg font-bold text-[#F7E7CE]">Recent Conversations</h3>
             <Link href="/dashboard/conversations">
-              <button className="px-4 py-2 text-sm font-medium border border-[rgba(212,168,83,0.3)] text-[#D4A853] rounded-lg hover:bg-[rgba(212,168,83,0.08)] hover:border-[#D4A853] transition-all">
+              <button className="text-xs text-[#D4A853] hover:text-[#F0C96A] transition-colors">
                 View All →
               </button>
             </Link>
           </div>
-          
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#2A4A42]">
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Customer</th>
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Last Message</th>
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Time</th>
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Status</th>
+                  <th className="text-left p-2 lg:p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Customer</th>
+                  <th className="text-left p-2 lg:p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Last Message</th>
+                  <th className="text-left p-2 lg:p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Time</th>
+                  <th className="text-left p-2 lg:p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-[rgba(42,74,66,0.4)] hover:bg-[rgba(247,231,206,0.03)] transition-colors">
-                  <td className="p-3 text-sm text-[#C4A882]">
+                  <td className="p-2 lg:p-3 text-sm text-[#C4A882]">
                     <span className="text-[#F7E7CE] font-medium">+92 301 1234567</span>
                   </td>
-                  <td className="p-3 text-sm text-[#C4A882]">Delivery kab hogi?</td>
-                  <td className="p-3 text-xs text-[#8A7560]">2 min ago</td>
-                  <td className="p-3">
+                  <td className="p-2 lg:p-3 text-sm text-[#C4A882]">Delivery kab hogi?</td>
+                  <td className="p-2 lg:p-3 text-xs text-[#8A7560]">2 min ago</td>
+                  <td className="p-2 lg:p-3">
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82] animate-pulse"></span>
                       Bot Active
@@ -203,12 +199,12 @@ export default function DashboardPage() {
                   </td>
                 </tr>
                 <tr className="border-b border-[rgba(42,74,66,0.4)] hover:bg-[rgba(247,231,206,0.03)] transition-colors">
-                  <td className="p-3 text-sm text-[#C4A882]">
+                  <td className="p-2 lg:p-3 text-sm text-[#C4A882]">
                     <span className="text-[#F7E7CE] font-medium">+92 333 9876543</span>
                   </td>
-                  <td className="p-3 text-sm text-[#C4A882]">COD available hai?</td>
-                  <td className="p-3 text-xs text-[#8A7560]">15 min ago</td>
-                  <td className="p-3">
+                  <td className="p-2 lg:p-3 text-sm text-[#C4A882]">COD available hai?</td>
+                  <td className="p-2 lg:p-3 text-xs text-[#8A7560]">15 min ago</td>
+                  <td className="p-2 lg:p-3">
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82] animate-pulse"></span>
                       Bot Active
@@ -216,12 +212,12 @@ export default function DashboardPage() {
                   </td>
                 </tr>
                 <tr className="border-b border-[rgba(42,74,66,0.4)] hover:bg-[rgba(247,231,206,0.03)] transition-colors">
-                  <td className="p-3 text-sm text-[#C4A882]">
+                  <td className="p-2 lg:p-3 text-sm text-[#C4A882]">
                     <span className="text-[#F7E7CE] font-medium">+92 321 5555111</span>
                   </td>
-                  <td className="p-3 text-sm text-[#C4A882]">Exchange policy kya h</td>
-                  <td className="p-3 text-xs text-[#8A7560]">1 hr ago</td>
-                  <td className="p-3">
+                  <td className="p-2 lg:p-3 text-sm text-[#C4A882]">Exchange policy kya h</td>
+                  <td className="p-2 lg:p-3 text-xs text-[#8A7560]">1 hr ago</td>
+                  <td className="p-2 lg:p-3">
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(212,168,83,0.12)] text-[#D4A853] border border-[rgba(212,168,83,0.25)]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#D4A853] animate-pulse"></span>
                       Review
