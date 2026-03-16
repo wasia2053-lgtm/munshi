@@ -87,12 +87,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       <aside 
         className="fixed left-0 top-0 bottom-0 z-50 flex flex-col w-[240px] bg-[#0D2420] border-r border-[#2A4A42]"
         style={{
-          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.3s ease-in-out'
+          transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
+          visibility: isMobile && !sidebarOpen ? 'hidden' : 'visible',
+          transition: 'transform 0.3s ease-in-out, visibility 0.3s ease-in-out'
         }}
       >
         {/* Mobile Close Button */}
-        {isMobile && (
+        {isMobile && sidebarOpen && (
           <div className="flex justify-between items-center p-4 border-b border-[#2A4A42]">
             <LogoCompact className="h-8" />
             <button
