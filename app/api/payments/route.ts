@@ -43,26 +43,30 @@ async function createPayment(plan: string, userId: string) {
   }
 
   const price = PLAN_PRICES[plan as keyof typeof PLAN_PRICES]
+  const referenceNumber = `MUNSHI-${userId.slice(0,8).toUpperCase()}`
 
-  // Create payment record
+  // Create payment record with basic columns only
   const { data: payment, error } = await supabase
     .from('payments')
     .insert({
       user_id: userId,
       plan: plan,
       amount: price,
-      currency: 'PKR',
       status: 'pending',
-      payment_method: 'manual',
-      created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      reference_number: referenceNumber
     })
     .select()
     .single()
 
   if (error) {
-    console.error('Error creating payment:', error)
-    return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 })
+    console.error('Error creating payment:', {
+      error: error,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      message: error.message
+    })
+    return NextResponse.json({ error: 'Failed to create payment', details: error.message }, { status: 500 })
   }
 
   return NextResponse.json({
@@ -73,19 +77,19 @@ async function createPayment(plan: string, userId: string) {
       amount: price,
       currency: 'PKR',
       status: 'pending',
-      expires_at: payment.expires_at,
+      reference_number: referenceNumber,
       payment_instructions: {
         jazzcash: {
-          account: '03XX XXXXXXX',
+          account: '0328-2847607',
           name: 'Munshi Services',
           amount: price,
-          reference: `MUNSHI-${payment.id.slice(-8).toUpperCase()}`
+          reference: referenceNumber
         },
         easypaisa: {
-          account: '03XX XXXXXXX',
+          account: '0328-2847607',
           name: 'Munshi Services',
           amount: price,
-          reference: `MUNSHI-${payment.id.slice(-8).toUpperCase()}`
+          reference: referenceNumber
         }
       },
       note: 'After payment, please send screenshot to confirm payment'
@@ -121,14 +125,19 @@ async function confirmPayment(paymentId: string, userId: string) {
   const { error: updateError } = await supabase
     .from('payments')
     .update({
-      status: 'confirmed',
-      confirmed_at: new Date().toISOString()
+      status: 'confirmed'
     })
     .eq('id', paymentId)
 
   if (updateError) {
-    console.error('Error updating payment:', updateError)
-    return NextResponse.json({ error: 'Failed to update payment' }, { status: 500 })
+    console.error('Error updating payment:', {
+      error: updateError,
+      details: updateError.details,
+      hint: updateError.hint,
+      code: updateError.code,
+      message: updateError.message
+    })
+    return NextResponse.json({ error: 'Failed to update payment', details: updateError.message }, { status: 500 })
   }
 
   // Update user subscription
@@ -138,18 +147,20 @@ async function confirmPayment(paymentId: string, userId: string) {
       user_id: userId,
       plan: plan,
       messages_limit: messagesLimit,
-      messages_used: 0,
-      status: 'active',
-      current_period_start: new Date().toISOString(),
-      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-      updated_at: new Date().toISOString()
+      status: 'active'
     }, {
       onConflict: 'user_id'
     })
 
   if (subscriptionError) {
-    console.error('Error updating subscription:', subscriptionError)
-    return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 })
+    console.error('Error updating subscription:', {
+      error: subscriptionError,
+      details: subscriptionError.details,
+      hint: subscriptionError.hint,
+      code: subscriptionError.code,
+      message: subscriptionError.message
+    })
+    return NextResponse.json({ error: 'Failed to update subscription', details: subscriptionError.message }, { status: 500 })
   }
 
   return NextResponse.json({
