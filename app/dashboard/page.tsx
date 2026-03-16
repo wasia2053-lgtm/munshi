@@ -264,7 +264,7 @@ export default function DashboardPage() {
                   💬 <span>View Conversations</span>
                 </button>
               </Link>
-              <button className="w-full px-4 py-3 text-left flex items-center gap-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all">
+              <button onClick={() => setShowPaymentModal(true)} className="w-full px-4 py-3 text-left flex items-center gap-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all">
                 ✨ <span>Upgrade to Growth</span>
               </button>
             </div>
