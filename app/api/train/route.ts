@@ -28,20 +28,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if business exists for this user, create if not
-    const { data: business } = await supabase
+    const { data: businessData, error: businessError } = await supabase
       .from('businesses')
       .select('id')
       .eq('user_id', userId)
       .single()
 
-    let businessId = business?.id
+    console.log('Step 1 - Finding business:', businessData, businessError)
+
+    let businessId = businessData?.id
 
     if (!businessId) {
-      const { data: newBusiness } = await supabase
+      const { data: newBusiness, error: createError } = await supabase
         .from('businesses')
         .insert({ user_id: userId, name: 'My Store' })
         .select('id')
         .single()
+      
+      console.log('Step 2 - Creating business:', newBusiness, createError)
+      
+      if (createError) {
+        return NextResponse.json({ 
+          error: createError.message || 'Failed to create business',
+          details: createError 
+        }, { status: 500 })
+      }
+      
       businessId = newBusiness?.id
     }
 
@@ -92,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to Supabase knowledge_base table
-    const { data, error } = await supabase
+    const { data: insertData, error: insertError } = await supabase
       .from('knowledge_base')
       .insert({
         business_id: businessId,
@@ -104,17 +116,19 @@ export async function POST(request: NextRequest) {
       })
       .select()
 
-    if (error) {
+    console.log('Step 3 - Inserting knowledge:', insertData, insertError)
+
+    if (insertError) {
       console.error('Supabase error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
       })
-      return NextResponse.json(
-        { error: 'Failed to save training data', details: error.message },
-        { status: 500 }
-      )
+      return NextResponse.json({ 
+        error: insertError.message || 'Failed to save training data',
+        details: insertError 
+      }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -129,10 +143,10 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Training API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Training API Error:', error)
+    return NextResponse.json({ 
+      error: error.message || 'Unknown error',
+      details: error 
+    }, { status: 500 })
   }
 }
