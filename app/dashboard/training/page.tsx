@@ -52,7 +52,7 @@ export default function TrainingPage() {
         },
         body: JSON.stringify({
           url: websiteUrl,
-          businessId: user.id
+          userId: user.id
         })
       })
       
@@ -88,10 +88,33 @@ export default function TrainingPage() {
     if (!manualText.trim() || !user) return
     
     try {
+      // First check if business exists, create if not
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      let businessId = business?.id
+
+      if (!businessId) {
+        const { data: newBusiness } = await supabase
+          .from('businesses')
+          .insert({ user_id: user.id, name: 'My Store' })
+          .select('id')
+          .single()
+        businessId = newBusiness?.id
+      }
+
+      if (!businessId) {
+        setTrainingMessage('Failed to create business')
+        return
+      }
+
       const { error } = await supabase
         .from('knowledge_base')
         .insert({
-          business_id: user.id,
+          business_id: businessId,
           source_type: 'manual',
           content: manualText,
           chunks_count: 1,
@@ -104,7 +127,7 @@ export default function TrainingPage() {
         setTrainingMessage('Manual text saved successfully!')
         setManualText('')
         // Refresh training history
-        fetchTrainingHistory(user.id)
+        fetchTrainingHistory(businessId)
       }
     } catch (error) {
       setTrainingMessage('Failed to save manual text')

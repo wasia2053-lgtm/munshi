@@ -8,11 +8,11 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { url, businessId } = await request.json()
+    const { url, userId } = await request.json()
 
-    if (!url || !businessId) {
+    if (!url || !userId) {
       return NextResponse.json(
-        { error: 'URL and businessId are required' },
+        { error: 'URL and userId are required' },
         { status: 400 }
       )
     }
@@ -24,6 +24,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid URL format' },
         { status: 400 }
+      )
+    }
+
+    // Check if business exists for this user, create if not
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    let businessId = business?.id
+
+    if (!businessId) {
+      const { data: newBusiness } = await supabase
+        .from('businesses')
+        .insert({ user_id: userId, name: 'My Store' })
+        .select('id')
+        .single()
+      businessId = newBusiness?.id
+    }
+
+    if (!businessId) {
+      return NextResponse.json(
+        { error: 'Failed to create business' },
+        { status: 500 }
       )
     }
 
