@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -12,6 +13,15 @@ export default function DashboardPage() {
   const [selectedPlan, setSelectedPlan] = useState<'growth' | 'pro'>('growth')
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentSubmitted, setPaymentSubmitted] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+  }, [])
 
   const testAI = async () => {
     if (!testMessage.trim()) return
@@ -63,7 +73,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'create',
           plan: selectedPlan,
-          userId: 'current-user' // Replace with actual user ID from auth
+          userId: user?.id || 'current-user'
         })
       })
       
@@ -346,15 +356,15 @@ export default function DashboardPage() {
                 <div className="space-y-4 mb-6">
                   <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
                     <div className="text-sm text-[#8A7560] mb-1">JazzCash</div>
-                    <div className="text-lg font-semibold text-[#F7E7CE]">03XX-XXXXXXX</div>
+                    <div className="text-lg font-semibold text-[#F7E7CE]">0328-2847607</div>
                   </div>
                   <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
                     <div className="text-sm text-[#8A7560] mb-1">EasyPaisa</div>
-                    <div className="text-lg font-semibold text-[#F7E7CE]">03XX-XXXXXXX</div>
+                    <div className="text-lg font-semibold text-[#F7E7CE]">0328-2847607</div>
                   </div>
                   <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
                     <div className="text-sm text-[#8A7560] mb-1">Reference Number</div>
-                    <div className="text-lg font-semibold text-[#D4A853]">MUNSHI-CURRENTUSER</div>
+                    <div className="text-lg font-semibold text-[#D4A853]">MUNSHI-{user?.id?.slice(0,8).toUpperCase() || 'CURRENTUSER'}</div>
                   </div>
                 </div>
 
