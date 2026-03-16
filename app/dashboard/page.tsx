@@ -101,7 +101,7 @@ export default function DashboardPage() {
       subtitle="Good morning! Here's your bot activity."
     >
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 mb-6 lg:mb-7">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Messages Stat */}
         <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 lg:p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-2px] lg:hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
           <div className="flex items-center gap-3 lg:gap-4 mb-3 lg:mb-4">

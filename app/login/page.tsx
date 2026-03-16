@@ -38,18 +38,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#102C26] flex items-center justify-center p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-[480px]">
+    <div className="min-h-screen bg-[#102C26] flex items-center justify-center">
+      <div className="w-full max-w-md mx-auto px-4">
         {/* Login Card */}
-        <div className="bg-[#1A3D35] border border-[#2A4A42] rounded-xl sm:rounded-2xl p-6 sm:p-8">
+        <div className="bg-[#1A3D35] border border-[#2A4A42] rounded-2xl p-8">
           {/* Logo */}
-          <div className="flex justify-center mb-6 sm:mb-8">
-            <LogoStacked className="w-24 h-18 sm:w-32 sm:h-24" />
+          <div className="flex justify-center mb-8">
+            <LogoStacked className="w-32 h-24" />
           </div>
 
           {/* Title */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#F7E7CE] mb-2">
+          <div className="text-center mb-8">
+            <h1 className="font-serif text-2xl font-bold text-[#F7E7CE] mb-2">
               Welcome Back
             </h1>
             <p className="text-sm text-[#8A7560]">
@@ -60,12 +60,12 @@ export default function LoginPage() {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-3 bg-[rgba(224,92,92,0.1)] border border-[rgba(224,92,92,0.25)] rounded-lg text-[#E05C5C] text-sm">
-            {error}
-          </div>
+              {error}
+            </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-[#C4A882] mb-2">

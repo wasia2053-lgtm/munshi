@@ -53,8 +53,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#102C26] flex items-center justify-center p-4">
-      <div className="w-full max-w-[480px]">
+    <div className="min-h-screen bg-[#102C26] flex items-center justify-center">
+      <div className="w-full max-w-md mx-auto px-4">
         {/* Signup Card */}
         <div className="bg-[#1A3D35] border border-[#2A4A42] rounded-2xl p-8">
           {/* Logo */}
