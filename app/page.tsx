@@ -281,6 +281,17 @@ export default function Home() {
         ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg-deep)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
         ::selection{background:rgba(212,168,83,.2);color:var(--cream)}
         a{color:inherit;text-decoration:none}
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+          .nav-links { display: none !important; }
+          .hero-headline { font-size: clamp(36px, 6vw, 96px) !important; }
+          .hero-ctas { flex-direction: column; max-width: 400px; margin: 0 auto; }
+          .features-grid { grid-template-columns: 1fr !important; }
+          .pricing-grid { grid-template-columns: 1fr !important; }
+          footer { flex-direction: column; text-align: center; }
+          .chat-mockup { width: 280px !important; }
+        }
       `}</style>
 
       {/* Cursor */}
