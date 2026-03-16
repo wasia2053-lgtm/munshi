@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { supabase } from '@/lib/supabase'
 
 export default function TrainingPage() {
   const [activeTab, setActiveTab] = useState('website')
@@ -10,23 +11,66 @@ export default function TrainingPage() {
   const [trainingProgress, setTrainingProgress] = useState(0)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [manualText, setManualText] = useState('')
+  const [user, setUser] = useState<any>(null)
+  const [trainingHistory, setTrainingHistory] = useState<any[]>([])
+  const [trainingMessage, setTrainingMessage] = useState('')
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      if (user) {
+        fetchTrainingHistory(user.id)
+      }
+    }
+    getUser()
+  }, [])
+
+  const fetchTrainingHistory = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('knowledge_base')
+      .select('*')
+      .eq('business_id', userId)
+      .order('created_at', { ascending: false })
+    
+    if (data && !error) {
+      setTrainingHistory(data)
+    }
+  }
 
   const handleWebsiteTraining = async () => {
-    if (!websiteUrl) return
+    if (!websiteUrl || !user) return
     setIsTraining(true)
     setTrainingProgress(0)
+    setTrainingMessage('')
     
-    // Simulate training progress
-    const interval = setInterval(() => {
-      setTrainingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsTraining(false)
-          return 100
-        }
-        return prev + 20
+    try {
+      const response = await fetch('/api/train', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: websiteUrl,
+          businessId: user.id
+        })
       })
-    }, 1000)
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setTrainingMessage('Training completed successfully!')
+        setWebsiteUrl('')
+        // Refresh training history
+        fetchTrainingHistory(user.id)
+      } else {
+        setTrainingMessage(`Training failed: ${data.error}`)
+      }
+    } catch (error) {
+      setTrainingMessage('Training failed: Network error')
+    } finally {
+      setIsTraining(false)
+    }
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +82,33 @@ export default function TrainingPage() {
 
   const removeFile = () => {
     setUploadedFile(null)
+  }
+
+  const handleManualTextSubmit = async () => {
+    if (!manualText.trim() || !user) return
+    
+    try {
+      const { error } = await supabase
+        .from('knowledge_base')
+        .insert({
+          business_id: user.id,
+          source_type: 'manual',
+          content: manualText,
+          chunks_count: 1,
+          created_at: new Date().toISOString()
+        })
+      
+      if (error) {
+        setTrainingMessage('Failed to save manual text')
+      } else {
+        setTrainingMessage('Manual text saved successfully!')
+        setManualText('')
+        // Refresh training history
+        fetchTrainingHistory(user.id)
+      }
+    } catch (error) {
+      setTrainingMessage('Failed to save manual text')
+    }
   }
 
   return (
@@ -242,6 +313,7 @@ export default function TrainingPage() {
               </div>
 
               <button
+                onClick={handleManualTextSubmit}
                 disabled={!manualText.trim()}
                 className="w-full py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -254,6 +326,18 @@ export default function TrainingPage() {
         {/* Training History */}
         <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6">
           <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-4">Training History</h3>
+          
+          {/* Training Message */}
+          {trainingMessage && (
+            <div className={`p-3 rounded-lg mb-4 text-sm ${
+              trainingMessage.includes('successfully') 
+                ? 'bg-[rgba(76,175,130,0.1)] text-[#4CAF82]' 
+                : 'bg-[rgba(224,92,92,0.1)] text-[#E05C5C]'
+            }`}>
+              {trainingMessage}
+            </div>
+          )}
+          
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -265,32 +349,36 @@ export default function TrainingPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-[rgba(42,74,66,0.4)] hover:bg-[rgba(247,231,206,0.03)] transition-colors">
-                  <td className="p-3 text-sm text-[#C4A882]">
-                    <span className="text-[#F7E7CE] font-medium">stylehub.pk/catalog</span>
-                  </td>
-                  <td className="p-3 text-sm text-[#C4A882]">Website</td>
-                  <td className="p-3">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82]"></span>
-                      Completed
-                    </span>
-                  </td>
-                  <td className="p-3 text-sm text-[#8A7560]">May 1, 2025</td>
-                </tr>
-                <tr className="hover:bg-[rgba(247,231,206,0.03)] transition-colors">
-                  <td className="p-3 text-sm text-[#C4A882]">
-                    <span className="text-[#F7E7CE] font-medium">product-manual.pdf</span>
-                  </td>
-                  <td className="p-3 text-sm text-[#C4A882]">PDF</td>
-                  <td className="p-3">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82]"></span>
-                      Completed
-                    </span>
-                  </td>
-                  <td className="p-3 text-sm text-[#8A7560]">Apr 28, 2025</td>
-                </tr>
+                {trainingHistory.map((item, index) => (
+                  <tr key={index} className="border-b border-[rgba(42,74,66,0.4)] hover:bg-[rgba(247,231,206,0.03)] transition-colors">
+                    <td className="p-3 text-sm text-[#C4A882]">
+                      <span className="text-[#F7E7CE] font-medium">
+                        {item.source_type === 'website' ? item.source_url : 
+                         item.source_type === 'manual' ? 'Manual Text' : 
+                         'Unknown'}
+                      </span>
+                    </td>
+                    <td className="p-3 text-sm text-[#C4A882]">
+                      {item.source_type}
+                    </td>
+                    <td className="p-3">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82]"></span>
+                        Completed
+                      </span>
+                    </td>
+                    <td className="p-3 text-sm text-[#8A7560]">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+                {trainingHistory.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-[#8A7560]">
+                      No training data found. Start by training your bot with website content or manual text.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
