@@ -205,8 +205,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: isMobile ? '0' : '240px' }}>
         {/* Topbar */}
-        <header className="h-16 bg-[rgba(16,44,38,0.8)] backdrop-blur-xl border-b border-[#2A4A42] flex items-center px-4 lg:px-8 sticky top-0 z-40 justify-between">
-          <div className="flex items-center gap-4">
+        <header className="h-16 bg-[rgba(16,44,38,0.8)] backdrop-blur-xl border-b border-[#2A4A42] flex items-center px-3 sm:px-4 md:px-6 lg:px-8 sticky top-0 z-40 justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Mobile Hamburger Menu */}
             {isMobile && (
               <button
@@ -218,7 +218,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             )}
             
             <div className="flex flex-col">
-              <h1 className="font-serif text-lg lg:text-xl font-bold text-[#F7E7CE]">
+              <h1 className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#F7E7CE]">
                 {title}
               </h1>
               {subtitle && (
@@ -226,7 +226,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button className="w-9 h-9 rounded-full bg-[#1A3D35] border border-[#2A4A42] flex items-center justify-center text-base hover:border-[rgba(212,168,83,0.3)] hover:bg-[#223D37] transition-all relative">
               🔔
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D4A853] border-2 border-[#0D2420]"></span>
@@ -237,9 +237,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-8">
-          {children}
+        {/* Page Content - Responsive Padding */}
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden">
+          <div className="w-full max-w-[1400px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
