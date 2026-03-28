@@ -1,73 +1,110 @@
 'use client'
 export const dynamic = 'force-dynamic';
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { supabase } from '@/lib/supabase'
 
-const conversations = [
-  {
-    id: 1, phone: '+92 301 1234567', lastMessage: 'Delivery kab hogi?',
-    time: '2 min ago', unread: true,
-    messages: [
-      { id: 1, sender: 'customer', text: 'Hello, I want to check my order status', time: '10:30 AM' },
-      { id: 2, sender: 'bot', text: "Hello! I'd be happy to help you check your order status. Could you please provide your order number?", time: '10:30 AM' },
-      { id: 3, sender: 'customer', text: 'Order #12345', time: '10:31 AM' },
-      { id: 4, sender: 'bot', text: 'Your order #12345 is currently being processed and will be delivered within 2-3 business days.', time: '10:31 AM' },
-      { id: 5, sender: 'customer', text: 'Delivery kab hogi?', time: '10:32 AM' },
-    ]
-  },
-  {
-    id: 2, phone: '+92 333 9876543', lastMessage: 'COD available hai?',
-    time: '15 min ago', unread: true,
-    messages: [
-      { id: 1, sender: 'customer', text: 'Hi, do you offer cash on delivery?', time: '10:15 AM' },
-      { id: 2, sender: 'bot', text: "Yes, we offer COD for all orders within Pakistan. There's no additional charge.", time: '10:15 AM' },
-      { id: 3, sender: 'customer', text: 'COD available hai?', time: '10:16 AM' },
-    ]
-  },
-  {
-    id: 3, phone: '+92 321 5555111', lastMessage: 'Exchange policy kya h',
-    time: '1 hr ago', unread: false,
-    messages: [
-      { id: 1, sender: 'customer', text: 'What is your exchange policy?', time: '9:30 AM' },
-      { id: 2, sender: 'bot', text: 'We offer a 7-day exchange policy. Items must be unused with original tags.', time: '9:30 AM' },
-      { id: 3, sender: 'customer', text: 'Exchange policy kya h', time: '9:31 AM' },
-    ]
-  },
-  {
-    id: 4, phone: '+92 311 2223334', lastMessage: 'Price kya hai shirt ka',
-    time: '2 hr ago', unread: false,
-    messages: [
-      { id: 1, sender: 'customer', text: 'Price kya hai shirt ka', time: '8:30 AM' },
-      { id: 2, sender: 'bot', text: 'Our shirts range from PKR 1,500 to PKR 3,500 depending on the design and fabric.', time: '8:30 AM' },
-    ]
-  },
-  {
-    id: 5, phone: '+92 345 6667778', lastMessage: 'Order cancel karna h',
-    time: '3 hr ago', unread: false,
-    messages: [
-      { id: 1, sender: 'customer', text: 'I need to cancel my order', time: '7:30 AM' },
-      { id: 2, sender: 'bot', text: 'I can help you cancel your order. Please provide your order number and reason.', time: '7:30 AM' },
-      { id: 3, sender: 'customer', text: 'Order #67890 - Changed my mind', time: '7:31 AM' },
-      { id: 4, sender: 'bot', text: 'Your order #67890 has been successfully cancelled. Refund within 3-5 business days.', time: '7:31 AM' },
-    ]
-  },
-]
+type Message = {
+  id: string
+  conversation_id: string
+  sender: string
+  content: string
+  timestamp: string
+}
 
-const filters = ['All', 'Unread', 'Bot Active', 'Human']
+type Conversation = {
+  id: string
+  business_id: string
+  customer_phone: string
+  created_at: string
+  updated_at: string
+  lastMessage?: string
+  messages?: Message[]
+}
+
+const filters = ['All', 'Unread', 'Bot Active']
+
+function timeAgo(dateStr: string) {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`
+  return `${Math.floor(diff / 86400)} days ago`
+}
 
 export default function ConversationsPage() {
-  const [selected, setSelected]         = useState(0)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selected, setSelected] = useState<number>(0)
   const [activeFilter, setActiveFilter] = useState('All')
   const [messageInput, setMessageInput] = useState('')
-  const [isTyping, setIsTyping]         = useState(false)
-  const [showChat, setShowChat]         = useState(false) // mobile toggle
+  const [isTyping, setIsTyping] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch conversations + their messages
+  useEffect(() => {
+    fetchConversations()
+
+    // Realtime subscription — auto refresh jab naya message aaye
+    const channel = supabase
+      .channel('conversations-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        fetchConversations()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
+        fetchConversations()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  async function fetchConversations() {
+    setLoading(true)
+    try {
+      // Get all conversations
+      const { data: convs, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .order('updated_at', { ascending: false })
+
+      if (error || !convs) { setLoading(false); return }
+
+      // For each conversation, get messages
+      const convsWithMessages = await Promise.all(
+        convs.map(async (conv) => {
+          const { data: msgs } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conv.id)
+            .order('timestamp', { ascending: true })
+
+          const messages = msgs || []
+          const lastMsg = messages[messages.length - 1]
+
+          return {
+            ...conv,
+            messages,
+            lastMessage: lastMsg?.content || 'No messages yet',
+          }
+        })
+      )
+
+      setConversations(convsWithMessages)
+    } catch (e) {
+      console.error('Error fetching conversations:', e)
+    }
+    setLoading(false)
+  }
 
   const current = conversations[selected]
 
   const handleSelect = (index: number) => {
     setSelected(index)
-    setShowChat(true) // on mobile, switch to chat view
+    setShowChat(true)
   }
 
   const handleSend = () => {
@@ -79,10 +116,9 @@ export default function ConversationsPage() {
   return (
     <DashboardLayout
       title="Conversations"
-      subtitle="Monitor and respond to customer conversations"
+      subtitle={`${conversations.length} total conversations`}
     >
       <style>{`
-        /* ── SHELL ── */
         .conv-shell {
           display: flex;
           height: calc(100vh - 130px);
@@ -92,8 +128,6 @@ export default function ConversationsPage() {
           overflow: hidden;
           background: #102C26;
         }
-
-        /* ── LEFT PANEL ── */
         .conv-list-panel {
           width: 300px;
           flex-shrink: 0;
@@ -103,8 +137,6 @@ export default function ConversationsPage() {
           flex-direction: column;
           overflow: hidden;
         }
-
-        /* ── RIGHT PANEL ── */
         .conv-chat-panel {
           flex: 1;
           display: flex;
@@ -112,8 +144,6 @@ export default function ConversationsPage() {
           overflow: hidden;
           min-width: 0;
         }
-
-        /* ── LIST HEADER ── */
         .list-header {
           padding: 16px;
           border-bottom: 1px solid #2A4A42;
@@ -131,7 +161,6 @@ export default function ConversationsPage() {
           gap: 4px;
           overflow-x: auto;
           scrollbar-width: none;
-          -webkit-overflow-scrolling: touch;
         }
         .filter-row::-webkit-scrollbar { display: none; }
         .filter-btn {
@@ -153,8 +182,6 @@ export default function ConversationsPage() {
           color: #D4A853;
           border-color: rgba(212,168,83,0.25);
         }
-
-        /* ── CONV ITEMS ── */
         .conv-items { flex: 1; overflow-y: auto; }
         .conv-item {
           display: flex;
@@ -193,9 +220,6 @@ export default function ConversationsPage() {
         }
         .conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
         .conv-time { font-size: 11px; color: #8A7560; white-space: nowrap; }
-        .conv-dot { width: 8px; height: 8px; border-radius: 50%; background: #D4A853; }
-
-        /* ── CHAT HEADER ── */
         .chat-header {
           padding: 14px 16px;
           border-bottom: 1px solid #2A4A42;
@@ -219,8 +243,6 @@ export default function ConversationsPage() {
         .chat-back-btn:hover { color: #F7E7CE; }
         .chat-name { font-size: 14px; font-weight: 600; color: #F7E7CE; }
         .chat-status { font-size: 12px; color: #4CAF82; margin-top: 1px; }
-
-        /* ── MESSAGES ── */
         .chat-messages {
           flex: 1;
           overflow-y: auto;
@@ -257,8 +279,6 @@ export default function ConversationsPage() {
           border-radius: 16px 16px 4px 16px;
         }
         .msg-time { font-size: 11px; color: #8A7560; margin-top: 4px; }
-
-        /* typing dots */
         .typing-wrap {
           align-self: flex-end;
           background: rgba(212,168,83,0.08);
@@ -278,8 +298,6 @@ export default function ConversationsPage() {
           0%,100% { transform: translateY(0); opacity: 0.7; }
           50% { transform: translateY(-5px); opacity: 1; }
         }
-
-        /* ── CHAT INPUT ── */
         .chat-input-bar {
           padding: 12px 14px;
           background: #0D2420;
@@ -316,15 +334,38 @@ export default function ConversationsPage() {
         }
         .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,168,83,0.3); }
 
-        /* ── MOBILE ── */
+        /* Empty state */
+        .empty-state {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          color: #8A7560;
+          font-size: 14px;
+        }
+        .empty-icon { font-size: 40px; opacity: 0.5; }
+
+        /* Loading skeleton */
+        .skeleton {
+          background: linear-gradient(90deg, #1A3D35 25%, #223D37 50%, #1A3D35 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 6px;
+          height: 12px;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+
         @media (max-width: 768px) {
           .conv-shell {
             height: calc(100vh - 120px);
             border-radius: 16px;
             position: relative;
           }
-
-          /* List panel: full width on mobile */
           .conv-list-panel {
             width: 100%;
             position: absolute;
@@ -339,8 +380,6 @@ export default function ConversationsPage() {
             opacity: 0;
             pointer-events: none;
           }
-
-          /* Chat panel: full width on mobile */
           .conv-chat-panel {
             width: 100%;
             position: absolute;
@@ -358,17 +397,10 @@ export default function ConversationsPage() {
             pointer-events: auto;
             z-index: 3;
           }
-
-          /* Show back button on mobile */
           .chat-back-btn { display: block; }
-
-          /* Smaller avatar */
           .conv-avatar { width: 36px; height: 36px; font-size: 12px; }
-
-          /* Msg max width wider on small screens */
           .msg-wrap { max-width: 88%; }
         }
-
         @media (max-width: 480px) {
           .conv-shell { height: calc(100vh - 110px); border-radius: 14px; }
           .list-header { padding: 12px; }
@@ -382,9 +414,10 @@ export default function ConversationsPage() {
 
         {/* ── LEFT: Conversation List ── */}
         <div className={`conv-list-panel${showChat ? ' hide-mobile' : ''}`}>
-
           <div className="list-header">
-            <div className="list-title">All Conversations</div>
+            <div className="list-title">
+              {loading ? 'Loading...' : `${conversations.length} Conversations`}
+            </div>
             <div className="filter-row">
               {filters.map(f => (
                 <button
@@ -399,73 +432,110 @@ export default function ConversationsPage() {
           </div>
 
           <div className="conv-items">
-            {conversations.map((conv, i) => (
-              <div
-                key={conv.id}
-                className={`conv-item${selected === i ? ' active' : ''}`}
-                onClick={() => handleSelect(i)}
-              >
-                <div className="conv-avatar">{conv.phone.slice(-2)}</div>
-                <div className="conv-info">
-                  <div className="conv-phone">{conv.phone}</div>
-                  <div className="conv-last">{conv.lastMessage}</div>
+            {loading ? (
+              // Skeleton loading
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="conv-item" style={{ opacity: 0.5 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#1A3D35' }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="skeleton" style={{ width: '60%' }} />
+                    <div className="skeleton" style={{ width: '80%' }} />
+                  </div>
                 </div>
-                <div className="conv-meta">
-                  <div className="conv-time">{conv.time}</div>
-                  {conv.unread && <div className="conv-dot" />}
-                </div>
+              ))
+            ) : conversations.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8A7560', fontSize: 13 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
+                Koi conversation nahi abhi tak.
+                <br />WhatsApp pe message bhejo!
               </div>
-            ))}
+            ) : (
+              conversations.map((conv, i) => (
+                <div
+                  key={conv.id}
+                  className={`conv-item${selected === i ? ' active' : ''}`}
+                  onClick={() => handleSelect(i)}
+                >
+                  <div className="conv-avatar">
+                    {conv.customer_phone.slice(-2).toUpperCase()}
+                  </div>
+                  <div className="conv-info">
+                    <div className="conv-phone">{conv.customer_phone}</div>
+                    <div className="conv-last">{conv.lastMessage}</div>
+                  </div>
+                  <div className="conv-meta">
+                    <div className="conv-time">{timeAgo(conv.updated_at)}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         {/* ── RIGHT: Chat Panel ── */}
         <div className={`conv-chat-panel${showChat ? ' show-mobile' : ''}`}>
 
-          {/* Chat Header */}
-          <div className="chat-header">
-            <button className="chat-back-btn" onClick={() => setShowChat(false)}>← </button>
-            <div className="conv-avatar gold">{current.phone.slice(-2)}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="chat-name">{current.phone}</div>
-              <div className="chat-status">● Active now</div>
+          {!current ? (
+            <div className="empty-state">
+              <div className="empty-icon">👈</div>
+              <div>Conversation select karo</div>
             </div>
-            <button style={{ background: 'none', border: 'none', color: '#8A7560', fontSize: 20, cursor: 'pointer' }}>⋯</button>
-          </div>
-
-          {/* Messages */}
-          <div className="chat-messages">
-            {current.messages.map(msg => (
-              <div key={msg.id} className={`msg-wrap ${msg.sender}`}>
-                <div className="msg-sender">
-                  {msg.sender === 'customer' ? '👤 Customer' : '🤖 Bot'}
+          ) : (
+            <>
+              {/* Chat Header */}
+              <div className="chat-header">
+                <button className="chat-back-btn" onClick={() => setShowChat(false)}>←</button>
+                <div className="conv-avatar gold">
+                  {current.customer_phone.slice(-2).toUpperCase()}
                 </div>
-                <div className={`msg-bubble ${msg.sender}`}>{msg.text}</div>
-                <div className="msg-time">{msg.time}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="chat-name">{current.customer_phone}</div>
+                  <div className="chat-status">
+                    ● {current.messages?.length || 0} messages
+                  </div>
+                </div>
               </div>
-            ))}
 
-            {isTyping && (
-              <div className="typing-wrap">
-                <div className="tdot" /><div className="tdot" /><div className="tdot" />
+              {/* Messages */}
+              <div className="chat-messages">
+                {!current.messages || current.messages.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#8A7560', fontSize: 13, marginTop: 40 }}>
+                    Koi messages nahi abhi tak
+                  </div>
+                ) : (
+                  current.messages.map((msg) => (
+                    <div key={msg.id} className={`msg-wrap ${msg.sender}`}>
+                      <div className="msg-sender">
+                        {msg.sender === 'customer' ? '👤 Customer' : '🤖 Munshi'}
+                      </div>
+                      <div className={`msg-bubble ${msg.sender}`}>{msg.content}</div>
+                      <div className="msg-time">{timeAgo(msg.timestamp)}</div>
+                    </div>
+                  ))
+                )}
+
+                {isTyping && (
+                  <div className="typing-wrap">
+                    <div className="tdot" /><div className="tdot" /><div className="tdot" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Input */}
-          <div className="chat-input-bar">
-            <input
-              className="chat-input"
-              type="text"
-              value={messageInput}
-              onChange={e => setMessageInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Type your message..."
-            />
-            <button className="send-btn" onClick={handleSend}>➤</button>
-          </div>
+              {/* Input */}
+              <div className="chat-input-bar">
+                <input
+                  className="chat-input"
+                  type="text"
+                  value={messageInput}
+                  onChange={e => setMessageInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSend()}
+                  placeholder="Type your message..."
+                />
+                <button className="send-btn" onClick={handleSend}>➤</button>
+              </div>
+            </>
+          )}
         </div>
-
       </div>
     </DashboardLayout>
   )
