@@ -102,7 +102,7 @@ export default function DashboardPage() {
       subtitle="Good morning! Here's your bot activity."
     >
       {/* Stats Grid - Responsive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
         {/* Messages Stat */}
         <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 hover:border-[rgba(212,168,83,0.25)] hover:transform hover:translateY-[-2px] lg:hover:translateY-[-3px] hover:shadow-xl hover:shadow-[rgba(0,0,0,0.3)] transition-all">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
@@ -164,10 +164,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Content Grid - Responsive */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-7">
         {/* Recent Conversations - Mobile Optimized */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 hover:border-[rgba(212,168,83,0.2)] transition-all overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 sm:mb-4">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-7 hover:border-[rgba(212,168,83,0.2)] transition-all overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <h3 className="font-serif text-base sm:text-lg font-bold text-[#F7E7CE]">Recent Conversations</h3>
             <Link href="/dashboard/conversations">
               <button className="text-xs text-[#D4A853] hover:text-[#F0C96A] transition-colors whitespace-nowrap">
@@ -260,30 +260,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column - Responsive */}
-        <div className="flex flex-col gap-3 sm:gap-4 lg:gap-5">
+        <div className="flex flex-col gap-5 sm:gap-6 lg:gap-7">
           {/* Quick Actions */}
-          <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-            <h3 className="font-serif text-base sm:text-lg font-bold text-[#F7E7CE] mb-3 sm:mb-4">Quick Actions</h3>
-            <div className="flex flex-col gap-2 sm:gap-3">
+          <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-7 hover:border-[rgba(212,168,83,0.2)] transition-all">
+            <h3 className="font-serif text-base sm:text-lg font-bold text-[#F7E7CE] mb-4 sm:mb-5">Quick Actions</h3>
+            <div className="flex flex-col gap-3 sm:gap-4">
               <Link href="/dashboard/training">
-                <button className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left flex items-center gap-3 border border-[rgba(212,168,83,0.3)] text-[#D4A853] rounded-lg hover:bg-[rgba(212,168,83,0.08)] hover:border-[#D4A853] transition-all text-sm sm:text-base">
+                <button className="w-full px-3 sm:px-4 py-3 sm:py-4 text-left flex items-center gap-3 border border-[rgba(212,168,83,0.3)] text-[#D4A853] rounded-lg hover:bg-[rgba(212,168,83,0.08)] hover:border-[#D4A853] transition-all text-sm sm:text-base">
                   🧠 <span>Train My Bot</span>
                 </button>
               </Link>
               <Link href="/dashboard/conversations">
-                <button className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left flex items-center gap-3 border border-[rgba(196,168,130,0.3)] text-[#C4A882] rounded-lg hover:bg-[rgba(247,231,206,0.04)] hover:border-[#C4A882] hover:text-[#F7E7CE] transition-all text-sm sm:text-base">
+                <button className="w-full px-3 sm:px-4 py-3 sm:py-4 text-left flex items-center gap-3 border border-[rgba(196,168,130,0.3)] text-[#C4A882] rounded-lg hover:bg-[rgba(247,231,206,0.04)] hover:border-[#C4A882] hover:text-[#F7E7CE] transition-all text-sm sm:text-base">
                   💬 <span>View Conversations</span>
                 </button>
               </Link>
-              <button onClick={() => setShowPaymentModal(true)} className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left flex items-center gap-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all text-sm sm:text-base">
+              <button onClick={() => setShowPaymentModal(true)} className="w-full px-3 sm:px-4 py-3 sm:py-4 text-left flex items-center gap-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all text-sm sm:text-base">
                 ✨ <span>Upgrade to Growth</span>
               </button>
             </div>
           </div>
 
           {/* Plan Usage */}
-          <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
+          <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-7 hover:border-[rgba(212,168,83,0.2)] transition-all">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
               <h3 className="font-serif text-base sm:text-lg font-bold text-[#F7E7CE]">Plan Usage</h3>
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[rgba(196,168,130,0.08)] text-[#C4A882] border border-[rgba(196,168,130,0.15)] whitespace-nowrap">
                 Free Plan
@@ -306,10 +306,10 @@ export default function DashboardPage() {
       </div>
 
       {/* AI Chat Test Section - Responsive */}
-      <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-        <h3 className="font-serif text-base sm:text-lg font-bold text-[#F7E7CE] mb-3 sm:mb-4">Test AI Chat</h3>
+      <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-7 hover:border-[rgba(212,168,83,0.2)] transition-all">
+        <h3 className="font-serif text-base sm:text-lg font-bold text-[#F7E7CE] mb-4 sm:mb-5">Test AI Chat</h3>
         
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-4 sm:space-y-5">
           <div>
             <label className="block text-xs sm:text-sm font-medium text-[#C4A882] mb-2">
               Test Message
