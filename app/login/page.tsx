@@ -3,7 +3,6 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { LogoStacked } from '@/components/logos'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -44,7 +43,14 @@ export default function LoginPage() {
         <div className="bg-[#1A3D35] border border-[#2A4A42] rounded-2xl p-5 sm:p-6 md:p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6 sm:mb-8">
-            <LogoStacked className="w-24 h-16 sm:w-28 h-20 md:w-32 h-24" />
+            <div className="flex flex-col items-center">
+              <span className="font-serif text-3xl sm:text-4xl md:text-4xl font-bold text-[#D4A853] tracking-[3px] sm:tracking-[3.5px] leading-none">
+                MUNSHI
+              </span>
+              <span className="text-[9px] sm:text-[10px] md:text-[11px] font-light text-[#C4A882] tracking-[2px] sm:tracking-[2.5px] uppercase mt-2">
+                AI WhatsApp Secretary
+              </span>
+            </div>
           </div>
 
           {/* Title */}
