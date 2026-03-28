@@ -1,4 +1,3 @@
-
 'use client'
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +20,7 @@ export default function TrainingPage() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
-      if (user) {
-        fetchTrainingHistory(user.id)
-      }
+      if (user) fetchTrainingHistory(user.id)
     }
     getUser()
   }, [])
@@ -34,10 +31,7 @@ export default function TrainingPage() {
       .select('*')
       .eq('business_id', userId)
       .order('created_at', { ascending: false })
-    
-    if (data && !error) {
-      setTrainingHistory(data)
-    }
+    if (data && !error) setTrainingHistory(data)
   }
 
   const handleWebsiteTraining = async () => {
@@ -45,30 +39,21 @@ export default function TrainingPage() {
     setIsTraining(true)
     setTrainingProgress(0)
     setTrainingMessage('')
-    
     try {
       const response = await fetch('/api/train', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: websiteUrl,
-          userId: user.id
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: websiteUrl, userId: user.id })
       })
-      
       const data = await response.json()
-      
       if (data.success) {
         setTrainingMessage('Training completed successfully!')
         setWebsiteUrl('')
-        // Refresh training history
         fetchTrainingHistory(user.id)
       } else {
         setTrainingMessage(`Training failed: ${data.error}`)
       }
-    } catch (error) {
+    } catch {
       setTrainingMessage('Training failed: Network error')
     } finally {
       setIsTraining(false)
@@ -77,336 +62,509 @@ export default function TrainingPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setUploadedFile(file)
-    }
+    if (file) setUploadedFile(file)
   }
 
-  const removeFile = () => {
-    setUploadedFile(null)
-  }
+  const removeFile = () => setUploadedFile(null)
 
   const handleManualTextSubmit = async () => {
     if (!manualText.trim() || !user) return
-    
     try {
-      // First check if business exists, create if not
       const { data: business } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
+        .from('businesses').select('id').eq('user_id', user.id).single()
       let businessId = business?.id
-
       if (!businessId) {
         const { data: newBusiness } = await supabase
-          .from('businesses')
-          .insert({ user_id: user.id, name: 'My Store' })
-          .select('id')
-          .single()
+          .from('businesses').insert({ user_id: user.id, name: 'My Store' }).select('id').single()
         businessId = newBusiness?.id
       }
-
-      if (!businessId) {
-        setTrainingMessage('Failed to create business')
-        return
-      }
-
-      const { error } = await supabase
-        .from('knowledge_base')
-        .insert({
-          business_id: businessId,
-          source_type: 'manual',
-          content: manualText,
-          chunks_count: 1,
-          created_at: new Date().toISOString()
-        })
-      
-      if (error) {
-        setTrainingMessage('Failed to save manual text')
-      } else {
+      if (!businessId) { setTrainingMessage('Failed to create business'); return }
+      const { error } = await supabase.from('knowledge_base').insert({
+        business_id: businessId, source_type: 'manual',
+        content: manualText, chunks_count: 1, created_at: new Date().toISOString()
+      })
+      if (error) { setTrainingMessage('Failed to save manual text') }
+      else {
         setTrainingMessage('Manual text saved successfully!')
         setManualText('')
-        // Refresh training history
         fetchTrainingHistory(businessId)
       }
-    } catch (error) {
+    } catch {
       setTrainingMessage('Failed to save manual text')
     }
   }
 
+  const tabs = [
+    { key: 'website', label: '🌐 Website URL' },
+    { key: 'pdf',     label: '📄 Upload PDF' },
+    { key: 'manual',  label: '✏️ Manual Text' },
+  ]
+
+  const steps = [
+    { pct: 20,  label: 'Analyzing website structure...' },
+    { pct: 40,  label: 'Extracting content and data...' },
+    { pct: 60,  label: 'Processing business information...' },
+    { pct: 80,  label: 'Training AI model...' },
+    { pct: 100, label: 'Finalizing and testing...' },
+  ]
+
   return (
-    <DashboardLayout 
-      title="Bot Training" 
+    <DashboardLayout
+      title="Bot Training"
       subtitle="Teach your bot about your business and services"
     >
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#0D2420] p-1 rounded-xl w-fit">
-        <button
-          onClick={() => setActiveTab('website')}
-          className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'website'
-              ? 'bg-[#1A3D35] text-[#D4A853] border border-[rgba(212,168,83,0.2)]'
-              : 'text-[#C4A882] hover:text-[#F7E7CE]'
-          }`}
-        >
-          Website URL
-        </button>
-        <button
-          onClick={() => setActiveTab('pdf')}
-          className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'pdf'
-              ? 'bg-[#1A3D35] text-[#D4A853] border border-[rgba(212,168,83,0.2)]'
-              : 'text-[#C4A882] hover:text-[#F7E7CE]'
-          }`}
-        >
-          Upload PDF
-        </button>
-        <button
-          onClick={() => setActiveTab('manual')}
-          className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'manual'
-              ? 'bg-[#1A3D35] text-[#D4A853] border border-[rgba(212,168,83,0.2)]'
-              : 'text-[#C4A882] hover:text-[#F7E7CE]'
-          }`}
-        >
-          Manual Text
-        </button>
+      <style>{`
+        /* ── TABS ── */
+        .train-tabs {
+          display: flex;
+          gap: 4px;
+          background: #0D2420;
+          padding: 4px;
+          border-radius: 14px;
+          margin-bottom: 24px;
+          width: fit-content;
+          max-width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .train-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn {
+          padding: 9px 18px;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 500;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+          font-family: 'DM Sans', sans-serif;
+          background: transparent;
+          color: #C4A882;
+        }
+        .tab-btn:hover { color: #F7E7CE; }
+        .tab-btn.active {
+          background: #1A3D35;
+          color: #D4A853;
+          border: 1px solid rgba(212,168,83,0.2);
+        }
+
+        /* ── CARD ── */
+        .train-card {
+          background: linear-gradient(135deg, #1A3D35, #142E28);
+          border: 1px solid #2A4A42;
+          border-radius: 20px;
+          padding: 24px;
+          margin-bottom: 20px;
+        }
+
+        /* ── INFO BOX ── */
+        .info-box {
+          padding: 14px 16px;
+          background: #0D2420;
+          border-left: 3px solid #D4A853;
+          border-radius: 0 10px 10px 0;
+          margin-bottom: 20px;
+          font-size: 13px;
+          color: #C4A882;
+          line-height: 1.6;
+        }
+
+        /* ── URL INPUT ROW ── */
+        .url-row {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+        .url-input {
+          flex: 1;
+          min-width: 0;
+          padding: 12px 14px;
+          background: #0D2420;
+          border: 1px solid #2A4A42;
+          border-radius: 10px;
+          color: #F7E7CE;
+          font-size: 14px;
+          font-family: 'DM Sans', sans-serif;
+          outline: none;
+          transition: border 0.2s;
+        }
+        .url-input::placeholder { color: #8A7560; }
+        .url-input:focus { border-color: #D4A853; box-shadow: 0 0 0 3px rgba(212,168,83,0.1); }
+        .btn-train {
+          padding: 12px 20px;
+          background: linear-gradient(135deg, #D4A853, #C4983F);
+          color: #0D2420;
+          font-size: 14px;
+          font-weight: 600;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+          font-family: 'DM Sans', sans-serif;
+          flex-shrink: 0;
+        }
+        .btn-train:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,168,83,0.3); }
+        .btn-train:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── PROGRESS ── */
+        .progress-box {
+          background: #0D2420;
+          border: 1px solid #2A4A42;
+          border-radius: 14px;
+          padding: 20px;
+        }
+        .progress-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          color: #C4A882;
+          margin-bottom: 8px;
+        }
+        .progress-bar-bg {
+          height: 6px;
+          background: #2A4A42;
+          border-radius: 999px;
+          overflow: hidden;
+          margin-bottom: 20px;
+        }
+        .progress-bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #D4A853, #F0C96A);
+          border-radius: 999px;
+          transition: width 0.5s ease;
+        }
+        .progress-step {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 13px;
+          color: #C4A882;
+          padding: 4px 0;
+        }
+        .step-dot {
+          width: 20px; height: 20px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px;
+          flex-shrink: 0;
+        }
+        .step-dot.done { background: rgba(76,175,130,0.15); border: 1px solid #4CAF82; color: #4CAF82; }
+        .step-dot.active { background: rgba(212,168,83,0.15); border: 1px solid #D4A853; color: #D4A853; }
+        .step-dot.pending { background: rgba(42,74,66,0.5); border: 1px solid #2A4A42; color: #8A7560; }
+
+        /* ── PDF UPLOAD ── */
+        .upload-zone {
+          border: 2px dashed #2A4A42;
+          border-radius: 14px;
+          padding: 40px 20px;
+          text-align: center;
+          cursor: pointer;
+          background: #0D2420;
+          transition: all 0.2s;
+          margin-bottom: 14px;
+        }
+        .upload-zone:hover { border-color: rgba(212,168,83,0.4); background: rgba(212,168,83,0.02); }
+        .upload-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.7; }
+        .upload-title { font-size: 15px; font-weight: 500; color: #F7E7CE; margin-bottom: 6px; }
+        .upload-sub { font-size: 13px; color: #8A7560; }
+        .file-preview {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: #0D2420;
+          border: 1px solid #2A4A42;
+          border-radius: 10px;
+          margin-bottom: 14px;
+        }
+        .file-name { flex: 1; font-size: 13px; color: #F7E7CE; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-remove { color: #8A7560; cursor: pointer; font-size: 20px; line-height: 1; transition: color 0.2s; flex-shrink: 0; }
+        .file-remove:hover { color: #E05C5C; }
+
+        /* ── TEXTAREA ── */
+        .train-textarea {
+          width: 100%;
+          padding: 14px;
+          background: #0D2420;
+          border: 1px solid #2A4A42;
+          border-radius: 10px;
+          color: #F7E7CE;
+          font-size: 14px;
+          font-family: 'DM Sans', sans-serif;
+          line-height: 1.6;
+          resize: vertical;
+          min-height: 160px;
+          outline: none;
+          transition: border 0.2s;
+        }
+        .train-textarea::placeholder { color: #8A7560; }
+        .train-textarea:focus { border-color: #D4A853; box-shadow: 0 0 0 3px rgba(212,168,83,0.1); }
+        .char-count { font-size: 12px; color: #8A7560; text-align: right; margin-top: 6px; }
+
+        /* ── FULL WIDTH BTN ── */
+        .btn-full {
+          width: 100%;
+          padding: 13px;
+          background: linear-gradient(135deg, #D4A853, #C4983F);
+          color: #0D2420;
+          font-size: 15px;
+          font-weight: 600;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: 'DM Sans', sans-serif;
+          margin-top: 4px;
+        }
+        .btn-full:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(212,168,83,0.3); }
+        .btn-full:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── MESSAGE ── */
+        .train-msg {
+          padding: 12px 14px;
+          border-radius: 10px;
+          font-size: 13px;
+          margin-bottom: 16px;
+          line-height: 1.5;
+        }
+        .train-msg.success { background: rgba(76,175,130,0.1); color: #4CAF82; border: 1px solid rgba(76,175,130,0.2); }
+        .train-msg.error { background: rgba(224,92,92,0.1); color: #E05C5C; border: 1px solid rgba(224,92,92,0.2); }
+
+        /* ── HISTORY TABLE ── */
+        .history-card {
+          background: linear-gradient(135deg, #1A3D35, #142E28);
+          border: 1px solid #2A4A42;
+          border-radius: 20px;
+          padding: 24px;
+        }
+        .history-title {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 18px;
+          font-weight: 700;
+          color: #F7E7CE;
+          margin-bottom: 18px;
+        }
+        .history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .history-table { width: 100%; min-width: 460px; border-collapse: collapse; }
+        .history-table th {
+          text-align: left;
+          padding: 10px 12px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          color: #8A7560;
+          border-bottom: 1px solid #2A4A42;
+        }
+        .history-table td {
+          padding: 12px;
+          font-size: 13px;
+          color: #C4A882;
+          border-bottom: 1px solid rgba(42,74,66,0.4);
+          vertical-align: middle;
+        }
+        .history-table tr:last-child td { border-bottom: none; }
+        .history-table tr:hover td { background: rgba(247,231,206,0.02); }
+        .source-text { color: #F7E7CE; font-weight: 500; }
+        .status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 500;
+          background: rgba(76,175,130,0.1);
+          color: #4CAF82;
+          border: 1px solid rgba(76,175,130,0.2);
+        }
+        .status-dot-green {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: #4CAF82;
+          flex-shrink: 0;
+        }
+        .empty-row td {
+          padding: 40px 12px;
+          text-align: center;
+          color: #8A7560;
+          font-size: 13px;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 640px) {
+          .train-tabs { width: 100%; }
+          .tab-btn { padding: 8px 13px; font-size: 12px; }
+          .train-card { padding: 16px; }
+          .history-card { padding: 16px; }
+          .url-row { flex-direction: column; }
+          .btn-train { width: 100%; }
+          .upload-zone { padding: 28px 16px; }
+        }
+      `}</style>
+
+      {/* ── TABS ── */}
+      <div className="train-tabs">
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            className={`tab-btn${activeTab === t.key ? ' active' : ''}`}
+            onClick={() => setActiveTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Tab Content */}
-      <div className="space-y-6">
-        {activeTab === 'website' && (
-          <div>
-            {/* Info Box */}
-            <div className="p-4 bg-[#0D2420] border-l-3 border-l-[#D4A853] rounded-r-lg mb-6">
-              <p className="text-sm text-[#C4A882] leading-relaxed">
-                Enter your website URL and our AI will crawl and learn from your product pages, 
-                services, and business information to provide accurate responses to customer queries.
-              </p>
-            </div>
-
-            {/* URL Input */}
-            <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6">
-              <div className="flex gap-3 mb-4">
-                <input
-                  type="url"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://yourwebsite.com"
-                  className="flex-1 px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-                />
-                <button
-                  onClick={handleWebsiteTraining}
-                  disabled={!websiteUrl || isTraining}
-                  className="px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isTraining ? 'Training...' : 'Train Bot'}
-                </button>
-              </div>
-
-              {/* Progress Card */}
-              {isTraining && (
-                <div className="p-5 bg-[#0D2420] border border-[#2A4A42] rounded-xl">
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm text-[#C4A882] mb-2">
-                      <span>Training Progress</span>
-                      <span>{trainingProgress}%</span>
-                    </div>
-                    <div className="h-1.5 bg-[#2A4A42] rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-[#D4A853] to-[#F0C96A] rounded-full transition-all duration-500"
-                        style={{ width: `${trainingProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                        trainingProgress >= 20 ? 'bg-[rgba(76,175,130,0.15)] border border-[#4CAF82] text-[#4CAF82]' : 'bg-[rgba(42,74,66,0.5)] border border-[#2A4A42] text-[#8A7560]'
-                      }`}>
-                        {trainingProgress >= 20 ? '✓' : trainingProgress > 0 && trainingProgress < 20 ? '⟳' : ''}
-                      </div>
-                      <span className="text-[#C4A882]">Analyzing website structure...</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                        trainingProgress >= 40 ? 'bg-[rgba(76,175,130,0.15)] border border-[#4CAF82] text-[#4CAF82]' : 'bg-[rgba(42,74,66,0.5)] border border-[#2A4A42] text-[#8A7560]'
-                      }`}>
-                        {trainingProgress >= 40 ? '✓' : trainingProgress > 20 && trainingProgress < 40 ? '⟳' : ''}
-                      </div>
-                      <span className="text-[#C4A882]">Extracting content and data...</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                        trainingProgress >= 60 ? 'bg-[rgba(76,175,130,0.15)] border border-[#4CAF82] text-[#4CAF82]' : 'bg-[rgba(42,74,66,0.5)] border border-[#2A4A42] text-[#8A7560]'
-                      }`}>
-                        {trainingProgress >= 60 ? '✓' : trainingProgress > 40 && trainingProgress < 60 ? '⟳' : ''}
-                      </div>
-                      <span className="text-[#C4A882]">Processing business information...</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                        trainingProgress >= 80 ? 'bg-[rgba(76,175,130,0.15)] border border-[#4CAF82] text-[#4CAF82]' : 'bg-[rgba(42,74,66,0.5)] border border-[#2A4A42] text-[#8A7560]'
-                      }`}>
-                        {trainingProgress >= 80 ? '✓' : trainingProgress > 60 && trainingProgress < 80 ? '⟳' : ''}
-                      </div>
-                      <span className="text-[#C4A882]">Training AI model...</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                        trainingProgress >= 100 ? 'bg-[rgba(76,175,130,0.15)] border border-[#4CAF82] text-[#4CAF82]' : 'bg-[rgba(42,74,66,0.5)] border border-[#2A4A42] text-[#8A7560]'
-                      }`}>
-                        {trainingProgress >= 100 ? '✓' : trainingProgress > 80 && trainingProgress < 100 ? '⟳' : ''}
-                      </div>
-                      <span className="text-[#C4A882]">Finalizing and testing...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+      {/* ── WEBSITE TAB ── */}
+      {activeTab === 'website' && (
+        <div className="train-card">
+          <div className="info-box">
+            Enter your website URL and our AI will crawl and learn from your product pages,
+            services, and business information to provide accurate responses to customer queries.
           </div>
-        )}
 
-        {activeTab === 'pdf' && (
-          <div>
-            {/* Upload Area */}
-            <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6">
-              <div className="border-2 border-dashed border-[#2A4A42] rounded-xl p-12 text-center cursor-pointer hover:border-[rgba(212,168,83,0.4)] hover:bg-[rgba(212,168,83,0.03)] transition-all bg-[#0D2420]">
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="pdf-upload"
-                />
-                <label htmlFor="pdf-upload" className="cursor-pointer">
-                  <div className="text-4xl mb-3 opacity-60">📄</div>
-                  <div className="text-base font-medium text-[#F7E7CE] mb-2">
-                    Upload PDF Document
-                  </div>
-                  <div className="text-sm text-[#8A7560]">
-                    Drag and drop your PDF here or click to browse
-                  </div>
-                </label>
-              </div>
-
-              {/* File Preview */}
-              {uploadedFile && (
-                <div className="flex items-center gap-3 p-4 bg-[#0D2420] border border-[#2A4A42] rounded-lg mt-4">
-                  <div className="text-2xl">📄</div>
-                  <div className="flex-1 text-sm text-[#F7E7CE]">{uploadedFile.name}</div>
-                  <button
-                    onClick={removeFile}
-                    className="text-[#8A7560] hover:text-[#E05C5C] text-xl transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-
-              <button
-                disabled={!uploadedFile}
-                className="w-full mt-4 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Train from PDF
-              </button>
-            </div>
+          <div className="url-row">
+            <input
+              type="url"
+              className="url-input"
+              value={websiteUrl}
+              onChange={e => setWebsiteUrl(e.target.value)}
+              placeholder="https://yourwebsite.com"
+            />
+            <button
+              className="btn-train"
+              onClick={handleWebsiteTraining}
+              disabled={!websiteUrl || isTraining}
+            >
+              {isTraining ? '⏳ Training...' : '🚀 Train Bot'}
+            </button>
           </div>
-        )}
 
-        {activeTab === 'manual' && (
-          <div>
-            {/* Manual Text Input */}
-            <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-[#C4A882] mb-2">
-                  Business Information
-                </label>
-                <textarea
-                  value={manualText}
-                  onChange={(e) => setManualText(e.target.value)}
-                  placeholder="Enter information about your business, products, services, policies, etc. The more detailed information you provide, the better your bot will be able to assist customers."
-                  className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all resize-vertical min-h-32 leading-relaxed"
-                  rows={8}
-                />
-                <div className="text-xs text-[#8A7560] mt-2 text-right">
-                  {manualText.length} characters
-                </div>
+          {isTraining && (
+            <div className="progress-box">
+              <div className="progress-header">
+                <span>Training Progress</span>
+                <span>{trainingProgress}%</span>
               </div>
-
-              <button
-                onClick={handleManualTextSubmit}
-                disabled={!manualText.trim()}
-                className="w-full py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Train from Text
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Training History */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6">
-          <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-4">Training History</h3>
-          
-          {/* Training Message */}
-          {trainingMessage && (
-            <div className={`p-3 rounded-lg mb-4 text-sm ${
-              trainingMessage.includes('successfully') 
-                ? 'bg-[rgba(76,175,130,0.1)] text-[#4CAF82]' 
-                : 'bg-[rgba(224,92,92,0.1)] text-[#E05C5C]'
-            }`}>
-              {trainingMessage}
+              <div className="progress-bar-bg">
+                <div className="progress-bar-fill" style={{ width: `${trainingProgress}%` }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {steps.map((s, i) => {
+                  const done = trainingProgress >= s.pct
+                  const prev = i === 0 ? 0 : steps[i - 1].pct
+                  const active = !done && trainingProgress > prev
+                  return (
+                    <div className="progress-step" key={i}>
+                      <div className={`step-dot ${done ? 'done' : active ? 'active' : 'pending'}`}>
+                        {done ? '✓' : active ? '⟳' : ''}
+                      </div>
+                      <span>{s.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#2A4A42]">
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Source</th>
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Type</th>
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Status</th>
-                  <th className="text-left p-3 text-xs font-semibold tracking-wider uppercase text-[#8A7560]">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trainingHistory.map((item, index) => (
-                  <tr key={index} className="border-b border-[rgba(42,74,66,0.4)] hover:bg-[rgba(247,231,206,0.03)] transition-colors">
-                    <td className="p-3 text-sm text-[#C4A882]">
-                      <span className="text-[#F7E7CE] font-medium">
-                        {item.source_type === 'website' ? item.source_url : 
-                         item.source_type === 'manual' ? 'Manual Text' : 
-                         'Unknown'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm text-[#C4A882]">
-                      {item.source_type}
-                    </td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[rgba(76,175,130,0.12)] text-[#4CAF82] border border-[rgba(76,175,130,0.25)]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF82]"></span>
-                        Completed
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm text-[#8A7560]">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-                {trainingHistory.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-[#8A7560]">
-                      No training data found. Start by training your bot with website content or manual text.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        </div>
+      )}
+
+      {/* ── PDF TAB ── */}
+      {activeTab === 'pdf' && (
+        <div className="train-card">
+          <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="pdf-upload" />
+          <label htmlFor="pdf-upload">
+            <div className="upload-zone">
+              <div className="upload-icon">📄</div>
+              <div className="upload-title">Upload PDF Document</div>
+              <div className="upload-sub">Drag and drop your PDF here, or click to browse</div>
+            </div>
+          </label>
+
+          {uploadedFile && (
+            <div className="file-preview">
+              <span style={{ fontSize: 22 }}>📄</span>
+              <span className="file-name">{uploadedFile.name}</span>
+              <span className="file-remove" onClick={removeFile}>×</span>
+            </div>
+          )}
+
+          <button className="btn-full" disabled={!uploadedFile}>
+            Train from PDF
+          </button>
+        </div>
+      )}
+
+      {/* ── MANUAL TAB ── */}
+      {activeTab === 'manual' && (
+        <div className="train-card">
+          <label style={{ display: 'block', fontSize: 13, color: '#C4A882', marginBottom: 8, fontWeight: 500 }}>
+            Business Information
+          </label>
+          <textarea
+            className="train-textarea"
+            value={manualText}
+            onChange={e => setManualText(e.target.value)}
+            placeholder="Enter information about your business, products, services, policies, etc. The more detail you provide, the better your bot will assist customers."
+            rows={8}
+          />
+          <div className="char-count">{manualText.length} characters</div>
+          <button className="btn-full" onClick={handleManualTextSubmit} disabled={!manualText.trim()}>
+            Train from Text
+          </button>
+        </div>
+      )}
+
+      {/* ── TRAINING HISTORY ── */}
+      <div className="history-card">
+        <div className="history-title">Training History</div>
+
+        {trainingMessage && (
+          <div className={`train-msg ${trainingMessage.includes('successfully') ? 'success' : 'error'}`}>
+            {trainingMessage.includes('successfully') ? '✅' : '❌'} {trainingMessage}
           </div>
+        )}
+
+        <div className="history-table-wrap">
+          <table className="history-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trainingHistory.length > 0 ? trainingHistory.map((item, i) => (
+                <tr key={i}>
+                  <td>
+                    <span className="source-text">
+                      {item.source_type === 'website' ? item.source_url :
+                       item.source_type === 'manual' ? 'Manual Text' : 'Unknown'}
+                    </span>
+                  </td>
+                  <td style={{ textTransform: 'capitalize' }}>{item.source_type}</td>
+                  <td>
+                    <span className="status-pill">
+                      <span className="status-dot-green" />
+                      Completed
+                    </span>
+                  </td>
+                  <td>{new Date(item.created_at).toLocaleDateString()}</td>
+                </tr>
+              )) : (
+                <tr className="empty-row">
+                  <td colSpan={4}>
+                    No training data yet — start by training your bot above! 🚀
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </DashboardLayout>
