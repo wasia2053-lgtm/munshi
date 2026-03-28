@@ -182,7 +182,9 @@
   }
   .nav-links a:hover { color: var(--cream); }
   .nav-links a:hover::after { width: 100%; }
+  
   .nav-actions { display: flex; gap: 12px; align-items: center; }
+  
   .btn-ghost {
     padding: 9px 22px;
     border: 1px solid rgba(196,168,130,0.4);
@@ -217,6 +219,70 @@
     transform: translateY(-1px);
     box-shadow: 0 8px 24px rgba(212,168,83,0.3);
     filter: brightness(1.1);
+  }
+
+  /* HAMBURGER MENU */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .hamburger span {
+    width: 24px;
+    height: 2px;
+    background: var(--cream);
+    transition: all 0.3s ease;
+  }
+
+  .hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+  }
+
+  .hamburger.active span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+  }
+
+  /* MOBILE MENU */
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background: rgba(13,36,32,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(42,74,66,0.6);
+    flex-direction: column;
+    gap: 0;
+    z-index: 99;
+  }
+
+  .mobile-menu.active {
+    display: flex;
+  }
+
+  .mobile-menu a {
+    padding: 16px 48px;
+    color: var(--cream-muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    border-bottom: 1px solid rgba(42,74,66,0.4);
+    transition: all 0.2s;
+  }
+
+  .mobile-menu a:hover {
+    color: var(--gold);
+    background: rgba(212,168,83,0.08);
   }
 
   /* ── HERO ── */
@@ -771,14 +837,18 @@
   /* ── SELECTION ── */
   ::selection { background: rgba(212,168,83,0.2); color: var(--cream); }
 
-@media (max-width: 900px) {
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
     nav { padding: 0 16px; height: 64px; }
     .nav-logo-text { font-size: 20px; letter-spacing: 2px; }
     .nav-logo-sub { font-size: 8px; }
     .nav-links { display: none; }
+    .hamburger { display: flex; }
     .nav-actions { gap: 8px; }
     .btn-ghost { padding: 8px 14px; font-size: 12px; border-radius: 6px; }
     .btn-gold { padding: 8px 14px; font-size: 12px; border-radius: 6px; }
+    .mobile-menu { top: 64px; }
+    .mobile-menu a { padding: 14px 24px; font-size: 13px; }
     
     .hero { padding: 100px 24px 60px; }
     .features-grid, .pricing-grid { grid-template-columns: 1fr; }
@@ -797,8 +867,10 @@
     .nav-logo-text { font-size: 18px; letter-spacing: 1.5px; }
     .nav-logo-sub { font-size: 7px; letter-spacing: 1px; }
     .nav-actions { gap: 6px; }
-    .btn-ghost { display: none !important; }
+    .btn-ghost { padding: 7px 12px; font-size: 11px; }
     .btn-gold { padding: 7px 12px; font-size: 11px; }
+    .mobile-menu { top: 56px; }
+    .mobile-menu a { padding: 12px 20px; font-size: 12px; }
     
     .hero { padding: 80px 16px 50px; }
     .hero-headline { font-size: clamp(36px, 7vw, 52px); }
@@ -842,8 +914,20 @@
     <div class="nav-actions">
       <a href="#" class="btn-ghost">Login</a>
       <a href="#" class="btn-gold">Start Free →</a>
+      <button class="hamburger" id="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
   </nav>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#pricing">Pricing</a>
+  </div>
 
   <!-- HERO -->
   <section class="hero">
@@ -1102,6 +1186,23 @@
   // ── NAVBAR SCROLL ──
   window.addEventListener('scroll', () => {
     document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // ── HAMBURGER MENU ──
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('active');
+    mobileMenu.classList.toggle('active');
+  });
+
+  // Close menu when link clicked
+  document.querySelectorAll('.mobile-menu a').forEach(link => {
+    link.addEventListener('click', () => {
+      hamburger.classList.remove('active');
+      mobileMenu.classList.remove('active');
+    });
   });
 
   // ── TYPING ANIMATION ──
