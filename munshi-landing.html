@@ -771,9 +771,15 @@
   /* ── SELECTION ── */
   ::selection { background: rgba(212,168,83,0.2); color: var(--cream); }
 
-  @media (max-width: 900px) {
-    nav { padding: 0 24px; }
+@media (max-width: 900px) {
+    nav { padding: 0 16px; height: 64px; }
+    .nav-logo-text { font-size: 20px; letter-spacing: 2px; }
+    .nav-logo-sub { font-size: 8px; }
     .nav-links { display: none; }
+    .nav-actions { gap: 8px; }
+    .btn-ghost { padding: 8px 14px; font-size: 12px; border-radius: 6px; }
+    .btn-gold { padding: 8px 14px; font-size: 12px; border-radius: 6px; }
+    
     .hero { padding: 100px 24px 60px; }
     .features-grid, .pricing-grid { grid-template-columns: 1fr; }
     .pricing-card.featured { transform: none; }
@@ -784,6 +790,23 @@
     .features, .pricing, .how-it-works { padding: 60px 24px; }
     footer { padding: 32px 24px; flex-direction: column; text-align: center; }
     .footer-links { justify-content: center; }
+  }
+
+  @media (max-width: 640px) {
+    nav { padding: 0 12px; height: 56px; }
+    .nav-logo-text { font-size: 18px; letter-spacing: 1.5px; }
+    .nav-logo-sub { font-size: 7px; letter-spacing: 1px; }
+    .nav-actions { gap: 6px; }
+    .btn-ghost { display: none; }
+    .btn-gold { padding: 7px 12px; font-size: 11px; }
+    
+    .hero { padding: 80px 16px 50px; }
+    .hero-headline { font-size: clamp(36px, 7vw, 52px); }
+    .hero-ctas { gap: 8px; }
+    .btn-hero-primary, .btn-hero-secondary { padding: 12px 24px; font-size: 14px; }
+    .stats-bar { padding: 30px 16px; }
+    .features, .pricing, .how-it-works { padding: 50px 16px; }
+    footer { padding: 24px 16px; }
   }
 </style>
 </head>
