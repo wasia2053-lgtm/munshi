@@ -1,15 +1,17 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const typingRef = useRef<HTMLSpanElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Custom cursor
     const cursor = cursorRef.current;
     const ring = ringRef.current;
     if (!cursor || !ring) return;
@@ -28,7 +30,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Particles
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
@@ -43,10 +44,7 @@ export default function Home() {
       vy = (Math.random() - 0.5) * 0.3;
       r = Math.random() * 1.5 + 0.5;
       alpha = Math.random() * 0.4 + 0.1;
-      reset() {
-        this.x = Math.random() * c.width;
-        this.y = Math.random() * c.height;
-      }
+      reset() { this.x = Math.random() * c.width; this.y = Math.random() * c.height; }
       update() {
         this.x += this.vx; this.y += this.vy;
         if (this.x < 0 || this.x > c.width || this.y < 0 || this.y > c.height) this.reset();
@@ -83,11 +81,9 @@ export default function Home() {
     };
     animate();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafId); };
-
   }, []);
 
   useEffect(() => {
-    // Typing animation
     const el = typingRef.current;
     if (!el) return;
     const words = ['WhatsApp queries', 'late night orders', 'Roman Urdu messages', 'angry customers', 'COD confirmations', 'shipping questions'];
@@ -111,7 +107,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Scroll navbar
     const nav = document.getElementById('navbar');
     const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 50);
     window.addEventListener('scroll', onScroll);
@@ -119,7 +114,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Counter + scroll reveal
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -147,6 +141,9 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
+  // Close menu when any mobile nav link is clicked
+  const closeMobileMenu = () => setMenuOpen(false);
+
   return (
     <>
       <style>{`
@@ -168,15 +165,64 @@ export default function Home() {
         @keyframes drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-40px) scale(1.05)}66%{transform:translate(-20px,20px) scale(.95)}}
         canvas { position:fixed;inset:0;z-index:0;pointer-events:none; }
         .page { position:relative;z-index:2; }
-        nav { position:fixed;top:0;left:0;right:0;z-index:100;padding:0 48px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(16,44,38,.6);backdrop-filter:blur(20px);border-bottom:1px solid rgba(42,74,66,.6);transition:all .3s; }
+
+        /* ── NAVBAR ── */
+        nav {
+          position:fixed;top:0;left:0;right:0;z-index:100;
+          padding:0 48px;height:72px;
+          display:flex;align-items:center;justify-content:space-between;
+          background:rgba(16,44,38,.6);backdrop-filter:blur(20px);
+          border-bottom:1px solid rgba(42,74,66,.6);transition:all .3s;
+        }
         nav.scrolled { background:rgba(13,36,32,.9);border-bottom-color:rgba(212,168,83,.2); }
         .nav-links { display:flex;align-items:center;gap:36px;list-style:none; }
         .nav-links a { color:var(--cream-muted);text-decoration:none;font-size:14px;transition:color .2s; }
         .nav-links a:hover { color:var(--cream); }
+        .nav-right { display:flex;align-items:center;gap:12px; }
         .btn-ghost { padding:9px 22px;border:1px solid rgba(196,168,130,.4);border-radius:8px;color:var(--cream-muted);background:transparent;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;font-family:'DM Sans',sans-serif; }
         .btn-ghost:hover { border-color:var(--cream);color:var(--cream); }
         .btn-gold { padding:10px 24px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border:none;border-radius:8px;color:var(--bg-deep);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none;font-family:'DM Sans',sans-serif; }
         .btn-gold:hover { transform:translateY(-1px);box-shadow:0 8px 24px rgba(212,168,83,.3); }
+
+        /* ── HAMBURGER ── */
+        .hamburger {
+          display:none;flex-direction:column;justify-content:center;gap:5px;
+          background:none;border:none;cursor:pointer;padding:4px;z-index:101;
+        }
+        .hamburger span {
+          display:block;width:24px;height:2px;
+          background:var(--cream);border-radius:2px;
+          transition:all 0.3s ease;
+        }
+        .hamburger.open span:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+        .hamburger.open span:nth-child(2) { opacity:0;transform:scaleX(0); }
+        .hamburger.open span:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+
+        /* ── MOBILE MENU ── */
+        .mobile-menu {
+          display:none;
+          position:fixed;top:72px;left:0;right:0;
+          background:rgba(13,36,32,0.97);
+          backdrop-filter:blur(20px);
+          border-bottom:1px solid rgba(42,74,66,0.6);
+          flex-direction:column;
+          z-index:99;
+          padding:8px 0 16px;
+        }
+        .mobile-menu.open { display:flex; }
+        .mobile-menu a {
+          padding:14px 24px;
+          color:var(--cream-muted);
+          text-decoration:none;
+          font-size:15px;
+          font-weight:400;
+          border-bottom:1px solid rgba(42,74,66,0.3);
+          transition:all 0.2s;
+        }
+        .mobile-menu a:hover { color:var(--gold);background:rgba(212,168,83,0.06); }
+        .mobile-menu a:last-child { border-bottom:none; }
+
+        /* ── HERO ── */
         .hero { min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 48px 80px;text-align:center;position:relative; }
         .hero-badge { display:inline-flex;align-items:center;gap:8px;padding:7px 18px;border:1px solid rgba(212,168,83,.4);border-radius:999px;font-size:12px;font-weight:500;color:var(--gold);background:rgba(212,168,83,.07);letter-spacing:1px;text-transform:uppercase;margin-bottom:32px;animation:fadeSlideDown .8s ease .2s both; }
         .badge-dot { width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulseDot 2s ease infinite; }
@@ -185,14 +231,14 @@ export default function Home() {
         .line1 { color:var(--cream);display:block; }
         .line2 { color:transparent;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold));background-size:200% auto;-webkit-background-clip:text;background-clip:text;display:block;animation:shimmerText 4s linear infinite,fadeSlideDown .8s ease .4s both; }
         @keyframes shimmerText{0%{background-position:0% center}100%{background-position:200% center}}
-        .hero-typing-wrap { font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,34px);font-weight:400;color:var(--cream-muted);margin-bottom:24px;height:44px;display:flex;align-items:center;justify-content:center;gap:10px;animation:fadeSlideDown .8s ease .6s both; }
+        .hero-typing-wrap { font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,34px);font-weight:400;color:var(--cream-muted);margin-bottom:24px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;animation:fadeSlideDown .8s ease .6s both; }
         .typing-static { font-style:italic; }
         .typing-dynamic { color:var(--gold);font-style:italic;position:relative; }
         .typing-cursor { display:inline-block;width:2px;height:1em;background:var(--gold);margin-left:2px;vertical-align:middle;animation:blink .8s step-end infinite; }
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         .hero-sub { max-width:580px;font-size:16px;line-height:1.7;color:var(--cream-faint);margin-bottom:44px;animation:fadeSlideDown .8s ease .8s both; }
         .hero-ctas { display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:56px;animation:fadeSlideDown .8s ease 1s both; }
-        .btn-hero-primary { padding:16px 36px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border:none;border-radius:10px;color:var(--bg-deep);font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s;position:relative;overflow:hidden; }
+        .btn-hero-primary { padding:16px 36px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border:none;border-radius:10px;color:var(--bg-deep);font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s;position:relative;overflow:hidden;text-decoration:none;display:inline-block; }
         .btn-hero-primary:hover { transform:translateY(-3px);box-shadow:0 16px 40px rgba(212,168,83,.35); }
         .btn-hero-secondary { padding:16px 36px;border:1px solid rgba(196,168,130,.3);border-radius:10px;color:var(--cream-muted);background:transparent;font-size:16px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s; }
         .btn-hero-secondary:hover { border-color:var(--cream);color:var(--cream);transform:translateY(-2px); }
@@ -221,6 +267,8 @@ export default function Home() {
         .typing-dot:nth-child(3){animation:typingBounce 1.2s ease infinite .4s}
         @keyframes typingBounce{0%,100%{transform:translateY(0);opacity:.7}50%{transform:translateY(-5px);opacity:1}}
         .speed-badge { background:var(--bg-card);border:1px solid rgba(212,168,83,.3);border-radius:12px;padding:10px 16px;font-size:12px;color:var(--gold);font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;align-items:center;gap:6px;animation:floatCard 5s ease-in-out infinite;animation-delay:-2s; }
+        
+        /* ── STATS ── */
         .stats-bar { background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:40px 48px;display:flex;align-items:center;justify-content:center; }
         .stat-item { flex:1;max-width:260px;text-align:center;padding:0 40px;position:relative;opacity:0;transform:translateY(20px);transition:all .6s ease; }
         .stat-item.visible { opacity:1;transform:translateY(0); }
@@ -228,6 +276,8 @@ export default function Home() {
         .stat-number { font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:700;color:var(--gold);line-height:1;display:flex;align-items:baseline;justify-content:center;gap:2px; }
         .stat-suffix { font-size:32px; }
         .stat-label { font-size:13px;color:var(--cream-faint);margin-top:8px; }
+
+        /* ── FEATURES ── */
         .features { padding:100px 48px;max-width:1200px;margin:0 auto; }
         .section-badge { display:inline-block;font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px; }
         .section-heading { font-family:'Cormorant Garamond',serif;font-size:clamp(36px,5vw,56px);font-weight:700;color:var(--cream);line-height:1.1;margin-bottom:60px; }
@@ -238,6 +288,8 @@ export default function Home() {
         .feature-icon { width:52px;height:52px;border-radius:14px;background:rgba(212,168,83,.1);border:1px solid rgba(212,168,83,.2);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px; }
         .feature-title { font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--cream);margin-bottom:12px; }
         .feature-body { font-size:14px;line-height:1.7;color:var(--cream-faint); }
+
+        /* ── HOW IT WORKS ── */
         .how-it-works { padding:80px 48px;max-width:1200px;margin:0 auto;text-align:center; }
         .steps-row { display:flex;align-items:flex-start;gap:0;position:relative;margin-top:60px;justify-content:center; }
         .steps-row::before { content:'';position:absolute;top:40px;left:16%;right:16%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.4; }
@@ -246,6 +298,8 @@ export default function Home() {
         .step-circle { width:56px;height:56px;border-radius:50%;background:var(--bg-card);border:1px solid rgba(212,168,83,.4);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 20px; }
         .step-title { font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--cream);margin-bottom:8px; }
         .step-body { font-size:13px;color:var(--cream-faint);line-height:1.6; }
+
+        /* ── PRICING ── */
         .pricing { padding:100px 48px;max-width:1100px;margin:0 auto;text-align:center; }
         .pricing-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px;align-items:start; }
         .pricing-card { background:linear-gradient(145deg,#1A3D35,#142E28);border:1px solid var(--border);border-radius:20px;padding:36px;text-align:left;opacity:0;transform:translateY(30px);transition:all .6s ease;position:relative; }
@@ -268,6 +322,8 @@ export default function Home() {
         .btn-plan-ghost { width:100%;padding:14px;background:transparent;border:1px solid rgba(196,168,130,.3);border-radius:10px;color:var(--cream-muted);font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s; }
         .btn-plan-ghost:hover { border-color:var(--cream-muted);color:var(--cream); }
         .payment-note { margin-top:32px;font-size:13px;color:var(--cream-faint);display:flex;align-items:center;justify-content:center;gap:8px; }
+
+        /* ── FOOTER ── */
         footer { background:var(--bg-deep);border-top:1px solid var(--border);padding:48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px; }
         .footer-logo { font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);letter-spacing:3px; }
         .footer-tagline { font-size:12px;color:var(--cream-faint);margin-top:4px; }
@@ -281,16 +337,68 @@ export default function Home() {
         ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg-deep)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
         ::selection{background:rgba(212,168,83,.2);color:var(--cream)}
         a{color:inherit;text-decoration:none}
-        
-        /* Mobile Responsive Styles */
-        @media (max-width: 768px) {
-          .nav-links { display: none !important; }
-          .hero-headline { font-size: clamp(36px, 6vw, 96px) !important; }
-          .hero-ctas { flex-direction: column; max-width: 400px; margin: 0 auto; }
-          .features-grid { grid-template-columns: 1fr !important; }
-          .pricing-grid { grid-template-columns: 1fr !important; }
-          footer { flex-direction: column; text-align: center; }
-          .chat-mockup { width: 280px !important; }
+
+        /* ══════════════════════════════
+           RESPONSIVE — TABLET (900px)
+        ══════════════════════════════ */
+        @media (max-width: 900px) {
+          nav { padding: 0 20px; height: 64px; }
+          .nav-links { display: none; }
+          .hamburger { display: flex; }
+          .mobile-menu { top: 64px; }
+          .btn-ghost { padding: 8px 14px; font-size: 12px; }
+          .btn-gold { padding: 8px 14px; font-size: 12px; }
+
+          .hero { padding: 90px 24px 60px; }
+          .features-grid { grid-template-columns: 1fr; }
+          .pricing-grid { grid-template-columns: 1fr; }
+          .pricing-card.featured { transform: none; }
+          .pricing-card.featured.visible { transform: none; }
+          .stats-bar { flex-direction: column; gap: 32px; padding: 40px 24px; }
+          .stat-item { max-width: 100%; padding: 0; }
+          .stat-item + .stat-item::before { display: none; }
+          .steps-row { flex-direction: column; align-items: center; }
+          .steps-row::before { display: none; }
+          .features, .pricing, .how-it-works { padding: 60px 24px; }
+          footer { padding: 32px 24px; flex-direction: column; text-align: center; }
+          .footer-links { justify-content: center; }
+        }
+
+        /* ══════════════════════════════
+           RESPONSIVE — MOBILE (640px)
+        ══════════════════════════════ */
+        @media (max-width: 640px) {
+          nav { padding: 0 16px; height: 56px; }
+          .mobile-menu { top: 56px; }
+          .btn-ghost { padding: 7px 12px; font-size: 11px; }
+          .btn-gold { padding: 7px 12px; font-size: 11px; }
+
+          .hero { padding: 80px 16px 50px; }
+          .hero-badge { font-size: 10px; padding: 6px 14px; letter-spacing: 0.5px; }
+          .hero-headline { font-size: clamp(36px, 9vw, 56px) !important; }
+          .hero-sub { font-size: 14px; }
+          .hero-ctas { flex-direction: column; align-items: center; gap: 10px; }
+          .btn-hero-primary, .btn-hero-secondary { width: 100%; max-width: 320px; padding: 14px 24px; font-size: 15px; }
+          .hero-trust { gap: 12px; font-size: 12px; }
+          .hero-visual { margin-top: 40px; }
+          .chat-mockup { width: 290px; }
+
+          .stats-bar { padding: 30px 16px; gap: 28px; }
+          .stat-number { font-size: 42px; }
+          .stat-suffix { font-size: 26px; }
+          .stat-label { font-size: 12px; }
+
+          .features, .pricing, .how-it-works { padding: 50px 16px; }
+          .section-heading { margin-bottom: 36px; }
+          .feature-card { padding: 24px; }
+          .step-item { max-width: 100%; padding: 0 16px; }
+          .step-number { font-size: 52px; }
+
+          .pricing-card { padding: 24px; }
+          .plan-price { font-size: 36px; }
+
+          footer { padding: 24px 16px; gap: 16px; }
+          .footer-links { gap: 16px; flex-wrap: wrap; justify-content: center; }
         }
       `}</style>
 
@@ -300,9 +408,7 @@ export default function Home() {
 
       {/* Aurora */}
       <div className="aurora">
-        <div className="aurora-orb" />
-        <div className="aurora-orb" />
-        <div className="aurora-orb" />
+        <div className="aurora-orb" /><div className="aurora-orb" /><div className="aurora-orb" />
       </div>
 
       {/* Particles */}
@@ -325,16 +431,34 @@ export default function Home() {
               <circle cx="24" cy="35" r="1.5" fill="#D4A853" opacity="0.6" />
             </svg>
           </a>
-          <ul className="nav-links hidden md:flex">
+
+          {/* Desktop nav links */}
+          <ul className="nav-links">
             <li><a href="#features">Features</a></li>
             <li><a href="#how">How It Works</a></li>
             <li><a href="#pricing">Pricing</a></li>
           </ul>
-          <div style={{ display: 'flex', gap: '12px' }}>
+
+          {/* Right side: buttons + hamburger */}
+          <div className="nav-right">
             <Link href="/login" className="btn-ghost">Login</Link>
             <Link href="/signup" className="btn-gold">Start Free →</Link>
+            <button
+              className={`hamburger${menuOpen ? ' open' : ''}`}
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+            >
+              <span /><span /><span />
+            </button>
           </div>
         </nav>
+
+        {/* MOBILE MENU */}
+        <div className={`mobile-menu${menuOpen ? ' open' : ''}`}>
+          <a href="#features" onClick={closeMobileMenu}>Features</a>
+          <a href="#how" onClick={closeMobileMenu}>How It Works</a>
+          <a href="#pricing" onClick={closeMobileMenu}>Pricing</a>
+        </div>
 
         {/* HERO */}
         <section className="hero">
@@ -358,7 +482,7 @@ export default function Home() {
             in English, Urdu, or Roman Urdu. Train it once with your website,
             and it works 24 hours a day, 7 days a week.
           </p>
-          <div className="hero-ctas flex flex-col sm:flex-row gap-4">
+          <div className="hero-ctas">
             <Link href="/signup" className="btn-hero-primary">Start For Free — It&apos;s Free</Link>
             <button className="btn-hero-secondary">▶ See How It Works</button>
           </div>
@@ -408,14 +532,14 @@ export default function Home() {
         {/* STATS */}
         <div className="stats-bar" id="stats-bar">
           {[
-            { target: 500000, suffix: 'K', plus: true, label: 'Pakistani Sellers Face This Problem' },
-            { target: 70, suffix: '', plus: true, label: 'Sales Lost Due to Late Replies', extra: '%' },
-            { target: 24, suffix: '', plus: false, label: 'Munshi Never Sleeps', extra: '/7' },
+            { target: 500000, suffix: 'K', extra: '+', label: 'Pakistani Sellers Face This Problem' },
+            { target: 70, suffix: '', extra: '%+', label: 'Sales Lost Due to Late Replies' },
+            { target: 24, suffix: '', extra: '/7', label: 'Munshi Never Sleeps' },
           ].map((s, i) => (
             <div key={i} className="stat-item">
               <div className="stat-number">
                 <span className="counter" data-target={s.target} data-suffix={s.suffix}>0</span>
-                <span className="stat-suffix">{s.extra || ''}{s.plus ? '+' : ''}</span>
+                <span className="stat-suffix">{s.extra}</span>
               </div>
               <div className="stat-label">{s.label}</div>
             </div>
@@ -426,7 +550,7 @@ export default function Home() {
         <section className="features" id="features">
           <div className="section-badge">✦ What Munshi Does</div>
           <h2 className="section-heading">Why Sellers Choose Munshi</h2>
-          <div className="features-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="features-grid">
             {[
               { icon: '📚', title: 'Train Once, Answer Forever', body: 'Paste your website link. Munshi reads everything — products, prices, policies — and answers exactly like you would.' },
               { icon: '⚡', title: 'Instant Replies, Any Language', body: 'Roman Urdu, English, or mixed — Munshi understands your customers and replies naturally, instantly.' },
@@ -465,7 +589,7 @@ export default function Home() {
         <section className="pricing" id="pricing">
           <div className="section-badge">✦ Transparent Pricing</div>
           <h2 className="section-heading">Simple, Honest Pricing</h2>
-          <div className="pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="pricing-grid">
             <div className="pricing-card" style={{ transitionDelay: '0s' }}>
               <div className="plan-badge free">Starter</div>
               <div className="plan-name">Free</div>
@@ -520,4 +644,4 @@ export default function Home() {
       </div>
     </>
   );
-} 
+}
