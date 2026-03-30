@@ -4,125 +4,103 @@ import { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { supabase } from '@/lib/supabase'
 
-interface TrainingData {
-  id: string
-  source_type: 'pdf' | 'text'
-  source_url: string
-  content: string
-  chunks_count: number
-  created_at: string
-}
-
-interface Stats {
-  totalTrainings: number
-  totalChunks: number
-  totalSize: number
-  pdfCount: number
-  textCount: number
-}
-
 export default function TrainingPage() {
-  const [user, setUser] = useState<any>(null)
-  const [businessId, setBusinessId] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [trainingHistory, setTrainingHistory] = useState<TrainingData[]>([])
-  const [stats, setStats] = useState<Stats>({
+  const [businessId, setBusinessId] = useState('')
+  const [trainingHistory, setTrainingHistory] = useState<any[]>([])
+  const [stats, setStats] = useState<any>({
     totalTrainings: 0,
-    totalChunks: 0,
-    totalSize: 0,
     pdfCount: 0,
     textCount: 0,
+    totalChunks: 0,
   })
-
-  // Text input state
+  const [activeTab, setActiveTab] = useState<'pdf' | 'text'>('pdf')
+  const [message, setMessage] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
   const [textInput, setTextInput] = useState('')
   const [textTitle, setTextTitle] = useState('')
   const [textSubmitting, setTextSubmitting] = useState(false)
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'pdf' | 'text'>('pdf')
-
-  // Fetch user and business data
+  // Get business ID on mount
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(session.user)
-        // Get business ID from user metadata or fetch from businesses table
-        const bid = session.user.user_metadata?.business_id || '00000000-0000-0000-0000-000000000001'
+    const getBusinessId = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const bid = session?.user?.user_metadata?.business_id || '00000000-0000-0000-0000-000000000001'
         setBusinessId(bid)
+      } catch (error) {
+        setBusinessId('00000000-0000-0000-0000-000000000001')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
-
-    fetchUser()
+    getBusinessId()
   }, [])
 
-  // Fetch training history
+  // Fetch history when businessId changes
   useEffect(() => {
     if (businessId) {
-      fetchTrainingHistory()
+      fetchHistory()
     }
   }, [businessId])
 
-  const fetchTrainingHistory = async () => {
+  const fetchHistory = async () => {
     try {
-      const response = await fetch(`/api/training/history?businessId=${businessId}`)
-      const result = await response.json()
+      const res = await fetch(`/api/train/history?businessId=${businessId}`)
+      const result = await res.json()
       if (result.success) {
-        setTrainingHistory(result.data)
-        setStats(result.stats)
+        setTrainingHistory(result.data || [])
+        setStats(result.stats || {})
       }
     } catch (error) {
-      console.error('Error fetching history:', error)
+      console.error('Error:', error)
     }
   }
 
-  // Handle PDF upload
-  const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePDFUpload = async (e: any) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setUploading(true)
+    setMessage(null)
+
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('businessId', businessId)
 
-      const response = await fetch('/api/training/upload-pdf', {
+      const res = await fetch('/api/train/upload-pdf', {
         method: 'POST',
         body: formData,
       })
 
-      const result = await response.json()
+      const result = await res.json()
 
       if (result.success) {
-        // Success
-        alert(`PDF uploaded successfully!\n${result.chunks} chunks created`)
-        await fetchTrainingHistory()
-        e.target.value = '' // Reset input
+        setMessage({ type: 'success', text: `✅ PDF uploaded! ${result.chunks} chunks created` })
+        await fetchHistory()
+        e.target.value = ''
       } else {
-        alert(`Error: ${result.error}`)
+        setMessage({ type: 'error', text: `❌ ${result.error || 'Failed to upload'}` })
       }
     } catch (error) {
-      console.error('Upload error:', error)
-      alert('Failed to upload PDF')
+      setMessage({ type: 'error', text: `❌ Error: ${error}` })
     } finally {
       setUploading(false)
     }
   }
 
-  // Handle text training submission
   const handleTextSubmit = async () => {
     if (!textInput.trim()) {
-      alert('Please enter some text to train')
+      setMessage({ type: 'error', text: '❌ Please enter text' })
       return
     }
 
     setTextSubmitting(true)
+    setMessage(null)
+
     try {
-      const response = await fetch('/api/training/add-text', {
+      const res = await fetch('/api/train/add-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,52 +110,49 @@ export default function TrainingPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await res.json()
 
       if (result.success) {
-        alert(`Text training added!\n${result.chunks} chunks created`)
+        setMessage({ type: 'success', text: `✅ Text added! ${result.chunks} chunks created` })
         setTextInput('')
         setTextTitle('')
-        await fetchTrainingHistory()
+        await fetchHistory()
       } else {
-        alert(`Error: ${result.error}`)
+        setMessage({ type: 'error', text: `❌ ${result.error || 'Failed to add'}` })
       }
     } catch (error) {
-      console.error('Training error:', error)
-      alert('Failed to add text training')
+      setMessage({ type: 'error', text: `❌ Error: ${error}` })
     } finally {
       setTextSubmitting(false)
     }
   }
 
-  // Handle delete
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this training data?')) return
+    if (!confirm('Delete this training?')) return
 
     try {
-      const response = await fetch('/api/training/delete', {
+      const res = await fetch('/api/train/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, businessId }),
       })
 
-      const result = await response.json()
+      const result = await res.json()
 
       if (result.success) {
-        alert('Training data deleted')
-        await fetchTrainingHistory()
+        setMessage({ type: 'success', text: '✅ Deleted!' })
+        await fetchHistory()
       } else {
-        alert(`Error: ${result.error}`)
+        setMessage({ type: 'error', text: `❌ ${result.error || 'Failed'}` })
       }
     } catch (error) {
-      console.error('Delete error:', error)
-      alert('Failed to delete training data')
+      setMessage({ type: 'error', text: `❌ Error: ${error}` })
     }
   }
 
   if (loading) {
     return (
-      <DashboardLayout title="Train Bot" subtitle="Upload documents or add text to train your AI bot">
+      <DashboardLayout title="Train Bot" subtitle="Upload documents or add text">
         <div className="text-[#F7E7CE]">Loading...</div>
       </DashboardLayout>
     )
@@ -185,38 +160,49 @@ export default function TrainingPage() {
 
   return (
     <DashboardLayout title="Train Bot" subtitle="Upload documents or add text to train your AI bot">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 lg:mb-6">
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-3 sm:p-4 lg:p-5">
+      {/* Message */}
+      {message && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${
+          message.type === 'success' 
+            ? 'bg-green-900/20 border border-green-500 text-green-300' 
+            : 'bg-red-900/20 border border-red-500 text-red-300'
+        }`}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-4">
           <div className="text-2xl mb-2">📚</div>
           <div className="text-xs text-[#8A7560] mb-1">Total Trainings</div>
-          <div className="text-[#F7E7CE] font-bold text-lg">{stats.totalTrainings}</div>
+          <div className="text-[#F7E7CE] font-bold text-lg">{stats.totalTrainings || 0}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-3 sm:p-4 lg:p-5">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-4">
           <div className="text-2xl mb-2">📄</div>
           <div className="text-xs text-[#8A7560] mb-1">PDF Uploads</div>
-          <div className="text-[#F7E7CE] font-bold text-lg">{stats.pdfCount}</div>
+          <div className="text-[#F7E7CE] font-bold text-lg">{stats.pdfCount || 0}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-3 sm:p-4 lg:p-5">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-4">
           <div className="text-2xl mb-2">✏️</div>
           <div className="text-xs text-[#8A7560] mb-1">Text Entries</div>
-          <div className="text-[#F7E7CE] font-bold text-lg">{stats.textCount}</div>
+          <div className="text-[#F7E7CE] font-bold text-lg">{stats.textCount || 0}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-3 sm:p-4 lg:p-5">
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-4">
           <div className="text-2xl mb-2">🧩</div>
           <div className="text-xs text-[#8A7560] mb-1">Total Chunks</div>
-          <div className="text-[#F7E7CE] font-bold text-lg">{stats.totalChunks}</div>
+          <div className="text-[#F7E7CE] font-bold text-lg">{stats.totalChunks || 0}</div>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-2 mb-4 lg:mb-6">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab('pdf')}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+          className={`px-4 py-2 rounded-lg font-semibold text-sm ${
             activeTab === 'pdf'
               ? 'bg-[#D4A853] text-[#0D2420]'
               : 'bg-[#1A3D35] text-[#C4A882] border border-[#2A4A42]'
@@ -226,7 +212,7 @@ export default function TrainingPage() {
         </button>
         <button
           onClick={() => setActiveTab('text')}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+          className={`px-4 py-2 rounded-lg font-semibold text-sm ${
             activeTab === 'text'
               ? 'bg-[#D4A853] text-[#0D2420]'
               : 'bg-[#1A3D35] text-[#C4A882] border border-[#2A4A42]'
@@ -237,15 +223,13 @@ export default function TrainingPage() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-        {/* Upload Section */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-4 sm:p-5 lg:p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upload/Input */}
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-6">
           {activeTab === 'pdf' ? (
             <div>
               <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-2">Upload PDF Document</h3>
-              <p className="text-xs sm:text-sm text-[#8A7560] mb-4">
-                Upload a PDF file to extract and train your bot with the content.
-              </p>
+              <p className="text-xs text-[#8A7560] mb-4">Upload a PDF file to train your bot.</p>
               <div className="relative">
                 <input
                   type="file"
@@ -254,7 +238,7 @@ export default function TrainingPage() {
                   disabled={uploading}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-                <div className="border-2 border-dashed border-[#2A4A42] rounded-lg p-6 sm:p-8 text-center hover:border-[#D4A853] transition-colors cursor-pointer">
+                <div className="border-2 border-dashed border-[#2A4A42] rounded-lg p-8 text-center hover:border-[#D4A853] transition-colors cursor-pointer">
                   <div className="text-3xl mb-2">📄</div>
                   <p className="text-sm font-semibold text-[#F7E7CE] mb-1">
                     {uploading ? 'Uploading...' : 'Click to upload PDF'}
@@ -266,33 +250,27 @@ export default function TrainingPage() {
           ) : (
             <div>
               <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-2">Add Text Training</h3>
-              <p className="text-xs sm:text-sm text-[#8A7560] mb-4">
-                Manually add text to train your bot. Perfect for FAQs and product info.
-              </p>
+              <p className="text-xs text-[#8A7560] mb-4">Manually add text to train your bot.</p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#C4A882] mb-2">
-                    Title (Optional)
-                  </label>
+                  <label className="block text-xs font-semibold text-[#C4A882] mb-2">Title (Optional)</label>
                   <input
                     type="text"
                     value={textTitle}
                     onChange={(e) => setTextTitle(e.target.value)}
                     placeholder="e.g., Product FAQ"
-                    className="w-full bg-[#0D2420] border border-[#2A4A42] rounded-lg px-3 py-2 text-sm text-[#F7E7CE] placeholder-[#8A7560] focus:border-[#D4A853] focus:outline-none transition-all"
+                    className="w-full bg-[#0D2420] border border-[#2A4A42] rounded-lg px-3 py-2 text-sm text-[#F7E7CE] placeholder-[#8A7560] focus:border-[#D4A853] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#C4A882] mb-2">
-                    Text Content
-                  </label>
+                  <label className="block text-xs font-semibold text-[#C4A882] mb-2">Text Content</label>
                   <textarea
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="Paste your training text here..."
+                    placeholder="Paste your text here..."
                     rows={6}
-                    className="w-full bg-[#0D2420] border border-[#2A4A42] rounded-lg px-3 py-2 text-sm text-[#F7E7CE] placeholder-[#8A7560] focus:border-[#D4A853] focus:outline-none transition-all resize-none"
+                    className="w-full bg-[#0D2420] border border-[#2A4A42] rounded-lg px-3 py-2 text-sm text-[#F7E7CE] placeholder-[#8A7560] focus:border-[#D4A853] focus:outline-none resize-none"
                   />
                   <div className="text-xs text-[#8A7560] mt-2">
                     {textInput.length} / 50,000 characters
@@ -302,7 +280,7 @@ export default function TrainingPage() {
                 <button
                   onClick={handleTextSubmit}
                   disabled={textSubmitting || !textInput.trim()}
-                  className="w-full bg-gradient-to-r from-[#D4A853] to-[#E8C869] text-[#0D2420] font-semibold py-2.5 sm:py-3 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="w-full bg-gradient-to-r from-[#D4A853] to-[#E8C869] text-[#0D2420] font-semibold py-3 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {textSubmitting ? 'Adding...' : '✏️ Add Training'}
                 </button>
@@ -311,8 +289,8 @@ export default function TrainingPage() {
           )}
         </div>
 
-        {/* Training History */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-4 sm:p-5 lg:p-6">
+        {/* History */}
+        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-lg p-6">
           <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-4">Training History</h3>
 
           {trainingHistory.length === 0 ? (
@@ -322,23 +300,21 @@ export default function TrainingPage() {
             </div>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {trainingHistory.map((training) => (
+              {trainingHistory.map((training: any) => (
                 <div
                   key={training.id}
                   className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-3 hover:border-[rgba(212,168,83,0.3)] transition-all"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">
-                          {training.source_type === 'pdf' ? '📄' : '✏️'}
-                        </span>
+                        <span className="text-lg">{training.source_type === 'pdf' ? '📄' : '✏️'}</span>
                         <h4 className="font-semibold text-[#F7E7CE] text-sm truncate">
                           {training.source_url}
                         </h4>
                       </div>
                       <div className="text-xs text-[#8A7560]">
-                        {training.chunks_count} chunks • {(training.content.length / 1024).toFixed(1)}KB
+                        {training.chunks_count} chunks • {(training.content?.length / 1024).toFixed(1)}KB
                       </div>
                       <div className="text-xs text-[#8A7560] mt-1">
                         {new Date(training.created_at).toLocaleDateString()}

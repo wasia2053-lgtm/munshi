@@ -6,13 +6,9 @@ export async function GET(request: NextRequest) {
     const businessId = request.nextUrl.searchParams.get('businessId')
 
     if (!businessId) {
-      return NextResponse.json(
-        { error: 'Business ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Business ID required' }, { status: 400 })
     }
 
-    // Fetch training history from Supabase
     const { data, error } = await supabase
       .from('knowledge_base')
       .select('*')
@@ -20,35 +16,24 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Supabase error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch training history' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
     }
 
-    // Calculate total statistics
-    const totalChunks = data.reduce((sum, item) => sum + (item.chunks_count || 0), 0)
-    const totalSize = data.reduce((sum, item) => sum + (item.content?.length || 0), 0)
-    const pdfCount = data.filter(item => item.source_type === 'pdf').length
-    const textCount = data.filter(item => item.source_type === 'text').length
+    const stats = {
+      totalTrainings: data.length,
+      pdfCount: data.filter((d: any) => d.source_type === 'pdf').length,
+      textCount: data.filter((d: any) => d.source_type === 'text').length,
+      totalChunks: data.reduce((sum: number, d: any) => sum + (d.chunks_count || 0), 0),
+      totalSize: data.reduce((sum: number, d: any) => sum + (d.content?.length || 0), 0),
+    }
 
     return NextResponse.json({
       success: true,
-      data,
-      stats: {
-        totalTrainings: data.length,
-        totalChunks,
-        totalSize,
-        pdfCount,
-        textCount,
-      },
+      data: data || [],
+      stats,
     })
   } catch (error) {
-    console.error('History fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Error:', error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
