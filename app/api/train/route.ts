@@ -6,147 +6,181 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { url, userId } = await request.json()
+    const { url, businessId } = await req.json()
 
-    if (!url || !userId) {
-      return NextResponse.json(
-        { error: 'URL and userId are required' },
-        { status: 400 }
-      )
+    if (!url || !businessId) {
+      return NextResponse.json({ success: false, error: 'URL and businessId required' }, { status: 400 })
     }
 
-    // Validate URL format
+    // Validate URL
+    let parsedUrl: URL
     try {
-      new URL(url)
+      parsedUrl = new URL(url)
     } catch {
-      return NextResponse.json(
-        { error: 'Invalid URL format' },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: 'Invalid URL format' }, { status: 400 })
     }
 
-    // Check if business exists for this user, create if not
-    const { data: businessData, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', userId)
-      .single()
-
-    console.log('Step 1 - Finding business:', businessData, businessError)
-
-    let businessId = businessData?.id
-
-    if (!businessId) {
-      const { data: newBusiness, error: createError } = await supabase
-        .from('businesses')
-        .insert({ user_id: userId, name: 'My Store' })
-        .select('id')
-        .single()
-      
-      console.log('Step 2 - Creating business:', newBusiness, createError)
-      
-      if (createError) {
-        return NextResponse.json({ 
-          error: createError.message || 'Failed to create business',
-          details: createError 
-        }, { status: 500 })
-      }
-      
-      businessId = newBusiness?.id
-    }
-
-    if (!businessId) {
-      return NextResponse.json(
-        { error: 'Failed to create business' },
-        { status: 500 }
-      )
-    }
-
-    // Fetch webpage content
+    // Fetch website content
     let htmlContent = ''
     try {
-      const response = await fetch(url, {
+      const response = await fetch(parsedUrl.toString(), {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          'User-Agent': 'Mozilla/5.0 (compatible; MunshiBot/1.0)',
+        },
+        signal: AbortSignal.timeout(15000), // 15 second timeout
       })
-      
+
       if (!response.ok) {
-        return NextResponse.json(
-          { error: `Failed to fetch webpage: ${response.status}` },
-          { status: 400 }
-        )
+        return NextResponse.json({ 
+          success: false, 
+          error: `Website returned ${response.status} — check URL` 
+        }, { status: 400 })
       }
-      
+
       htmlContent = await response.text()
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch webpage content' },
-        { status: 500 }
-      )
+    } catch (fetchError: any) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Could not reach website: ${fetchError.message}` 
+      }, { status: 400 })
     }
 
-    // Extract text content (remove HTML tags)
-    const textContent = htmlContent
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
-      .replace(/<[^>]*>/g, '') // Remove all HTML tags
-      .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
-      .trim()
+    // Extract clean text from HTML
+    const cleanText = extractTextFromHtml(htmlContent)
 
-    if (!textContent) {
-      return NextResponse.json(
-        { error: 'No content could be extracted from the webpage' },
-        { status: 400 }
-      )
+    if (!cleanText || cleanText.length < 50) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Could not extract enough content from website' 
+      }, { status: 400 })
     }
 
-    // Save to Supabase knowledge_base table
-    const { data: insertData, error: insertError } = await supabase
+    // Split into chunks (max 1500 chars each)
+    const chunks = splitIntoChunks(cleanText, 1500)
+
+    // Delete old data for this URL + business (re-training)
+    await supabase
       .from('knowledge_base')
-      .insert({
-        business_id: businessId,
-        source_type: 'website',
-        source_url: url,
-        content: textContent,
-        chunks_count: 1,
-        updated_at: new Date().toISOString()
-      })
-      .select()
+      .delete()
+      .eq('business_id', businessId)
+      .eq('source_url', url)
+      .eq('source_type', 'website')
 
-    console.log('Step 3 - Inserting knowledge:', insertData, insertError)
+    // Insert new chunks
+    const inserts = chunks.map((chunk, index) => ({
+      business_id: businessId,
+      source_type: 'website',
+      source_url: url,
+      content: chunk,
+      chunks_count: chunks.length,
+      created_at: new Date().toISOString(),
+    }))
+
+    const { error: insertError } = await supabase
+      .from('knowledge_base')
+      .insert(inserts)
 
     if (insertError) {
-      console.error('Supabase error details:', {
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-        code: insertError.code
-      })
+      console.error('Supabase insert error:', insertError)
       return NextResponse.json({ 
-        error: insertError.message || 'Failed to save training data',
-        details: insertError 
+        success: false, 
+        error: 'Failed to save training data' 
       }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Training complete',
-      data: {
-        businessId,
-        url,
-        contentLength: textContent.length,
-        chunks_count: 1
-      }
+      message: `Website trained successfully!`,
+      chunks: chunks.length,
+      contentLength: cleanText.length,
+      url: url,
     })
 
   } catch (error: any) {
-    console.error('Training API Error:', error)
-    return NextResponse.json({
-      error: error?.message || 'Unknown error',
-      details: String(error)
+    console.error('Training error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message || 'Unknown error' 
     }, { status: 500 })
   }
+}
+
+// ── Helper: Extract readable text from HTML ──
+function extractTextFromHtml(html: string): string {
+  // Remove scripts, styles, nav, footer, head
+  let text = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, ' ')
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, ' ')
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/gi, ' ')
+    // Convert block elements to newlines
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    // Remove all remaining tags
+    .replace(/<[^>]+>/g, ' ')
+    // Decode HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    // Clean whitespace
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
+  return text
+}
+
+// ── Helper: Split text into chunks ──
+function splitIntoChunks(text: string, maxLength: number): string[] {
+  const chunks: string[] = []
+  const paragraphs = text.split('\n\n')
+  let current = ''
+
+  for (const para of paragraphs) {
+    const trimmed = para.trim()
+    if (!trimmed) continue
+
+    if ((current + '\n\n' + trimmed).length > maxLength) {
+      if (current.trim()) chunks.push(current.trim())
+      current = trimmed
+    } else {
+      current = current ? current + '\n\n' + trimmed : trimmed
+    }
+  }
+
+  if (current.trim()) chunks.push(current.trim())
+
+  // If any chunk is still too long, split by sentences
+  const finalChunks: string[] = []
+  for (const chunk of chunks) {
+    if (chunk.length <= maxLength) {
+      finalChunks.push(chunk)
+    } else {
+      const sentences = chunk.split(/(?<=[.!?])\s+/)
+      let subChunk = ''
+      for (const sentence of sentences) {
+        if ((subChunk + ' ' + sentence).length > maxLength) {
+          if (subChunk.trim()) finalChunks.push(subChunk.trim())
+          subChunk = sentence
+        } else {
+          subChunk = subChunk ? subChunk + ' ' + sentence : sentence
+        }
+      }
+      if (subChunk.trim()) finalChunks.push(subChunk.trim())
+    }
+  }
+
+  return finalChunks.filter(c => c.length > 20)
 }
