@@ -24,78 +24,54 @@ export async function POST(request: NextRequest) {
 
     console.log('📨 Chat request:', { message: message.substring(0, 50), businessId })
 
-    // Fetch ALL training data for this business
+    // Fetch training data for this business
     const { data: trainingData, error: trainingError } = await supabase
       .from('knowledge_base')
-      .select('id, source_type, source_url, content, created_at')
+      .select('id, source_type, source_url, content')
       .eq('business_id', businessId)
-      .order('created_at', { ascending: false })
+      .limit(5) // Limit to 5 most recent
 
     if (trainingError) {
       console.error('❌ Error fetching training data:', trainingError)
     }
 
-    // Build knowledge base context from all training entries
+    // Build knowledge base - COMPACT VERSION
     let knowledgeContext = ''
     
     if (trainingData && trainingData.length > 0) {
       console.log(`✅ Found ${trainingData.length} training entries`)
       
+      // Limit content size to avoid token overload
       knowledgeContext = trainingData
-        .map((item: any, index: number) => {
-          const source = item.source_type === 'pdf' ? '📄 PDF' : 
-                        item.source_type === 'website' ? '🌐 Website' : '✏️ Text'
-          return `[${source}: ${item.source_url}]\n${item.content}`
+        .map((item: any) => {
+          // Limit each content to 500 chars
+          const limitedContent = item.content.substring(0, 500)
+          const source = item.source_type === 'pdf' ? '📄' : 
+                        item.source_type === 'website' ? '🌐' : '✏️'
+          return `${source} ${item.source_url}:\n${limitedContent}...`
         })
-        .join('\n\n---\n\n')
+        .join('\n\n')
     } else {
-      console.log('⚠️ No training data found for this business')
-      knowledgeContext = 'No specific business information available yet.'
+      console.log('⚠️ No training data found')
+      knowledgeContext = 'No business information available.'
     }
 
-    // System prompt with comprehensive context
-    const systemPrompt = `You are Munshi, a professional customer service assistant for a Pakistani business.
+    // COMPACT system prompt
+    const systemPrompt = `You are Munshi, customer service assistant. Respond in Roman Urdu only.
 
-═══════════════════════════════════════════════════════════
-📚 BUSINESS KNOWLEDGE BASE
-═══════════════════════════════════════════════════════════
-
+KNOWLEDGE BASE:
 ${knowledgeContext}
 
-═══════════════════════════════════════════════════════════
-🗣️ LANGUAGE RULES - ROMAN URDU ONLY
-═══════════════════════════════════════════════════════════
+RULES:
+1. Answer in Roman Urdu (Urdu in English letters)
+2. Use: "Ji haan", "Nahi", "Shukriya", "Aapka", "Hamara"
+3. Short responses (2-3 sentences)
+4. If info not available: "Hamara team contact karega"
+5. Be professional and friendly`
 
-MUST respond in Roman Urdu (Urdu written in English letters).
+    console.log('🧠 System prompt ready')
 
-✅ CORRECT Examples:
-- "Ji haan, bilkul shukriya!"
-- "Aapka order 2-3 din mein aa jayega"
-- "Aap kaunsa product chahte ho?"
-- "Hamara team aapka phone karke contact karega"
-
-❌ FORBIDDEN:
-- Hindi words (suagat, dhanyavaad, uplabdh, kripya, sampark, vyapar)
-- Urdu script (اردو لکھنا)
-- Pure English (unless customer asks in English)
-
-═══════════════════════════════════════════════════════════
-💼 BEHAVIOR GUIDELINES
-═══════════════════════════════════════════════════════════
-
-1. Always be helpful and professional
-2. Answer based on KNOWLEDGE BASE information above
-3. If info not available, say: "Yeh maloomaat hamara paas nahi hai, lekin hamara team aapko contact karega"
-4. Keep responses SHORT (2-3 sentences max)
-5. Use emoji where appropriate (🎁 🚚 ✅ ❌ 📞)
-6. Ask follow-up questions if needed
-7. Be warm and friendly like Pakistani customer service
-
-═══════════════════════════════════════════════════════════`
-
-    console.log('🧠 System prompt ready with', trainingData?.length || 0, 'knowledge entries')
-
-    // Call Groq with training data context
+    // Call Groq
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
@@ -109,7 +85,7 @@ MUST respond in Roman Urdu (Urdu written in English letters).
       ],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: 256, // Reduced from 500
     })
 
     const aiResponse = chatCompletion.choices[0]?.message?.content
@@ -122,7 +98,7 @@ MUST respond in Roman Urdu (Urdu written in English letters).
       )
     }
 
-    console.log('✅ Response generated:', aiResponse.substring(0, 50))
+    console.log('✅ Response:', aiResponse.substring(0, 50))
 
     return NextResponse.json({
       response: aiResponse,
@@ -130,9 +106,9 @@ MUST respond in Roman Urdu (Urdu written in English letters).
     })
 
   } catch (error: any) {
-    console.error('🔥 Chat API error:', error)
+    console.error('🔥 Error:', error.message)
     return NextResponse.json(
-      { error: 'Internal server error: ' + error.message },
+      { error: error.message || 'Server error' },
       { status: 500 }
     )
   }
