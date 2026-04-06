@@ -22,41 +22,80 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get business knowledge from Supabase
-    const { data: knowledgeData, error: knowledgeError } = await supabase
-      .from('knowledge_base')
-      .select('content')
-      .eq('business_id', businessId)
-      .single()
+    console.log('📨 Chat request:', { message: message.substring(0, 50), businessId })
 
-    if (knowledgeError) {
-      console.error('Error fetching knowledge:', knowledgeError)
-      // Continue with empty knowledge if error occurs
+    // Fetch ALL training data for this business
+    const { data: trainingData, error: trainingError } = await supabase
+      .from('knowledge_base')
+      .select('id, source_type, source_url, content, created_at')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+
+    if (trainingError) {
+      console.error('❌ Error fetching training data:', trainingError)
     }
 
-    const knowledge = knowledgeData?.content || 'No specific business information available.'
+    // Build knowledge base context from all training entries
+    let knowledgeContext = ''
+    
+    if (trainingData && trainingData.length > 0) {
+      console.log(`✅ Found ${trainingData.length} training entries`)
+      
+      knowledgeContext = trainingData
+        .map((item: any, index: number) => {
+          const source = item.source_type === 'pdf' ? '📄 PDF' : 
+                        item.source_type === 'website' ? '🌐 Website' : '✏️ Text'
+          return `[${source}: ${item.source_url}]\n${item.content}`
+        })
+        .join('\n\n---\n\n')
+    } else {
+      console.log('⚠️ No training data found for this business')
+      knowledgeContext = 'No specific business information available yet.'
+    }
 
-    // System prompt with strict Roman Urdu rules
-    const systemPrompt = `You are Munshi, a customer service assistant.
+    // System prompt with comprehensive context
+    const systemPrompt = `You are Munshi, a professional customer service assistant for a Pakistani business.
 
-CRITICAL LANGUAGE RULE - MUST FOLLOW:
-You MUST respond in Roman Urdu ONLY.
-Roman Urdu means Urdu words written in English letters. Examples:
-- 'Ji haan, bilkul!' 
-- 'Aapka order 2-3 din mein aa jayega'
-- 'Koi bhi sawal ho toh zaroor poochein'
+═══════════════════════════════════════════════════════════
+📚 BUSINESS KNOWLEDGE BASE
+═══════════════════════════════════════════════════════════
 
-STRICTLY FORBIDDEN:
-- Hindi words like: suagat, uplabdh, dhanyavaad, kripya, prapt, jawab, sampark, vyapar
-- Urdu script: (کوئی اردو نہیں)
-- Pure English (unless customer writes in English)
+${knowledgeContext}
 
-ALLOWED WORDS EXAMPLES:
-Ji haan, nahi, shukriya, please, order, delivery, COD, available, price, product, aapka, hamara, karo, hoga, hai, tha, chahiye, milega
+═══════════════════════════════════════════════════════════
+🗣️ LANGUAGE RULES - ROMAN URDU ONLY
+═══════════════════════════════════════════════════════════
 
-Store information: ${knowledge}`
+MUST respond in Roman Urdu (Urdu written in English letters).
 
-    // Send to Groq API
+✅ CORRECT Examples:
+- "Ji haan, bilkul shukriya!"
+- "Aapka order 2-3 din mein aa jayega"
+- "Aap kaunsa product chahte ho?"
+- "Hamara team aapka phone karke contact karega"
+
+❌ FORBIDDEN:
+- Hindi words (suagat, dhanyavaad, uplabdh, kripya, sampark, vyapar)
+- Urdu script (اردو لکھنا)
+- Pure English (unless customer asks in English)
+
+═══════════════════════════════════════════════════════════
+💼 BEHAVIOR GUIDELINES
+═══════════════════════════════════════════════════════════
+
+1. Always be helpful and professional
+2. Answer based on KNOWLEDGE BASE information above
+3. If info not available, say: "Yeh maloomaat hamara paas nahi hai, lekin hamara team aapko contact karega"
+4. Keep responses SHORT (2-3 sentences max)
+5. Use emoji where appropriate (🎁 🚚 ✅ ❌ 📞)
+6. Ask follow-up questions if needed
+7. Be warm and friendly like Pakistani customer service
+
+═══════════════════════════════════════════════════════════`
+
+    console.log('🧠 System prompt ready with', trainingData?.length || 0, 'knowledge entries')
+
+    // Call Groq with training data context
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
@@ -76,20 +115,24 @@ Store information: ${knowledge}`
     const aiResponse = chatCompletion.choices[0]?.message?.content
 
     if (!aiResponse) {
+      console.error('❌ No response from Groq')
       return NextResponse.json(
         { error: 'Failed to generate response' },
         { status: 500 }
       )
     }
 
+    console.log('✅ Response generated:', aiResponse.substring(0, 50))
+
     return NextResponse.json({
       response: aiResponse,
+      trainingEntriesUsed: trainingData?.length || 0,
     })
 
-  } catch (error) {
-    console.error('Chat API error:', error)
+  } catch (error: any) {
+    console.error('🔥 Chat API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error: ' + error.message },
       { status: 500 }
     )
   }
