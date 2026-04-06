@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
-import { trainingCache } from '@/lib/trainingCache'
+import { trainingCache } from '../../../lib/trainingCache'
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
