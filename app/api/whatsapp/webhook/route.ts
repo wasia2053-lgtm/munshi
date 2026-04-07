@@ -13,192 +13,156 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const hubMode = searchParams.get('hub.mode')
-  const hubChallenge = searchParams.get('hub.challenge')
   const hubVerifyToken = searchParams.get('hub.verify_token')
+  const hubChallenge = searchParams.get('hub.challenge')
 
-  console.log('🔐 [WEBHOOK] Verification attempt')
-  console.log('   Mode:', hubMode)
-  console.log('   Token match:', hubVerifyToken === process.env.WHATSAPP_VERIFY_TOKEN)
+  console.log('🔐 WEBHOOK VERIFICATION')
+  console.log('Expected token:', process.env.WHATSAPP_VERIFY_TOKEN)
+  console.log('Received token:', hubVerifyToken)
+  console.log('Match:', hubVerifyToken === process.env.WHATSAPP_VERIFY_TOKEN)
 
-  if (hubMode === 'subscribe' && hubVerifyToken === process.env.WHATSAPP_VERIFY_TOKEN) {
-    console.log('✅ [WEBHOOK] Verified successfully')
+  if (hubVerifyToken === process.env.WHATSAPP_VERIFY_TOKEN) {
+    console.log('✅ VERIFIED')
     return new NextResponse(hubChallenge)
   }
 
-  console.log('❌ [WEBHOOK] Verification failed')
+  console.log('❌ FAILED')
   return NextResponse.json({ error: 'Verification failed' }, { status: 403 })
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-  
   try {
     const body = await request.json()
-    
-    console.log('\n═══════════════════════════════════════════')
-    console.log('📨 [WEBHOOK] Incoming WhatsApp Message')
-    console.log('═══════════════════════════════════════════')
-    console.log('Timestamp:', new Date().toISOString())
 
-    if (body.object === 'whatsapp_business_account') {
-      for (const entry of body.entry) {
-        for (const change of entry.changes) {
-          if (change.field === 'messages') {
-            for (const message of change.value.messages) {
-              if (message.type === 'text' && !message.from_me) {
-                console.log(`\n📬 Processing message from: ${message.from}`)
-                await processIncomingMessage(message)
+    console.log('\n MESSAGE RECEIVED')
+    console.log('Time:', new Date().toISOString())
+    console.log('Body:', JSON.stringify(body, null, 2))
+
+    // Process messages
+    if (body?.entry?.[0]?.changes?.[0]?.value?.messages) {
+      const messages = body.entry[0].changes[0].value.messages
+      console.log(`Found ${messages.length} message(s)`)
+      
+      for (const msg of messages) {
+        if (msg.type !== 'text' || !msg.text?.body) {
+          console.log(' Skipping non-text message')
+          continue
+        }
+
+        const customerPhone = msg.from
+        const messageText = msg.text.body
+        const businessId = 'default' // You might want to extract this from somewhere
+        
+        console.log(`\n Message Details:`)
+        console.log('   From:', customerPhone)
+        console.log('   Text:', messageText)
+        console.log('   ID:', msg.id)
+
+        try {
+          // Generate AI response
+          console.log('\n Generating AI response...')
+          const chatCompletion = await groq.chat.completions.create({
+            messages: [
+              {
+                role: 'system',
+                content: 'You are Munshi, customer service assistant. Respond in Roman Urdu. Keep responses short (2-3 sentences max).'
+              },
+              {
+                role: 'user',
+                content: messageText
               }
-            }
+            ],
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.7,
+            max_tokens: 256
+          })
+
+          const aiReply = chatCompletion.choices[0]?.message?.content
+          
+          if (!aiReply) {
+            console.log(' No AI response generated')
+            continue
           }
+
+          console.log(' AI Response:', aiReply)
+
+          // Send WhatsApp response
+          console.log('\n Sending WhatsApp response...')
+          console.log(' WHATSAPP_PHONE_NUMBER_ID:', process.env.WHATSAPP_PHONE_NUMBER_ID)
+          
+          const whatsappResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: customerPhone,
+                type: 'text',
+                text: { body: aiReply }
+              })
+            }
+          )
+
+          const whatsappResult = await whatsappResponse.json()
+          
+          console.log('\n=== WHATSAPP API RESPONSE ===')
+          console.log('Status:', whatsappResponse.status)
+          console.log('Status Text:', whatsappResponse.statusText)
+          console.log('Response Body:', JSON.stringify(whatsappResult, null, 2))
+          
+          if (!whatsappResponse.ok) {
+            console.log(' WhatsApp API Error:', whatsappResult)
+          } else {
+            console.log(' WhatsApp message sent successfully')
+          }
+          console.log('==============================\n')
+
+          // Save conversation to Supabase
+          console.log(' Saving conversation to Supabase...')
+          const { error: saveError } = await supabase
+            .from('conversations')
+            .insert({
+              business_id: businessId,
+              customer_phone: customerPhone,
+              message_text: messageText,
+              message_type: 'customer',
+              created_at: new Date().toISOString()
+            })
+
+          if (saveError) {
+            console.log(' Supabase save error (customer):', saveError.message)
+          }
+
+          // Save AI response to Supabase
+          const { error: botSaveError } = await supabase
+            .from('conversations')
+            .insert({
+              business_id: businessId,
+              customer_phone: customerPhone,
+              message_text: aiReply,
+              message_type: 'bot',
+              created_at: new Date().toISOString()
+            })
+
+          if (botSaveError) {
+            console.log(' Supabase save error (bot):', botSaveError.message)
+          }
+
+        } catch (aiError: any) {
+          console.log(' AI/WhatsApp error:', aiError.message)
         }
       }
-    }
-
-    const elapsed = Date.now() - startTime
-    console.log(`\n✅ [WEBHOOK] Completed in ${elapsed}ms`)
-    console.log('═══════════════════════════════════════════\n')
-
-    return NextResponse.json({ status: 'received' })
-  } catch (error) {
-    console.error('🔥 [WEBHOOK] Error:', error)
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
-  }
-}
-
-async function processIncomingMessage(message: any) {
-  try {
-    const from = message.from
-    const messageText = message.text.body
-    const timestamp = message.timestamp
-    const messageId = message.id
-
-    console.log('   Message:', messageText.substring(0, 50))
-    console.log('   Type: text')
-
-    const businessId = '00000000-0000-0000-0000-000000000001' // TODO: Extract from phone
-
-    // Save conversation
-    console.log('\n💾 Saving to conversations...')
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .upsert({
-        business_id: businessId,
-        customer_phone: from,
-        last_message: messageText,
-        last_message_time: new Date(timestamp * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'business_id,customer_phone'
-      })
-      .select()
-      .single()
-
-    if (convError) {
-      console.error('   ❌ Error:', convError.message)
     } else {
-      console.log(`   ✅ Conversation saved: ${conversation?.id}`)
+      console.log(' No messages in payload')
     }
 
-    // Save customer message
-    console.log('\n💾 Saving customer message...')
-    const { error: msgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversation?.id,
-        business_id: businessId,
-        customer_phone: from,
-        message_text: messageText,
-        message_type: 'customer',
-        whatsapp_message_id: messageId,
-        created_at: new Date(timestamp * 1000).toISOString()
-      })
-
-    if (msgError) {
-      console.error('   ❌ Error:', msgError.message)
-    } else {
-      console.log('   ✅ Customer message saved')
-    }
-
-    // Call AI
-    console.log('\n🤖 Calling AI chat...')
-    const chatStartTime = Date.now()
-
-    const chatResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: messageText,
-        businessId: businessId
-      })
-    })
-
-    const chatElapsed = Date.now() - chatStartTime
-    console.log(`   ⏱️  Chat API took: ${chatElapsed}ms`)
-
-    if (!chatResponse.ok) {
-      console.error(`   ❌ Chat API error: ${chatResponse.status}`)
-      const errorData = await chatResponse.json()
-      console.error('   Error:', errorData)
-      return
-    }
-
-    const { response: aiResponse } = await chatResponse.json()
-    console.log(`   ✅ AI Response: "${aiResponse.substring(0, 50)}..."`)
-
-    // Save bot message
-    console.log('\n💾 Saving bot message...')
-    const { error: botMsgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversation?.id,
-        business_id: businessId,
-        customer_phone: from,
-        message_text: aiResponse,
-        message_type: 'bot',
-        created_at: new Date().toISOString()
-      })
-
-    if (botMsgError) {
-      console.error('   ❌ Error:', botMsgError.message)
-    } else {
-      console.log('   ✅ Bot message saved')
-    }
-
-    // Send WhatsApp
-    console.log('\n📤 Sending WhatsApp message...')
-    const whatsappStartTime = Date.now()
-
-    const waResponse = await fetch(
-      `https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: from,
-          type: 'text',
-          text: { body: aiResponse }
-        })
-      }
-    )
-
-    const waElapsed = Date.now() - whatsappStartTime
-    console.log(`   ⏱️  WhatsApp API took: ${waElapsed}ms`)
-
-    if (!waResponse.ok) {
-      const errorText = await waResponse.text()
-      console.error(`   ❌ WhatsApp error: ${waResponse.status}`)
-      console.error('   Response:', errorText)
-    } else {
-      console.log('   ✅ Message sent to WhatsApp')
-    }
-
+    return NextResponse.json({ status: 'ok' })
   } catch (error: any) {
-    console.error('🔥 Processing error:', error.message)
+    console.error(' ERROR:', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
