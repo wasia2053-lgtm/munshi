@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { supabase } from '@/lib/supabase'
+const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
 
 export default function SettingsPage() {
   const [botName, setBotName] = useState('Munshi Assistant')
@@ -20,10 +21,43 @@ export default function SettingsPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentSubmitted, setPaymentSubmitted] = useState(false)
 
-  const handleSavePersonality = () => {
-    // Save bot personality settings
-    console.log('Saving personality settings:', { botName, botTone, language })
+
+React.useEffect(() => {
+  fetch('/api/settings/save')
+    .then(r => r.json())
+    .then(({ data }) => {
+      if (data) {
+        setBotName(data.bot_name || 'Munshi Assistant')
+        setLanguage(data.language || 'roman_urdu')
+        setBotTone(data.tone || 'professional')
+      }
+    })
+}, [])
+
+
+const handleSavePersonality = async () => {
+  try {
+    const res = await fetch('/api/settings/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bot_name: botName,
+        language: language,
+        tone: botTone,
+      })
+    })
+    const data = await res.json()
+    if (data.success) {
+      alert('✅ Settings saved!')
+    } else {
+      alert('❌ Error: ' + data.error)
+    }
+  } catch (error) {
+    alert('❌ Failed to save settings')
   }
+}
+
+
 
   const handleSaveProfile = () => {
     // Save user profile settings
@@ -138,10 +172,10 @@ export default function SettingsPage() {
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
-                { value: 'english', label: 'English', icon: '🇬🇧' },
-                { value: 'urdu', label: 'Urdu', icon: '🇵🇰' },
-                { value: 'hindi', label: 'Hindi', icon: '🇮🇳' },
-                { value: 'arabic', label: 'Arabic', icon: '🇸🇦' },
+{ value: 'roman_urdu', label: 'Roman Urdu', icon: '🇵🇰' },
+{ value: 'english', label: 'English', icon: '🇬🇧' },
+{ value: 'urdu_script', label: 'Urdu Script', icon: '✍️' },
+{ value: 'arabic', label: 'Arabic', icon: '🇸🇦' },
               ].map((lang) => (
                 <div
                   key={lang.value}

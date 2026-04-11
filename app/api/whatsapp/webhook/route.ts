@@ -49,6 +49,37 @@ export async function POST(request: NextRequest) {
       console.log('📞 From:', customerPhone)
       console.log('💬 Text:', messageText)
 
+      // ─── Fetch Business Settings ────────────────────────
+      const { data: settings } = await supabase
+        .from('business_settings')
+        .select('bot_name, language, tone')
+        .eq('business_id', BUSINESS_ID)
+        .single()
+
+      const botName = settings?.bot_name || 'Munshi'
+      const language = settings?.language || 'roman_urdu'
+      const tone = settings?.tone || 'professional'
+
+      console.log(`⚙️ Settings - Name: ${botName}, Lang: ${language}, Tone: ${tone}`)
+
+      const languageInstruction =
+        language === 'roman_urdu'
+          ? 'ONLY respond in Roman Urdu (Urdu words written in English letters). NEVER use Hindi. NEVER use Urdu script. Example: "Aap ka masla hal ho jayega", "Hum aap ki madad karenge"'
+          : language === 'english'
+          ? 'ONLY respond in English'
+          : language === 'urdu_script'
+          ? 'ONLY respond in Urdu script (اردو)'
+          : language === 'arabic'
+          ? 'ONLY respond in Arabic'
+          : 'ONLY respond in Roman Urdu'
+
+      const toneInstruction =
+        tone === 'professional'
+          ? 'Be formal and professional'
+          : tone === 'friendly'
+          ? 'Be warm, friendly and approachable'
+          : 'Be casual and relaxed'
+
       // ─── Fetch Knowledge Base ───────────────────────────
       const { data: kbData } = await supabase
         .from('knowledge_base')
@@ -69,7 +100,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are Munshi, a helpful customer service assistant. You MUST respond ONLY in Roman Urdu (Urdu written in English alphabets). NEVER use Hindi, NEVER use English, NEVER use Urdu script. Roman Urdu example: "Aap ka masla hal ho jayega", "Hum aap ki madad karenge". Keep responses friendly, short (2-3 sentences max), and professional. If info not available say: "Is baare mein hamari team aap se rabta karegi."
+            content: `You are ${botName}, a helpful customer service assistant. ${languageInstruction}. ${toneInstruction}. Keep responses short (2-3 sentences max). If info not available say: "Is baare mein hamari team aap se rabta karegi."
 
 KNOWLEDGE BASE:
 ${knowledgeContext}`
@@ -111,7 +142,6 @@ ${knowledgeContext}`
       console.log('✅ WhatsApp message sent!')
 
       // ─── Save to Supabase ───────────────────────────────
-      // 1. Upsert conversation
       const { data: convo, error: convoError } = await supabase
         .from('conversations')
         .upsert({
@@ -129,7 +159,6 @@ ${knowledgeContext}`
         continue
       }
 
-      // 2. Save customer message to messages table
       await supabase.from('messages').insert({
         conversation_id: convo.id,
         business_id: BUSINESS_ID,
@@ -140,7 +169,6 @@ ${knowledgeContext}`
         created_at: new Date().toISOString()
       })
 
-      // 3. Save bot reply to messages table
       await supabase.from('messages').insert({
         conversation_id: convo.id,
         business_id: BUSINESS_ID,
