@@ -105,13 +105,14 @@ export default function TrainingPage() {
     setTrainingProgress(0)
     setMessage(null)
 
-    const steps = [
-      { pct: 15, label: 'Connecting to website...' },
-      { pct: 35, label: 'Fetching page content...' },
-      { pct: 60, label: 'Extracting text data...' },
-      { pct: 80, label: 'Saving to knowledge base...' },
-      { pct: 100, label: 'Training complete!' },
-    ]
+const steps = [
+  { pct: 10, label: 'Connecting to website...' },
+  { pct: 25, label: 'Crawling pages (1-5)...' },
+  { pct: 50, label: 'Crawling pages (6-12)...' },
+  { pct: 75, label: 'Crawling pages (13-20)...' },
+  { pct: 90, label: 'Saving to knowledge base...' },
+  { pct: 100, label: '✅ Training complete!' },
+]
 
     // Fake progress while API runs
     let stepIndex = 0
@@ -121,10 +122,10 @@ export default function TrainingPage() {
         setProgressLabel(steps[stepIndex].label)
         stepIndex++
       }
-    }, 800)
+}, 2000)
 
     try {
-      const res = await fetch('/api/train', {
+      const res = await fetch('/api/train/scrape-website', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: websiteUrl.trim(), businessId }),
@@ -135,7 +136,7 @@ export default function TrainingPage() {
       if (result.success) {
         setTrainingProgress(100)
         setProgressLabel('Training complete!')
-        setMessage({ type: 'success', text: `✅ Website trained! ${result.chunks} chunks saved from ${websiteUrl}` })
+        setMessage({ type: 'success', text: `✅ Website trained! ${result.pages_crawled} pages crawled from ${websiteUrl}` })
         setWebsiteUrl('')
         await fetchHistory()
         setTimeout(() => { setTrainingProgress(0); setProgressLabel('') }, 2000)

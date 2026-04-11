@@ -72,12 +72,12 @@ export default function DashboardPage() {
       // For each conv, get last message
       const convsWithData = await Promise.all(
         (convs || []).map(async (conv) => {
-          const { data: msgs } = await supabase
-            .from('messages')
-            .select('content, timestamp')
-            .eq('conversation_id', conv.id)
-            .order('timestamp', { ascending: false })
-            .limit(1)
+const { data: msgs } = await supabase
+  .from('messages')
+  .select('message_text, created_at')
+  .eq('conversation_id', conv.id)
+  .order('created_at', { ascending: false })
+  .limit(1)
 
           const { count: mCount } = await supabase
             .from('messages')
@@ -88,7 +88,7 @@ export default function DashboardPage() {
             id: conv.id,
             customer_phone: conv.customer_phone,
             updated_at: conv.updated_at,
-            lastMessage: msgs?.[0]?.content || 'No messages',
+            lastMessage: msgs?.[0]?.message_text || 'No messages',
             messageCount: mCount || 0,
           }
         })
