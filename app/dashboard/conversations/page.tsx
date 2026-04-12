@@ -1,542 +1,432 @@
-'use client'
-export const dynamic = 'force-dynamic';
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import { DashboardLayout } from '@/components/DashboardLayout'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState, useRef, useCallback } from 'react';
 
-type Message = {
-  id: string
-  conversation_id: string
-  sender: string
-  content: string
-  timestamp: string
+interface Conversation {
+  id: string;
+  customer_phone: string;
+  last_message: string;
+  last_message_time: string;
+  updated_at: string;
 }
 
-type Conversation = {
-  id: string
-  business_id: string
-  customer_phone: string
-  created_at: string
-  updated_at: string
-  lastMessage?: string
-  messages?: Message[]
+interface Message {
+  id: string;
+  message_text: string;
+  message_type: 'incoming' | 'outgoing';
+  created_at: string;
 }
-
-const filters = ['All', 'Unread', 'Bot Active']
 
 function timeAgo(dateStr: string) {
-  const now = new Date()
-  const date = new Date(dateStr)
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`
-  return `${Math.floor(diff / 86400)} days ago`
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+  if (mins < 1) return 'Abhi';
+  if (mins < 60) return `${mins}m pehle`;
+  if (hrs < 24) return `${hrs}h pehle`;
+  return `${days}d pehle`;
+}
+
+function formatTime(dateStr: string) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleTimeString('en-PK', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-PK', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getInitials(phone: string) {
+  return phone ? phone.slice(-2) : '??';
 }
 
 export default function ConversationsPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selected, setSelected] = useState<number>(0)
-  const [activeFilter, setActiveFilter] = useState('All')
-  const [messageInput, setMessageInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [showChat, setShowChat] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selected, setSelected] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingConvs, setLoadingConvs] = useState(true);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch conversations + their messages
-  useEffect(() => {
-    fetchConversations()
-
-    // Realtime subscription — auto refresh jab naya message aaye
-    const channel = supabase
-      .channel('conversations-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        fetchConversations()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
-        fetchConversations()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [])
-
-  async function fetchConversations() {
-    setLoading(true)
+  const fetchConversations = useCallback(async () => {
     try {
-      // Get all conversations
-      const { data: convs, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .order('updated_at', { ascending: false })
-
-      if (error || !convs) { setLoading(false); return }
-
-      // For each conversation, get messages
-      const convsWithMessages = await Promise.all(
-        convs.map(async (conv) => {
-          const { data: msgs } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('conversation_id', conv.id)
-            .order('timestamp', { ascending: true })
-
-          const messages = msgs || []
-          const lastMsg = messages[messages.length - 1]
-
-          return {
-            ...conv,
-            messages,
-            lastMessage: lastMsg?.content || 'No messages yet',
-          }
-        })
-      )
-
-      setConversations(convsWithMessages)
-    } catch (e) {
-      console.error('Error fetching conversations:', e)
+      const res = await fetch('/api/conversations');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setConversations(data);
+      setError(null);
+      // Auto-select first if none selected
+      if (data.length > 0 && !selected) {
+        setSelected(data[0]);
+      }
+    } catch (err: any) {
+      console.error('Conversations fetch error:', err);
+      setError(err.message);
+    } finally {
+      setLoadingConvs(false);
     }
-    setLoading(false)
-  }
+  }, [selected]);
 
-  const current = conversations[selected]
+  // Initial fetch + polling every 10s
+  useEffect(() => {
+    fetchConversations();
+    pollRef.current = setInterval(fetchConversations, 10000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
 
-  const handleSelect = (index: number) => {
-    setSelected(index)
-    setShowChat(true)
-  }
+  // Fetch messages for selected conversation
+  const fetchMessages = useCallback(async (convId: string) => {
+    setLoadingMsgs(true);
+    try {
+      const res = await fetch(`/api/conversations/${convId}/messages`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setMessages(data);
+    } catch (err) {
+      console.error('Messages fetch error:', err);
+    } finally {
+      setLoadingMsgs(false);
+    }
+  }, []);
 
-  const handleSend = () => {
-    if (!messageInput.trim()) return
-    setIsTyping(true)
-    setTimeout(() => { setIsTyping(false); setMessageInput('') }, 2000)
-  }
+  useEffect(() => {
+    if (!selected) return;
+    fetchMessages(selected.id);
+    // Poll messages every 5s
+    const interval = setInterval(() => fetchMessages(selected.id), 5000);
+    return () => clearInterval(interval);
+  }, [selected, fetchMessages]);
+
+  // Auto scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const filtered = conversations.filter(c =>
+    c.customer_phone?.toLowerCase().includes(search.toLowerCase()) ||
+    (c.last_message || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Group messages by date
+  const groupedMessages: { date: string; msgs: Message[] }[] = [];
+  messages.forEach(msg => {
+    const d = formatDate(msg.created_at);
+    const last = groupedMessages[groupedMessages.length - 1];
+    if (last && last.date === d) {
+      last.msgs.push(msg);
+    } else {
+      groupedMessages.push({ date: d, msgs: [msg] });
+    }
+  });
 
   return (
-    <DashboardLayout
-      title="Conversations"
-      subtitle={`${conversations.length} total conversations`}
-    >
-      <style>{`
-        .conv-shell {
-          display: flex;
-          height: calc(100vh - 130px);
-          min-height: 500px;
-          border: 1px solid #2A4A42;
-          border-radius: 20px;
-          overflow: hidden;
-          background: #102C26;
-        }
-        .conv-list-panel {
-          width: 300px;
-          flex-shrink: 0;
-          background: #0D2420;
-          border-right: 1px solid #2A4A42;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-        .conv-chat-panel {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          min-width: 0;
-        }
-        .list-header {
-          padding: 16px;
-          border-bottom: 1px solid #2A4A42;
-          flex-shrink: 0;
-        }
-        .list-title {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 17px;
-          font-weight: 700;
-          color: #F7E7CE;
-          margin-bottom: 12px;
-        }
-        .filter-row {
-          display: flex;
-          gap: 4px;
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-        .filter-row::-webkit-scrollbar { display: none; }
-        .filter-btn {
-          padding: 4px 12px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          border: 1px solid transparent;
-          white-space: nowrap;
-          transition: all 0.18s;
-          background: transparent;
-          color: #8A7560;
-          font-family: 'DM Sans', sans-serif;
-        }
-        .filter-btn:hover { color: #F7E7CE; }
-        .filter-btn.active {
-          background: rgba(212,168,83,0.1);
-          color: #D4A853;
-          border-color: rgba(212,168,83,0.25);
-        }
-        .conv-items { flex: 1; overflow-y: auto; }
-        .conv-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          padding: 14px 16px;
-          border-bottom: 1px solid rgba(42,74,66,0.4);
-          cursor: pointer;
-          transition: background 0.15s;
-          border-left: 3px solid transparent;
-        }
-        .conv-item:hover { background: rgba(247,231,206,0.02); }
-        .conv-item.active {
-          background: rgba(212,168,83,0.06);
-          border-left-color: #D4A853;
-        }
-        .conv-avatar {
-          width: 40px; height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #2A4A42, #1A3D35);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 700;
-          color: #C4A882;
-          font-family: 'Cormorant Garamond', serif;
-          flex-shrink: 0;
-        }
-        .conv-avatar.gold {
-          background: linear-gradient(135deg, #D4A853, #C4983F);
-          color: #0D2420;
-        }
-        .conv-info { flex: 1; min-width: 0; }
-        .conv-phone { font-size: 13px; font-weight: 600; color: #F7E7CE; margin-bottom: 3px; }
-        .conv-last {
-          font-size: 12px; color: #8A7560;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-        .conv-time { font-size: 11px; color: #8A7560; white-space: nowrap; }
-        .chat-header {
-          padding: 14px 16px;
-          border-bottom: 1px solid #2A4A42;
-          background: #0D2420;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-shrink: 0;
-        }
-        .chat-back-btn {
-          display: none;
-          background: none;
-          border: none;
-          color: #C4A882;
-          font-size: 18px;
-          cursor: pointer;
-          padding: 2px 6px;
-          transition: color 0.2s;
-          flex-shrink: 0;
-        }
-        .chat-back-btn:hover { color: #F7E7CE; }
-        .chat-name { font-size: 14px; font-weight: 600; color: #F7E7CE; }
-        .chat-status { font-size: 12px; color: #4CAF82; margin-top: 1px; }
-        .chat-messages {
-          flex: 1;
-          overflow-y: auto;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          background: #0D2420;
-        }
-        .msg-wrap {
-          display: flex;
-          flex-direction: column;
-          max-width: 75%;
-        }
-        .msg-wrap.customer { align-self: flex-start; }
-        .msg-wrap.bot { align-self: flex-end; align-items: flex-end; }
-        .msg-sender { font-size: 11px; color: #8A7560; margin-bottom: 4px; }
-        .msg-bubble {
-          padding: 10px 14px;
-          border-radius: 16px;
-          font-size: 13px;
-          line-height: 1.55;
-        }
-        .msg-bubble.customer {
-          background: #1A3D35;
-          border: 1px solid #2A4A42;
-          color: #C4A882;
-          border-radius: 16px 16px 16px 4px;
-        }
-        .msg-bubble.bot {
-          background: rgba(212,168,83,0.1);
-          border: 1px solid rgba(212,168,83,0.2);
-          color: #F7E7CE;
-          border-radius: 16px 16px 4px 16px;
-        }
-        .msg-time { font-size: 11px; color: #8A7560; margin-top: 4px; }
-        .typing-wrap {
-          align-self: flex-end;
-          background: rgba(212,168,83,0.08);
-          border: 1px solid rgba(212,168,83,0.15);
-          border-radius: 16px 16px 4px 16px;
-          padding: 10px 14px;
-          display: flex; gap: 5px; align-items: center;
-        }
-        .tdot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: #D4A853; opacity: 0.7;
-          animation: tbounce 1.2s ease infinite;
-        }
-        .tdot:nth-child(2) { animation-delay: 0.2s; }
-        .tdot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes tbounce {
-          0%,100% { transform: translateY(0); opacity: 0.7; }
-          50% { transform: translateY(-5px); opacity: 1; }
-        }
-        .chat-input-bar {
-          padding: 12px 14px;
-          background: #0D2420;
-          border-top: 1px solid #2A4A42;
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          flex-shrink: 0;
-        }
-        .chat-input {
-          flex: 1;
-          min-width: 0;
-          padding: 10px 14px;
-          background: #102C26;
-          border: 1px solid #2A4A42;
-          border-radius: 10px;
-          color: #F7E7CE;
-          font-size: 13px;
-          font-family: 'DM Sans', sans-serif;
-          outline: none;
-          transition: border 0.2s;
-        }
-        .chat-input::placeholder { color: #8A7560; }
-        .chat-input:focus { border-color: #D4A853; box-shadow: 0 0 0 3px rgba(212,168,83,0.1); }
-        .send-btn {
-          width: 40px; height: 40px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #D4A853, #C4983F);
-          border: none; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 15px; color: #0D2420;
-          flex-shrink: 0;
-          transition: all 0.2s;
-        }
-        .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,168,83,0.3); }
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F7F3EC' }}>
 
-        /* Empty state */
-        .empty-state {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          color: #8A7560;
-          font-size: 14px;
-        }
-        .empty-icon { font-size: 40px; opacity: 0.5; }
-
-        /* Loading skeleton */
-        .skeleton {
-          background: linear-gradient(90deg, #1A3D35 25%, #223D37 50%, #1A3D35 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-          border-radius: 6px;
-          height: 12px;
-        }
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-
-        @media (max-width: 768px) {
-          .conv-shell {
-            height: calc(100vh - 120px);
-            border-radius: 16px;
-            position: relative;
-          }
-          .conv-list-panel {
-            width: 100%;
-            position: absolute;
-            inset: 0;
-            z-index: 2;
-            border-right: none;
-            border-radius: 16px;
-            transition: transform 0.28s ease, opacity 0.28s ease;
-          }
-          .conv-list-panel.hide-mobile {
-            transform: translateX(-100%);
-            opacity: 0;
-            pointer-events: none;
-          }
-          .conv-chat-panel {
-            width: 100%;
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            border-radius: 16px;
-            transform: translateX(100%);
-            opacity: 0;
-            transition: transform 0.28s ease, opacity 0.28s ease;
-            pointer-events: none;
-          }
-          .conv-chat-panel.show-mobile {
-            transform: translateX(0);
-            opacity: 1;
-            pointer-events: auto;
-            z-index: 3;
-          }
-          .chat-back-btn { display: block; }
-          .conv-avatar { width: 36px; height: 36px; font-size: 12px; }
-          .msg-wrap { max-width: 88%; }
-        }
-        @media (max-width: 480px) {
-          .conv-shell { height: calc(100vh - 110px); border-radius: 14px; }
-          .list-header { padding: 12px; }
-          .conv-item { padding: 12px; }
-          .chat-messages { padding: 12px; gap: 12px; }
-          .chat-input-bar { padding: 10px 12px; }
-        }
-      `}</style>
-
-      <div className="conv-shell">
-
-        {/* ── LEFT: Conversation List ── */}
-        <div className={`conv-list-panel${showChat ? ' hide-mobile' : ''}`}>
-          <div className="list-header">
-            <div className="list-title">
-              {loading ? 'Loading...' : `${conversations.length} Conversations`}
+      {/* ───── LEFT PANEL ───── */}
+      <div
+        className="flex flex-col flex-shrink-0"
+        style={{
+          width: '320px',
+          backgroundColor: '#FFFFFF',
+          borderRight: '1px solid #E8E0D5',
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #F0E8DC' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#102C26' }}>
+                Conversations
+              </h1>
+              <p style={{ fontSize: '12px', color: '#9B8E7E', marginTop: '2px' }}>
+                {loadingConvs ? 'Loading...' : `${conversations.length} customers`}
+              </p>
             </div>
-            <div className="filter-row">
-              {filters.map(f => (
-                <button
-                  key={f}
-                  className={`filter-btn${activeFilter === f ? ' active' : ''}`}
-                  onClick={() => setActiveFilter(f)}
-                >
-                  {f}
-                </button>
-              ))}
+            {/* Green dot = live */}
+            <div className="flex items-center gap-1.5">
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22C55E' }} />
+              <span style={{ fontSize: '11px', color: '#6B7280' }}>Live</span>
             </div>
           </div>
 
-          <div className="conv-items">
-            {loading ? (
-              // Skeleton loading
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="conv-item" style={{ opacity: 0.5 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#1A3D35' }} />
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div className="skeleton" style={{ width: '60%' }} />
-                    <div className="skeleton" style={{ width: '80%' }} />
-                  </div>
-                </div>
-              ))
-            ) : conversations.length === 0 ? (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8A7560', fontSize: 13 }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
-                Koi conversation nahi abhi tak.
-                <br />WhatsApp pe message bhejo!
-              </div>
-            ) : (
-              conversations.map((conv, i) => (
-                <div
-                  key={conv.id}
-                  className={`conv-item${selected === i ? ' active' : ''}`}
-                  onClick={() => handleSelect(i)}
-                >
-                  <div className="conv-avatar">
-                    {conv.customer_phone.slice(-2).toUpperCase()}
-                  </div>
-                  <div className="conv-info">
-                    <div className="conv-phone">{conv.customer_phone}</div>
-                    <div className="conv-last">{conv.lastMessage}</div>
-                  </div>
-                  <div className="conv-meta">
-                    <div className="conv-time">{timeAgo(conv.updated_at)}</div>
-                  </div>
-                </div>
-              ))
-            )}
+          {/* Search */}
+          <div style={{ position: 'relative', marginTop: '12px' }}>
+            <svg
+              style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#9B8E7E' }}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search karo..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                paddingLeft: '32px',
+                paddingRight: '12px',
+                paddingTop: '8px',
+                paddingBottom: '8px',
+                fontSize: '13px',
+                backgroundColor: '#F7F3EC',
+                border: '1px solid #E8E0D5',
+                borderRadius: '8px',
+                outline: 'none',
+                color: '#102C26',
+              }}
+            />
           </div>
         </div>
 
-        {/* ── RIGHT: Chat Panel ── */}
-        <div className={`conv-chat-panel${showChat ? ' show-mobile' : ''}`}>
-
-          {!current ? (
-            <div className="empty-state">
-              <div className="empty-icon">👈</div>
-              <div>Conversation select karo</div>
+        {/* Conversation List */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {loadingConvs ? (
+            <div className="flex flex-col gap-3 p-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{ height: '64px', backgroundColor: '#F7F3EC', borderRadius: '8px', animation: 'pulse 1.5s infinite' }} />
+              ))}
+            </div>
+          ) : error ? (
+            <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+              <p style={{ fontSize: '13px', color: '#DC2626' }}>Error: {error}</p>
+              <button
+                onClick={fetchConversations}
+                style={{ marginTop: '8px', fontSize: '12px', color: '#102C26', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                Retry
+              </button>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: '48px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>💬</div>
+              <p style={{ fontSize: '13px', color: '#9B8E7E' }}>
+                {search ? 'Koi result nahi mila' : 'Abhi tak koi conversation nahi'}
+              </p>
             </div>
           ) : (
-            <>
-              {/* Chat Header */}
-              <div className="chat-header">
-                <button className="chat-back-btn" onClick={() => setShowChat(false)}>←</button>
-                <div className="conv-avatar gold">
-                  {current.customer_phone.slice(-2).toUpperCase()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="chat-name">{current.customer_phone}</div>
-                  <div className="chat-status">
-                    ● {current.messages?.length || 0} messages
+            filtered.map(conv => {
+              const isActive = selected?.id === conv.id;
+              return (
+                <div
+                  key={conv.id}
+                  onClick={() => setSelected(conv)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    padding: '12px 14px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #F5EFE8',
+                    borderLeft: isActive ? '3px solid #D4A853' : '3px solid transparent',
+                    backgroundColor: isActive ? '#FDF8F0' : 'transparent',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '50%',
+                    backgroundColor: isActive ? '#D4A853' : '#102C26',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '13px', fontWeight: 600,
+                    flexShrink: 0,
+                  }}>
+                    {getInitials(conv.customer_phone)}
                   </div>
-                </div>
-              </div>
 
-              {/* Messages */}
-              <div className="chat-messages">
-                {!current.messages || current.messages.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#8A7560', fontSize: 13, marginTop: 40 }}>
-                    Koi messages nahi abhi tak
-                  </div>
-                ) : (
-                  current.messages.map((msg) => (
-                    <div key={msg.id} className={`msg-wrap ${msg.sender}`}>
-                      <div className="msg-sender">
-                        {msg.sender === 'customer' ? '👤 Customer' : '🤖 Munshi'}
-                      </div>
-                      <div className={`msg-bubble ${msg.sender}`}>{msg.content}</div>
-                      <div className="msg-time">{timeAgo(msg.timestamp)}</div>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#102C26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {conv.customer_phone}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#9B8E7E', flexShrink: 0, marginLeft: '6px' }}>
+                        {timeAgo(conv.updated_at)}
+                      </span>
                     </div>
-                  ))
-                )}
-
-                {isTyping && (
-                  <div className="typing-wrap">
-                    <div className="tdot" /><div className="tdot" /><div className="tdot" />
+                    <p style={{ fontSize: '12px', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
+                      {conv.last_message || '—'}
+                    </p>
                   </div>
-                )}
-              </div>
-
-              {/* Input */}
-              <div className="chat-input-bar">
-                <input
-                  className="chat-input"
-                  type="text"
-                  value={messageInput}
-                  onChange={e => setMessageInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSend()}
-                  placeholder="Type your message..."
-                />
-                <button className="send-btn" onClick={handleSend}>➤</button>
-              </div>
-            </>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
-    </DashboardLayout>
-  )
+
+      {/* ───── RIGHT PANEL ───── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {selected ? (
+          <>
+            {/* Chat Header */}
+            <div style={{
+              padding: '14px 20px',
+              backgroundColor: '#102C26',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexShrink: 0,
+            }}>
+              <div style={{
+                width: '38px', height: '38px', borderRadius: '50%',
+                backgroundColor: '#D4A853',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#102C26', fontSize: '13px', fontWeight: 700,
+              }}>
+                {getInitials(selected.customer_phone)}
+              </div>
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F7E7CE' }}>
+                  {selected.customer_phone}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22C55E' }} />
+                  <span style={{ fontSize: '11px', color: '#9BC4A8' }}>WhatsApp • Bot active</span>
+                </div>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <span style={{
+                  fontSize: '11px', padding: '4px 10px', borderRadius: '20px',
+                  backgroundColor: '#D4A85330', color: '#D4A853',
+                  border: '1px solid #D4A85360',
+                }}>
+                  {messages.length} messages
+                </span>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div style={{
+              flex: 1, overflowY: 'auto',
+              padding: '20px 24px',
+              backgroundImage: 'radial-gradient(circle at 1px 1px, #D4A85315 1px, transparent 0)',
+              backgroundSize: '24px 24px',
+            }}>
+              {loadingMsgs ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{
+                      height: '44px', width: i % 2 === 0 ? '60%' : '45%',
+                      backgroundColor: '#E8E0D5', borderRadius: '12px',
+                      alignSelf: i % 2 === 0 ? 'flex-end' : 'flex-start',
+                    }} />
+                  ))}
+                </div>
+              ) : messages.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <span style={{ fontSize: '40px' }}>💬</span>
+                  <p style={{ fontSize: '14px', color: '#9B8E7E', marginTop: '8px' }}>Koi message nahi abhi tak</p>
+                </div>
+              ) : (
+                groupedMessages.map(group => (
+                  <div key={group.date}>
+                    {/* Date separator */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '16px 0 12px' }}>
+                      <div style={{ flex: 1, height: '1px', backgroundColor: '#E8E0D5' }} />
+                      <span style={{ fontSize: '11px', color: '#9B8E7E', backgroundColor: '#F7F3EC', padding: '2px 10px', borderRadius: '20px' }}>
+                        {group.date}
+                      </span>
+                      <div style={{ flex: 1, height: '1px', backgroundColor: '#E8E0D5' }} />
+                    </div>
+
+                    {group.msgs.map(msg => (
+                      <div
+                        key={msg.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: msg.message_type === 'outgoing' ? 'flex-end' : 'flex-start',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <div style={{
+                          maxWidth: '68%',
+                          padding: '10px 14px',
+                          borderRadius: msg.message_type === 'outgoing'
+                            ? '18px 18px 4px 18px'
+                            : '18px 18px 18px 4px',
+                          backgroundColor: msg.message_type === 'outgoing' ? '#102C26' : '#FFFFFF',
+                          border: msg.message_type === 'outgoing' ? 'none' : '1px solid #E8E0D5',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                        }}>
+                          <p style={{
+                            fontSize: '13px',
+                            lineHeight: '1.5',
+                            color: msg.message_type === 'outgoing' ? '#F7E7CE' : '#1F2937',
+                            margin: 0,
+                          }}>
+                            {msg.message_text}
+                          </p>
+                          <p style={{
+                            fontSize: '10px',
+                            marginTop: '4px',
+                            textAlign: 'right',
+                            color: msg.message_type === 'outgoing' ? '#9BC4A8' : '#9B8E7E',
+                            margin: '4px 0 0',
+                          }}>
+                            {msg.message_type === 'outgoing' ? '🤖 Munshi • ' : ''}{formatTime(msg.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '12px 20px',
+              backgroundColor: '#FFFFFF',
+              borderTop: '1px solid #E8E0D5',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <div style={{
+                flex: 1, padding: '8px 14px',
+                backgroundColor: '#F7F3EC', borderRadius: '20px',
+                fontSize: '12px', color: '#9B8E7E',
+                border: '1px solid #E8E0D5',
+              }}>
+                🤖 Munshi bot is handling all replies automatically
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            color: '#9B8E7E',
+          }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              backgroundColor: '#F7E7CE',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '28px', marginBottom: '12px',
+            }}>
+              💬
+            </div>
+            <p style={{ fontSize: '15px', fontWeight: 500, color: '#102C26' }}>Conversation select karo</p>
+            <p style={{ fontSize: '13px', color: '#9B8E7E', marginTop: '4px' }}>Left se koi customer choose karo</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

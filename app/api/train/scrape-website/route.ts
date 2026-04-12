@@ -16,12 +16,24 @@ const MAX_PAGES = 20
 async function fetchPage(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(10000)
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000)
     })
-    if (!res.ok) return null
+    console.log(`📡 Fetch ${url} → Status: ${res.status}`)
+    if (!res.ok) {
+      console.log(`❌ Failed: ${res.status} ${res.statusText}`)
+      return null
+    }
     return await res.text()
-  } catch {
+  } catch (e: any) {
+    console.log(`❌ Fetch error for ${url}: ${e.message}`)
     return null
   }
 }
