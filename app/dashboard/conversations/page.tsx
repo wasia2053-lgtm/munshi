@@ -1,431 +1,518 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Conversation {
   id: string;
   customer_phone: string;
   last_message: string;
   last_message_time: string;
+  business_id: string;
+  created_at: string;
   updated_at: string;
 }
 
 interface Message {
   id: string;
+  conversation_id: string;
+  customer_phone: string;
   message_text: string;
   message_type: 'incoming' | 'outgoing';
   created_at: string;
+  whatsapp_message_id?: string;
 }
 
-function timeAgo(dateStr: string) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  const hrs = Math.floor(mins / 60);
-  const days = Math.floor(hrs / 24);
-  if (mins < 1) return 'Abhi';
-  if (mins < 60) return `${mins}m pehle`;
-  if (hrs < 24) return `${hrs}h pehle`;
-  return `${days}d pehle`;
+// ─── Sidebar Links ─────────────────────────────────────────────────────────────
+const navLinks = [
+  { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
+  { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: '📱' },
+  { href: '/dashboard/training', label: 'Train Bot', icon: '🧠' },
+  { href: '/dashboard/conversations', label: 'Conversations', icon: '💬', active: true },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: '📊' },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function formatTime(iso: string) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return d.toLocaleDateString([], { weekday: 'short' });
+  return d.toLocaleDateString([], { day: '2-digit', month: 'short' });
 }
 
-function formatTime(dateStr: string) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleTimeString('en-PK', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
+function formatChatTime(iso: string) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatDate(dateStr: string) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-PK', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+function shortPhone(phone: string) {
+  return phone?.replace(/\D/g, '').slice(-10) || '—';
 }
 
-function getInitials(phone: string) {
-  return phone ? phone.slice(-2) : '??';
-}
-
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function ConversationsPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selected, setSelected] = useState<Conversation | null>(null);
+  const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingConvs, setLoadingConvs] = useState(true);
-  const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [search, setSearch] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [panelView, setPanelView] = useState<'list' | 'chat'>('list'); // mobile toggle
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      const res = await fetch('/api/conversations');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setConversations(data);
-      setError(null);
-      // Auto-select first if none selected
-      if (data.length > 0 && !selected) {
-        setSelected(data[0]);
-      }
-    } catch (err: any) {
-      console.error('Conversations fetch error:', err);
-      setError(err.message);
-    } finally {
-      setLoadingConvs(false);
-    }
-  }, [selected]);
-
-  // Initial fetch + polling every 10s
+  // ── Fetch conversations ──
   useEffect(() => {
     fetchConversations();
-    pollRef.current = setInterval(fetchConversations, 10000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  // Fetch messages for selected conversation
-  const fetchMessages = useCallback(async (convId: string) => {
-    setLoadingMsgs(true);
+  async function fetchConversations() {
     try {
-      const res = await fetch(`/api/conversations/${convId}/messages`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setLoading(true);
+      const res = await fetch('/api/conversations');
       const data = await res.json();
-      setMessages(data);
-    } catch (err) {
-      console.error('Messages fetch error:', err);
+      if (!res.ok) throw new Error(data.error || 'Failed to load');
+      setConversations(data.conversations || []);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
-      setLoadingMsgs(false);
+      setLoading(false);
     }
-  }, []);
+  }
 
-  useEffect(() => {
-    if (!selected) return;
-    fetchMessages(selected.id);
-    // Poll messages every 5s
-    const interval = setInterval(() => fetchMessages(selected.id), 5000);
-    return () => clearInterval(interval);
-  }, [selected, fetchMessages]);
+  // ── Fetch messages ──
+  async function fetchMessages(conv: Conversation) {
+    setSelectedConv(conv);
+    setMessages([]);
+    setMessagesLoading(true);
+    setPanelView('chat');
+    try {
+      const res = await fetch(`/api/conversations/${conv.id}/messages`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load messages');
+      setMessages(data.messages || []);
+    } catch (e: any) {
+      console.error('Messages error:', e);
+      setMessages([]);
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
 
-  // Auto scroll to bottom on new messages
+  // ── Auto-scroll ──
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const filtered = conversations.filter(c =>
-    c.customer_phone?.toLowerCase().includes(search.toLowerCase()) ||
-    (c.last_message || '').toLowerCase().includes(search.toLowerCase())
+    c.customer_phone?.includes(search) ||
+    c.last_message?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group messages by date
-  const groupedMessages: { date: string; msgs: Message[] }[] = [];
-  messages.forEach(msg => {
-    const d = formatDate(msg.created_at);
-    const last = groupedMessages[groupedMessages.length - 1];
-    if (last && last.date === d) {
-      last.msgs.push(msg);
-    } else {
-      groupedMessages.push({ date: d, msgs: [msg] });
-    }
-  });
+  // ─── Sidebar ───────────────────────────────────────────────────────────────
+  const Sidebar = () => (
+    <>
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-  return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F7F3EC' }}>
-
-      {/* ───── LEFT PANEL ───── */}
-      <div
-        className="flex flex-col flex-shrink-0"
-        style={{
-          width: '320px',
-          backgroundColor: '#FFFFFF',
-          borderRight: '1px solid #E8E0D5',
-        }}
+      <aside
+        style={{ backgroundColor: '#102C26' }}
+        className={`
+          fixed top-0 left-0 h-full z-40 w-64 flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:relative lg:translate-x-0 lg:flex lg:flex-shrink-0
+        `}
       >
-        {/* Header */}
-        <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #F0E8DC' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#102C26' }}>
-                Conversations
-              </h1>
-              <p style={{ fontSize: '12px', color: '#9B8E7E', marginTop: '2px' }}>
-                {loadingConvs ? 'Loading...' : `${conversations.length} customers`}
-              </p>
-            </div>
-            {/* Green dot = live */}
-            <div className="flex items-center gap-1.5">
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22C55E' }} />
-              <span style={{ fontSize: '11px', color: '#6B7280' }}>Live</span>
-            </div>
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+          <div
+            style={{ backgroundColor: '#D4A853' }}
+            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-base"
+            className2="text-[#102C26]"
+          >
+            <span style={{ color: '#102C26', fontWeight: 800, fontSize: '16px' }}>M</span>
           </div>
-
-          {/* Search */}
-          <div style={{ position: 'relative', marginTop: '12px' }}>
-            <svg
-              style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#9B8E7E' }}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search karo..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                paddingLeft: '32px',
-                paddingRight: '12px',
-                paddingTop: '8px',
-                paddingBottom: '8px',
-                fontSize: '13px',
-                backgroundColor: '#F7F3EC',
-                border: '1px solid #E8E0D5',
-                borderRadius: '8px',
-                outline: 'none',
-                color: '#102C26',
-              }}
-            />
-          </div>
+          <span className="text-white font-bold text-lg tracking-wide">MUNSHI</span>
+          <button
+            className="ml-auto lg:hidden text-white/60 hover:text-white"
+            onClick={() => setSidebarOpen(false)}
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Conversation List */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loadingConvs ? (
-            <div className="flex flex-col gap-3 p-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} style={{ height: '64px', backgroundColor: '#F7F3EC', borderRadius: '8px', animation: 'pulse 1.5s infinite' }} />
-              ))}
-            </div>
-          ) : error ? (
-            <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: '#DC2626' }}>Error: {error}</p>
-              <button
-                onClick={fetchConversations}
-                style={{ marginTop: '8px', fontSize: '12px', color: '#102C26', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                Retry
-              </button>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div style={{ padding: '48px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>💬</div>
-              <p style={{ fontSize: '13px', color: '#9B8E7E' }}>
-                {search ? 'Koi result nahi mila' : 'Abhi tak koi conversation nahi'}
-              </p>
-            </div>
-          ) : (
-            filtered.map(conv => {
-              const isActive = selected?.id === conv.id;
-              return (
-                <div
-                  key={conv.id}
-                  onClick={() => setSelected(conv)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '12px 14px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #F5EFE8',
-                    borderLeft: isActive ? '3px solid #D4A853' : '3px solid transparent',
-                    backgroundColor: isActive ? '#FDF8F0' : 'transparent',
-                    transition: 'all 0.15s',
-                  }}
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navLinks.map(link => (
+            <a
+              key={link.href}
+              href={link.href}
+              style={link.active ? { backgroundColor: '#D4A853', color: '#102C26' } : {}}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+                transition-all duration-150
+                ${link.active
+                  ? 'font-semibold'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+                }
+              `}
+            >
+              <span className="text-base">{link.icon}</span>
+              {link.label}
+              {link.active && (
+                <span
+                  style={{ backgroundColor: '#102C26', color: '#D4A853' }}
+                  className="ml-auto text-xs px-2 py-0.5 rounded-full font-bold"
                 >
-                  {/* Avatar */}
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '50%',
-                    backgroundColor: isActive ? '#D4A853' : '#102C26',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '13px', fontWeight: 600,
-                    flexShrink: 0,
-                  }}>
-                    {getInitials(conv.customer_phone)}
-                  </div>
+                  {conversations.length}
+                </span>
+              )}
+            </a>
+          ))}
+        </nav>
 
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#102C26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {conv.customer_phone}
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#9B8E7E', flexShrink: 0, marginLeft: '6px' }}>
-                        {timeAgo(conv.updated_at)}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '12px', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
-                      {conv.last_message || '—'}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* Footer */}
+        <div className="px-4 py-4 border-t border-white/10">
+          <div
+            style={{ backgroundColor: 'rgba(212,168,83,0.15)', borderColor: '#D4A853' }}
+            className="rounded-xl p-3 border"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-white/60">FREE PLAN</span>
+              <span style={{ color: '#D4A853' }} className="text-xs font-bold">Upgrade</span>
+            </div>
+            <div className="text-xs text-white/50">Messages: 2 / 500</div>
+            <div className="mt-1.5 h-1.5 rounded-full bg-white/10">
+              <div style={{ width: '0.4%', backgroundColor: '#D4A853' }} className="h-full rounded-full" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2 px-1">
+            <div
+              style={{ backgroundColor: '#D4A853' }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+            >
+              <span style={{ color: '#102C26' }}>W</span>
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs text-white font-medium truncate">User</div>
+              <div className="text-xs text-white/40 truncate">wasia2053@gmail.com</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+
+  // ─── Conversations List Panel ──────────────────────────────────────────────
+  const ConvList = () => (
+    <div
+      style={{ borderColor: 'rgba(16,44,38,0.1)' }}
+      className={`
+        flex flex-col h-full
+        ${panelView === 'chat' ? 'hidden md:flex' : 'flex'}
+        w-full md:w-80 lg:w-96 border-r flex-shrink-0
+      `}
+    >
+      {/* Header */}
+      <div style={{ backgroundColor: '#102C26' }} className="px-5 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-white font-bold text-lg">Conversations</h1>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-green-400 text-xs font-medium">Live</span>
+            </span>
+            <button
+              onClick={fetchConversations}
+              className="text-white/50 hover:text-white text-sm ml-2"
+              title="Refresh"
+            >
+              ↻
+            </button>
+          </div>
+        </div>
+        {/* Search */}
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">🔍</span>
+          <input
+            type="text"
+            placeholder="Search karo..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none"
+            style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+        </div>
+        <div className="mt-2 text-xs text-white/40">
+          {filtered.length} customer{filtered.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* ───── RIGHT PANEL ───── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {selected ? (
-          <>
-            {/* Chat Header */}
-            <div style={{
-              padding: '14px 20px',
-              backgroundColor: '#102C26',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              flexShrink: 0,
-            }}>
-              <div style={{
-                width: '38px', height: '38px', borderRadius: '50%',
-                backgroundColor: '#D4A853',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#102C26', fontSize: '13px', fontWeight: 700,
-              }}>
-                {getInitials(selected.customer_phone)}
-              </div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F7E7CE' }}>
-                  {selected.customer_phone}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22C55E' }} />
-                  <span style={{ fontSize: '11px', color: '#9BC4A8' }}>WhatsApp • Bot active</span>
-                </div>
-              </div>
-              <div style={{ marginLeft: 'auto' }}>
-                <span style={{
-                  fontSize: '11px', padding: '4px 10px', borderRadius: '20px',
-                  backgroundColor: '#D4A85330', color: '#D4A853',
-                  border: '1px solid #D4A85360',
-                }}>
-                  {messages.length} messages
-                </span>
-              </div>
+      {/* List */}
+      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#F7E7CE08' }}>
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <div className="text-center">
+              <div
+                className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin mx-auto mb-2"
+                style={{ borderColor: '#D4A853', borderTopColor: 'transparent' }}
+              />
+              <p className="text-sm" style={{ color: '#102C26' + '80' }}>Loading...</p>
             </div>
-
-            {/* Messages Area */}
-            <div style={{
-              flex: 1, overflowY: 'auto',
-              padding: '20px 24px',
-              backgroundImage: 'radial-gradient(circle at 1px 1px, #D4A85315 1px, transparent 0)',
-              backgroundSize: '24px 24px',
-            }}>
-              {loadingMsgs ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {[1, 2, 3].map(i => (
-                    <div key={i} style={{
-                      height: '44px', width: i % 2 === 0 ? '60%' : '45%',
-                      backgroundColor: '#E8E0D5', borderRadius: '12px',
-                      alignSelf: i % 2 === 0 ? 'flex-end' : 'flex-start',
-                    }} />
-                  ))}
-                </div>
-              ) : messages.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                  <span style={{ fontSize: '40px' }}>💬</span>
-                  <p style={{ fontSize: '14px', color: '#9B8E7E', marginTop: '8px' }}>Koi message nahi abhi tak</p>
-                </div>
-              ) : (
-                groupedMessages.map(group => (
-                  <div key={group.date}>
-                    {/* Date separator */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '16px 0 12px' }}>
-                      <div style={{ flex: 1, height: '1px', backgroundColor: '#E8E0D5' }} />
-                      <span style={{ fontSize: '11px', color: '#9B8E7E', backgroundColor: '#F7F3EC', padding: '2px 10px', borderRadius: '20px' }}>
-                        {group.date}
-                      </span>
-                      <div style={{ flex: 1, height: '1px', backgroundColor: '#E8E0D5' }} />
-                    </div>
-
-                    {group.msgs.map(msg => (
-                      <div
-                        key={msg.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: msg.message_type === 'outgoing' ? 'flex-end' : 'flex-start',
-                          marginBottom: '8px',
-                        }}
-                      >
-                        <div style={{
-                          maxWidth: '68%',
-                          padding: '10px 14px',
-                          borderRadius: msg.message_type === 'outgoing'
-                            ? '18px 18px 4px 18px'
-                            : '18px 18px 18px 4px',
-                          backgroundColor: msg.message_type === 'outgoing' ? '#102C26' : '#FFFFFF',
-                          border: msg.message_type === 'outgoing' ? 'none' : '1px solid #E8E0D5',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                        }}>
-                          <p style={{
-                            fontSize: '13px',
-                            lineHeight: '1.5',
-                            color: msg.message_type === 'outgoing' ? '#F7E7CE' : '#1F2937',
-                            margin: 0,
-                          }}>
-                            {msg.message_text}
-                          </p>
-                          <p style={{
-                            fontSize: '10px',
-                            marginTop: '4px',
-                            textAlign: 'right',
-                            color: msg.message_type === 'outgoing' ? '#9BC4A8' : '#9B8E7E',
-                            margin: '4px 0 0',
-                          }}>
-                            {msg.message_type === 'outgoing' ? '🤖 Munshi • ' : ''}{formatTime(msg.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))
-              )}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Footer */}
-            <div style={{
-              padding: '12px 20px',
-              backgroundColor: '#FFFFFF',
-              borderTop: '1px solid #E8E0D5',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <div style={{
-                flex: 1, padding: '8px 14px',
-                backgroundColor: '#F7F3EC', borderRadius: '20px',
-                fontSize: '12px', color: '#9B8E7E',
-                border: '1px solid #E8E0D5',
-              }}>
-                🤖 Munshi bot is handling all replies automatically
-              </div>
-            </div>
-          </>
-        ) : (
-          <div style={{
-            flex: 1, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            color: '#9B8E7E',
-          }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '50%',
-              backgroundColor: '#F7E7CE',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '28px', marginBottom: '12px',
-            }}>
-              💬
-            </div>
-            <p style={{ fontSize: '15px', fontWeight: 500, color: '#102C26' }}>Conversation select karo</p>
-            <p style={{ fontSize: '13px', color: '#9B8E7E', marginTop: '4px' }}>Left se koi customer choose karo</p>
           </div>
+        ) : error ? (
+          <div className="p-6 text-center">
+            <p className="text-red-500 text-sm mb-3">{error}</p>
+            <button
+              onClick={fetchConversations}
+              style={{ backgroundColor: '#D4A853', color: '#102C26' }}
+              className="text-xs px-4 py-2 rounded-lg font-semibold"
+            >
+              Retry
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 px-6 text-center">
+            <div className="text-4xl mb-3">💬</div>
+            <p className="text-sm font-medium" style={{ color: '#102C26' }}>Abhi tak koi conversation nahi</p>
+            <p className="text-xs mt-1 text-gray-400">WhatsApp pe message aane ka wait karo</p>
+          </div>
+        ) : (
+          filtered.map(conv => (
+            <button
+              key={conv.id}
+              onClick={() => fetchMessages(conv)}
+              className="w-full text-left transition-all duration-150"
+              style={{
+                backgroundColor: selectedConv?.id === conv.id ? 'rgba(212,168,83,0.12)' : 'transparent',
+                borderLeft: selectedConv?.id === conv.id ? '3px solid #D4A853' : '3px solid transparent',
+              }}
+            >
+              <div className="flex items-start gap-3 px-5 py-4 hover:bg-black/5">
+                {/* Avatar */}
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
+                  style={{ backgroundColor: '#102C26', color: '#D4A853' }}
+                >
+                  {shortPhone(conv.customer_phone).slice(0, 2)}
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm truncate" style={{ color: '#102C26' }}>
+                      +{conv.customer_phone}
+                    </span>
+                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                      {formatTime(conv.last_message_time || conv.updated_at)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                    {conv.last_message || 'No messages yet'}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))
         )}
+      </div>
+    </div>
+  );
+
+  // ─── Chat Panel ────────────────────────────────────────────────────────────
+  const ChatPanel = () => (
+    <div
+      className={`
+        flex-1 flex flex-col h-full min-w-0
+        ${panelView === 'list' ? 'hidden md:flex' : 'flex'}
+      `}
+      style={{ backgroundColor: '#F7E7CE' }}
+    >
+      {selectedConv ? (
+        <>
+          {/* Chat Header */}
+          <div
+            style={{ backgroundColor: '#102C26', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+            className="px-5 py-4 flex items-center gap-3 flex-shrink-0"
+          >
+            {/* Mobile back button */}
+            <button
+              className="md:hidden text-white/70 hover:text-white mr-1"
+              onClick={() => setPanelView('list')}
+            >
+              ← 
+            </button>
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+              style={{ backgroundColor: '#D4A853', color: '#102C26' }}
+            >
+              {shortPhone(selectedConv.customer_phone).slice(0, 2)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-semibold text-sm">+{selectedConv.customer_phone}</div>
+              <div className="text-xs text-green-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                Bot Active
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-white/40">
+                {messages.length} message{messages.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div
+            className="flex-1 overflow-y-auto px-4 py-5 space-y-3"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(16,44,38,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(212,168,83,0.06) 0%, transparent 50%)',
+            }}
+          >
+            {messagesLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div
+                  className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+                  style={{ borderColor: '#102C26', borderTopColor: 'transparent' }}
+                />
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full opacity-60">
+                <div className="text-5xl mb-4">💬</div>
+                <p className="text-sm font-medium" style={{ color: '#102C26' }}>No messages found</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Messages table check karo Supabase mein
+                </p>
+              </div>
+            ) : (
+              messages.map(msg => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.message_type === 'outgoing' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className="max-w-[75%] md:max-w-[65%] px-4 py-2.5 rounded-2xl text-sm shadow-sm"
+                    style={
+                      msg.message_type === 'outgoing'
+                        ? {
+                            backgroundColor: '#102C26',
+                            color: '#F7E7CE',
+                            borderBottomRightRadius: '4px',
+                          }
+                        : {
+                            backgroundColor: 'white',
+                            color: '#1a1a1a',
+                            borderBottomLeftRadius: '4px',
+                          }
+                    }
+                  >
+                    <p className="leading-relaxed whitespace-pre-wrap break-words">
+                      {msg.message_text}
+                    </p>
+                    <div
+                      className={`text-xs mt-1.5 flex items-center gap-1 ${
+                        msg.message_type === 'outgoing' ? 'justify-end text-white/40' : 'justify-end text-gray-400'
+                      }`}
+                    >
+                      {formatChatTime(msg.created_at)}
+                      {msg.message_type === 'outgoing' && (
+                        <span style={{ color: '#D4A853' }}>✓✓</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input (view-only info) */}
+          <div
+            style={{ backgroundColor: 'white', borderTop: '1px solid rgba(16,44,38,0.1)' }}
+            className="px-4 py-3 flex items-center gap-3 flex-shrink-0"
+          >
+            <div
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm text-gray-400 select-none"
+              style={{ backgroundColor: '#F7E7CE', border: '1px solid rgba(16,44,38,0.1)' }}
+            >
+              🤖 Bot automatically reply kar raha hai WhatsApp pe
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Empty state */
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 text-4xl"
+            style={{ backgroundColor: 'rgba(16,44,38,0.08)' }}
+          >
+            💬
+          </div>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#102C26' }}>
+            Conversation select karo
+          </h3>
+          <p className="text-sm text-gray-500">Left se koi customer choose karo</p>
+        </div>
+      )}
+    </div>
+  );
+
+  // ─── Page Layout ──────────────────────────────────────────────────────────
+  return (
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F7E7CE' }}>
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Mobile Top Bar */}
+        <div
+          style={{ backgroundColor: '#102C26' }}
+          className="lg:hidden flex items-center gap-3 px-4 py-3 flex-shrink-0"
+        >
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-white text-xl p-1"
+          >
+            ☰
+          </button>
+          <div className="flex items-center gap-2">
+            <div
+              style={{ backgroundColor: '#D4A853' }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+            >
+              <span style={{ color: '#102C26', fontWeight: 800, fontSize: '13px' }}>M</span>
+            </div>
+            <span className="text-white font-bold text-base">MUNSHI</span>
+          </div>
+          {/* Mobile panel toggle */}
+          {selectedConv && panelView === 'chat' && (
+            <button
+              className="ml-auto text-white/60 hover:text-white text-sm"
+              onClick={() => setPanelView('list')}
+            >
+              ← Back
+            </button>
+          )}
+        </div>
+
+        {/* Content Row */}
+        <div className="flex flex-1 overflow-hidden">
+          <ConvList />
+          <ChatPanel />
+        </div>
       </div>
     </div>
   );

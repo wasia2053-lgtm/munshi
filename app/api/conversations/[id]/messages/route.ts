@@ -1,3 +1,6 @@
+// app/api/conversations/[id]/messages/route.ts
+// FIXED: Next.js 14 async params + customer_phone fallback
+
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
@@ -11,51 +14,70 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ✅ Next.js 14 - params must be awaited
     const { id } = await context.params;
 
     if (!id) {
-      return NextResponse.json({ error: 'No conversation ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Conversation ID required' }, { status: 400 });
     }
 
-    // Step 1: conversation_id se try karo
-    const { data: byConvId, error: err1 } = await supabase
+    // Step 1: Get the conversation to find customer_phone
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (convError || !conversation) {
+      console.error('Conversation not found:', convError);
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // Step 2: Try fetching messages by conversation_id first
+    let { data: messages, error: msgError } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true });
 
-    if (!err1 && byConvId && byConvId.length > 0) {
-      return NextResponse.json(byConvId);
+    // Step 3: Fallback — try by customer_phone if no results
+    if ((!messages || messages.length === 0) && conversation.customer_phone) {
+      const { data: fallbackMessages, error: fallbackError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('customer_phone', conversation.customer_phone)
+        .order('created_at', { ascending: true });
+
+      if (!fallbackError && fallbackMessages) {
+        messages = fallbackMessages;
+      }
     }
 
-    // Step 2: conversation table se customer_phone fetch karo
-    const { data: conv, error: err2 } = await supabase
-      .from('conversations')
-      .select('customer_phone')
-      .eq('id', id)
-      .single();
+    // Step 4: Also try by business_id + customer_phone combination
+    if ((!messages || messages.length === 0) && conversation.business_id && conversation.customer_phone) {
+      const { data: combo, error: comboError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('business_id', conversation.business_id)
+        .eq('customer_phone', conversation.customer_phone)
+        .order('created_at', { ascending: true });
 
-    if (err2 || !conv) {
-      console.error('Conversation not found:', err2);
-      return NextResponse.json([]);
+      if (!comboError && combo) {
+        messages = combo;
+      }
     }
 
-    // Step 3: customer_phone se messages fetch karo
-    const { data: byPhone, error: err3 } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('customer_phone', conv.customer_phone)
-      .order('created_at', { ascending: true });
+    return NextResponse.json({
+      conversation,
+      messages: messages || [],
+      total: messages?.length || 0,
+    });
 
-    if (err3) {
-      console.error('Messages by phone error:', err3);
-      return NextResponse.json({ error: err3.message }, { status: 500 });
-    }
-
-    return NextResponse.json(byPhone || []);
-
-  } catch (err: any) {
-    console.error('Messages API crash:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error) {
+    console.error('Messages API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: String(error) },
+      { status: 500 }
+    );
   }
 }
