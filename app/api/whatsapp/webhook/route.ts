@@ -45,9 +45,78 @@ export async function POST(request: NextRequest) {
 
       const customerPhone = msg.from
       const messageText = msg.text.body
+      
+      // Strip all non-digits for consistent storage
+      const customerPhoneDigits = customerPhone.replace(/\D/g, '')
 
-      console.log('📞 From:', customerPhone)
-      console.log('💬 Text:', messageText)
+      console.log('From:', customerPhone, 'Digits:', customerPhoneDigits)
+      console.log('Text:', messageText)
+
+      // Step 1: SELECT first to check if conversation exists
+      console.log('\nStep 1: Checking for existing conversation...')
+      let conversationId: string
+      
+      const { data: existing, error: selectError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('customer_phone', customerPhone)
+        .eq('business_id', BUSINESS_ID)
+        .single()
+
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.log('Select error:', selectError.message)
+        continue
+      }
+
+      if (existing) {
+        // Update existing conversation
+        console.log('Found existing conversation, updating...')
+        const { error: updateError } = await supabase.from('conversations').update({
+          last_message: messageText,
+          last_message_time: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('id', existing.id)
+
+        if (updateError) {
+          console.log('Update error:', updateError.message)
+          continue
+        }
+        conversationId = existing.id
+        console.log('Updated conversation with ID:', conversationId)
+      } else {
+        // Insert new conversation
+        console.log('Creating new conversation...')
+        const { data: newConv, error: insertError } = await supabase.from('conversations').insert({
+          business_id: BUSINESS_ID,
+          customer_phone: customerPhone,
+          last_message: messageText,
+          last_message_time: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).select('id').single()
+
+        if (insertError) {
+          console.log('Insert error:', insertError.message)
+          continue
+        }
+        conversationId = newConv.id
+        console.log('Created new conversation with ID:', conversationId)
+      }
+
+      // ─── Step 2: Save Incoming Message ─────────────────────
+      console.log('\nStep 2: Saving incoming message...')
+      const { error: incomingError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender: 'customer',
+        content: messageText,
+        timestamp: new Date().toISOString()
+      })
+
+      if (incomingError) {
+        console.log('❌ Incoming message save error:', incomingError.message)
+      } else {
+        console.log('✅ Incoming message saved to messages table')
+      }
 
       // ─── Fetch Business Settings ────────────────────────
       const { data: settings } = await supabase
@@ -141,44 +210,22 @@ ${knowledgeContext}`
       }
       console.log('✅ WhatsApp message sent!')
 
-      // ─── Save to Supabase ───────────────────────────────
-      const { data: convo, error: convoError } = await supabase
-        .from('conversations')
-        .upsert({
-          business_id: BUSINESS_ID,
-          customer_phone: customerPhone,
-          last_message: messageText,
-          last_message_time: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'business_id,customer_phone' })
-        .select()
-        .single()
+      // ─── Step 4: Save Outgoing Message ─────────────────────
+      console.log('\nStep 4: Saving outgoing message...')
+      const { error: outgoingError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender: 'bot',
+        content: aiReply,
+        timestamp: new Date().toISOString()
+      })
 
-      if (convoError) {
-        console.log('❌ Conversation save error:', convoError.message)
-        continue
+      if (outgoingError) {
+        console.log('❌ Outgoing message save error:', outgoingError.message)
+      } else {
+        console.log('✅ Outgoing message saved to messages table')
       }
 
-      await supabase.from('messages').insert({
-        conversation_id: convo.id,
-        business_id: BUSINESS_ID,
-        customer_phone: customerPhone,
-        message_text: messageText,
-        message_type: 'customer',
-        whatsapp_message_id: msg.id,
-        created_at: new Date().toISOString()
-      })
-
-      await supabase.from('messages').insert({
-        conversation_id: convo.id,
-        business_id: BUSINESS_ID,
-        customer_phone: customerPhone,
-        message_text: aiReply,
-        message_type: 'bot',
-        created_at: new Date().toISOString()
-      })
-
-      console.log('✅ Saved to Supabase!')
+      console.log('\n🎉 All steps completed successfully!')
     }
 
     return NextResponse.json({ status: 'ok' })

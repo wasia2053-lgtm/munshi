@@ -21,7 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation ID required' }, { status: 400 });
     }
 
-    // Step 1: Get the conversation to find customer_phone
+    // Step 1: Get conversation to find customer_phone
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select('*')
@@ -33,44 +33,57 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // Step 2: Try fetching messages by conversation_id first
-    let { data: messages, error: msgError } = await supabase
+    console.log('📝 Found conversation:', {
+      id: conversation.id,
+      customer_phone: conversation.customer_phone,
+      business_id: conversation.business_id
+    });
+
+    // Strip all non-digits for consistent comparison
+    const customerPhoneDigits = conversation.customer_phone?.replace(/\D/g, '') || '';
+    const customerPhoneWithPlus = conversation.customer_phone?.startsWith('+') 
+      ? conversation.customer_phone 
+      : `+${conversation.customer_phone}`;
+
+    console.log(' Phone formats to try:', {
+      original: conversation.customer_phone,
+      digits: customerPhoneDigits,
+      withPlus: customerPhoneWithPlus
+    });
+    let messages: any[] = [];
+    let queryUsed = '';
+
+    // Step 2: Try fetching messages by conversation_id only (simplified)
+    console.log('\n Query: By conversation_id');
+    let { data: messagesData, error: msgError } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', id)
-      .order('created_at', { ascending: true });
+      .order('timestamp', { ascending: true });
 
-    // Step 3: Fallback — try by customer_phone if no results
-    if ((!messages || messages.length === 0) && conversation.customer_phone) {
-      const { data: fallbackMessages, error: fallbackError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('customer_phone', conversation.customer_phone)
-        .order('created_at', { ascending: true });
-
-      if (!fallbackError && fallbackMessages) {
-        messages = fallbackMessages;
-      }
+    if (msgError) {
+      console.log(' Query error:', msgError.message);
+      messages = [];
+    } else {
+      console.log(` Found ${messagesData?.length || 0} messages by conversation_id`);
+      messages = messagesData || [];
     }
 
-    // Step 4: Also try by business_id + customer_phone combination
-    if ((!messages || messages.length === 0) && conversation.business_id && conversation.customer_phone) {
-      const { data: combo, error: comboError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('business_id', conversation.business_id)
-        .eq('customer_phone', conversation.customer_phone)
-        .order('created_at', { ascending: true });
+    // Normalize data for frontend chat bubbles
+    const normalizedMessages = messages?.map(m => ({
+      id: m.id,
+      message_text: m.content,
+      message_type: m.sender === 'bot' ? 'outgoing' : 'incoming',
+      created_at: m.timestamp,
+      conversation_id: m.conversation_id
+    })) || [];
 
-      if (!comboError && combo) {
-        messages = combo;
-      }
-    }
+    console.log(`\n Final result: ${normalizedMessages.length} messages normalized for frontend`);
 
     return NextResponse.json({
       conversation,
-      messages: messages || [],
-      total: messages?.length || 0,
+      messages: normalizedMessages,
+      total: normalizedMessages.length,
     });
 
   } catch (error) {

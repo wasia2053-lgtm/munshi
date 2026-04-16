@@ -140,7 +140,6 @@ export default function ConversationsPage() {
           <div
             style={{ backgroundColor: '#D4A853' }}
             className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-base"
-            className2="text-[#102C26]"
           >
             <span style={{ color: '#102C26', fontWeight: 800, fontSize: '16px' }}>M</span>
           </div>
