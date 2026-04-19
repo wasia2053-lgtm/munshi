@@ -1,48 +1,33 @@
 import React from 'react'
+import Link from 'next/link'
 
 export const LogoCompact: React.FC<{ className?: string }> = ({ className }) => (
-  <svg 
-    width="160" 
-    height="44" 
-    viewBox="0 0 160 44" 
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <defs>
-      <linearGradient id="gc1" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#F0C96A"/>
-        <stop offset="100%" stopColor="#C4983F"/>
-      </linearGradient>
-    </defs>
-    {/* Mini icon */}
-    <polygon 
-      points="18,3 30,3 37,10 37,32 30,39 18,39 11,32 11,10" 
-      fill="none" 
-      stroke="url(#gc1)" 
-      strokeWidth="1.3"
-    />
-    <text 
-      x="24" 
-      y="30" 
-      fontFamily="Cormorant Garamond, serif" 
-      fontSize="22" 
-      fontWeight="700" 
-      fill="url(#gc1)" 
-      textAnchor="middle"
-    >M</text>
-    {/* Wordmark */}
-    <text 
-      x="48" 
-      y="26" 
-      fontFamily="Cormorant Garamond, serif" 
-      fontSize="22" 
-      fontWeight="700" 
-      fill="#F7E7CE" 
-      letterSpacing="3"
-    >MUNSHI</text>
-    {/* Dot */}
-    <circle cx="24" cy="35" r="1.5" fill="#D4A853" opacity="0.6"/>
-  </svg>
+  <Link href="/" style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px 0', cursor: 'pointer' }}>
+    <span style={{
+      fontFamily: "'Cormorant Garamond', serif",
+      fontSize: '26px',
+      fontWeight: '700',
+      color: '#d4a853',
+      letterSpacing: '3px',
+      lineHeight: '1',
+      display: 'block',
+      textTransform: 'uppercase',
+    }}>
+      MUNSHI
+    </span>
+    <span style={{
+      fontFamily: "inherit",
+      fontSize: '10px',
+      fontWeight: '400',
+      color: '#c4a882',
+      letterSpacing: '2px',
+      textTransform: 'uppercase',
+      marginTop: '2px',
+      display: 'block',
+    }}>
+      AI WHATSAPP SECRETARY
+    </span>
+  </Link>
 )
 
 export const LogoStacked: React.FC<{ className?: string }> = ({ className }) => (

@@ -11,7 +11,7 @@ const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { bot_name, language, tone, organization_name, greeting_message } = body
+    const { bot_name, organization_name, language, tone, greeting_message } = body
 
     const { data, error } = await supabase
       .from('business_settings')

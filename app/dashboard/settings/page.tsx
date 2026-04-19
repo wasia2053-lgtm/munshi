@@ -8,9 +8,12 @@ import { supabase } from '@/lib/supabase'
 const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
 
 export default function SettingsPage() {
-  const [botName, setBotName] = useState('Munshi Assistant')
-  const [botTone, setBotTone] = useState('professional')
-  const [language, setLanguage] = useState('english')
+  const [botName, setBotName] = useState('')
+  const [orgName, setOrgName] = useState('')
+  const [tone, setTone] = useState('friendly')
+  const [language, setLanguage] = useState('roman_urdu')
+  const [greeting, setGreeting] = useState('')
+  const [showSuccess, setShowSuccess] = useState(false)
   const [userName, setUserName] = useState('Ahmad Raza')
   const [userEmail, setUserEmail] = useState('ahmad@stylehub.pk')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -23,37 +26,33 @@ export default function SettingsPage() {
 
 
 React.useEffect(() => {
-  fetch('/api/settings/save')
+  fetch('/api/settings/get')
     .then(r => r.json())
-    .then(({ data }) => {
-      if (data) {
-        setBotName(data.bot_name || 'Munshi Assistant')
-        setLanguage(data.language || 'roman_urdu')
-        setBotTone(data.tone || 'professional')
-      }
+    .then(data => {
+      setBotName(data.bot_name || '')
+      setOrgName(data.organization_name || '')
+      setLanguage(data.language || 'roman_urdu')
+      setTone(data.tone || 'friendly')
+      setGreeting(data.greeting_message || '')
     })
 }, [])
 
 
-const handleSavePersonality = async () => {
-  try {
-    const res = await fetch('/api/settings/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        bot_name: botName,
-        language: language,
-        tone: botTone,
-      })
+const handleSave = async () => {
+  const res = await fetch('/api/settings/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bot_name: botName,
+      organization_name: orgName,
+      language: language,
+      tone: tone,
+      greeting_message: greeting,
     })
-    const data = await res.json()
-    if (data.success) {
-      alert('✅ Settings saved!')
-    } else {
-      alert('❌ Error: ' + data.error)
-    }
-  } catch (error) {
-    alert('❌ Failed to save settings')
+  })
+  if (res.ok) {
+    setShowSuccess(true)
+    setTimeout(() => setShowSuccess(false), 3000)
   }
 }
 
@@ -137,6 +136,32 @@ const handleSavePersonality = async () => {
             />
           </div>
 
+          {/* Organization Name */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-[#C4A882] mb-2">
+              Organization Name
+            </label>
+            <input
+              type="text"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
+            />
+          </div>
+
+          {/* Greeting Message */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-[#C4A882] mb-2">
+              Greeting Message
+            </label>
+            <textarea
+              value={greeting}
+              onChange={(e) => setGreeting(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all resize-none"
+              rows={3}
+            />
+          </div>
+
           {/* Tone Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-[#C4A882] mb-3">
@@ -147,19 +172,23 @@ const handleSavePersonality = async () => {
                 { value: 'professional', label: 'Professional', icon: '👔', desc: 'Formal and business-like' },
                 { value: 'friendly', label: 'Friendly', icon: '😊', desc: 'Warm and approachable' },
                 { value: 'casual', label: 'Casual', icon: '🤙', desc: 'Relaxed and informal' },
-              ].map((tone) => (
+              ].map((toneOption) => (
                 <div
-                  key={tone.value}
-                  onClick={() => setBotTone(tone.value)}
-                  className={`p-4 border rounded-xl cursor-pointer transition-all text-center bg-[#0D2420] ${
-                    botTone === tone.value
-                      ? 'border-[rgba(212,168,83,0.4)] bg-[rgba(212,168,83,0.07)] text-[#D4A853]'
-                      : 'border-[#2A4A42] hover:border-[rgba(196,168,130,0.3)] hover:bg-[rgba(247,231,206,0.02)]'
-                  }`}
+                  key={toneOption.value}
+                  onClick={() => setTone(toneOption.value)}
+                  className={`border-2 p-4 rounded-xl cursor-pointer transition-all text-center bg-[#0D2420] ${
+        tone === toneOption.value
+          ? 'border-[#D4A853] bg-[rgba(212,168,83,0.15)] text-[#D4A853]'
+          : 'border-transparent hover:border-[rgba(196,168,130,0.3)]'
+      }`}
+                  style={{
+                    border: tone === toneOption.value ? '2px solid #D4A853' : '2px solid transparent',
+                    backgroundColor: tone === toneOption.value ? 'rgba(212,168,83,0.15)' : ''
+                  }}
                 >
-                  <div className="text-2xl mb-2">{tone.icon}</div>
-                  <div className="text-sm font-medium">{tone.label}</div>
-                  <div className="text-xs text-[#8A7560] mt-1">{tone.desc}</div>
+                  <div className="text-2xl mb-2">{toneOption.icon}</div>
+                  <div className="text-sm font-medium">{toneOption.label}</div>
+                  <div className="text-xs text-[#8A7560] mt-1">{toneOption.desc}</div>
                 </div>
               ))}
             </div>
@@ -176,25 +205,25 @@ const handleSavePersonality = async () => {
 { value: 'english', label: 'English', icon: '🇬🇧' },
 { value: 'urdu_script', label: 'Urdu Script', icon: '✍️' },
 { value: 'arabic', label: 'Arabic', icon: '🇸🇦' },
-              ].map((lang) => (
+              ].map((langOption) => (
                 <div
-                  key={lang.value}
-                  onClick={() => setLanguage(lang.value)}
-                  className={`p-4 border rounded-xl cursor-pointer transition-all text-center bg-[#0D2420] ${
-                    language === lang.value
-                      ? 'border-[rgba(212,168,83,0.4)] bg-[rgba(212,168,83,0.07)] text-[#D4A853]'
-                      : 'border-[#2A4A42] hover:border-[rgba(196,168,130,0.3)] hover:bg-[rgba(247,231,206,0.02)]'
-                  }`}
+                  key={langOption.value}
+                  onClick={() => setLanguage(langOption.value)}
+                  className={`border-2 p-4 rounded-xl cursor-pointer transition-all text-center bg-[#0D2420] ${
+  language === langOption.value
+    ? 'border-[#D4A853] bg-[rgba(212,168,83,0.15)] text-[#D4A853]'
+    : 'border-[#0D2420]'
+}`}
                 >
-                  <div className="text-2xl mb-2">{lang.icon}</div>
-                  <div className="text-sm font-medium">{lang.label}</div>
+                  <div className="text-2xl mb-2">{langOption.icon}</div>
+                  <div className="text-sm font-medium">{langOption.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
           <button
-            onClick={handleSavePersonality}
+            onClick={handleSave}
             className="px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
           >
             Save Personality Settings
@@ -385,6 +414,52 @@ const handleSavePersonality = async () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showSuccess && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: '#102C26',
+            border: '1px solid #D4A853',
+            borderRadius: '16px',
+            padding: '40px 48px',
+            textAlign: 'center',
+            maxWidth: '360px',
+            width: '90%',
+          }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>✅</div>
+            <h3 style={{ color: '#F7E7CE', fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>
+              Settings Saved!
+            </h3>
+            <p style={{ color: '#D4A853', fontSize: '0.875rem', marginBottom: '24px' }}>
+              Bot personality updated successfully
+            </p>
+            <button
+              onClick={() => setShowSuccess(false)}
+              style={{
+                backgroundColor: '#D4A853',
+                color: '#102C26',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 32px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+              }}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

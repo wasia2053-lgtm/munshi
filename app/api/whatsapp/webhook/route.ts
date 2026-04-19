@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       console.log('From:', customerPhone, 'Digits:', customerPhoneDigits)
       console.log('Text:', messageText)
 
-      // Step 1: SELECT first to check if conversation exists
+      // Step 1: Check if conversation exists with this phone + business_id
       console.log('\nStep 1: Checking for existing conversation...')
       let conversationId: string
       
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (existing) {
-        // Update existing conversation
+        // UPDATE last_message + last_message_time for existing conversation
         console.log('Found existing conversation, updating...')
         const { error: updateError } = await supabase.from('conversations').update({
           last_message: messageText,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         conversationId = existing.id
         console.log('Updated conversation with ID:', conversationId)
       } else {
-        // Insert new conversation
+        // INSERT new conversation only if not found
         console.log('Creating new conversation...')
         const { data: newConv, error: insertError } = await supabase.from('conversations').insert({
           business_id: BUSINESS_ID,
@@ -96,11 +96,31 @@ export async function POST(request: NextRequest) {
         }).select('id').single()
 
         if (insertError) {
-          console.log('Insert error:', insertError.message)
-          continue
+          // Handle potential duplicate insert errors
+          if (insertError.code === '23505' || insertError.message?.includes('unique')) {
+            console.log('Duplicate detected, trying to fetch existing conversation...')
+            const { data: retryExisting } = await supabase
+              .from('conversations')
+              .select('id')
+              .eq('customer_phone', customerPhone)
+              .eq('business_id', BUSINESS_ID)
+              .single()
+            
+            if (retryExisting) {
+              conversationId = retryExisting.id
+              console.log('Found existing conversation after duplicate error:', conversationId)
+            } else {
+              console.log('Insert error after retry:', insertError.message)
+              continue
+            }
+          } else {
+            console.log('Insert error:', insertError.message)
+            continue
+          }
+        } else {
+          conversationId = newConv.id
+          console.log('Created new conversation with ID:', conversationId)
         }
-        conversationId = newConv.id
-        console.log('Created new conversation with ID:', conversationId)
       }
 
       // ─── Step 2: Save Incoming Message ─────────────────────
@@ -121,33 +141,29 @@ export async function POST(request: NextRequest) {
       // ─── Fetch Business Settings ────────────────────────
       const { data: settings } = await supabase
         .from('business_settings')
-        .select('bot_name, language, tone')
+        .select('bot_name, organization_name, language, tone, greeting_message')
         .eq('business_id', BUSINESS_ID)
         .single()
 
       const botName = settings?.bot_name || 'Munshi'
+      const orgName = settings?.organization_name || 'Company'
       const language = settings?.language || 'roman_urdu'
-      const tone = settings?.tone || 'professional'
+      const tone = settings?.tone || 'friendly'
 
-      console.log(`⚙️ Settings - Name: ${botName}, Lang: ${language}, Tone: ${tone}`)
+      console.log(`⚙️ Settings - Name: ${botName}, Org: ${orgName}, Lang: ${language}, Tone: ${tone}`)
 
-      const languageInstruction =
-        language === 'roman_urdu'
-          ? 'ONLY respond in Roman Urdu (Urdu words written in English letters). NEVER use Hindi. NEVER use Urdu script. Example: "Aap ka masla hal ho jayega", "Hum aap ki madad karenge"'
-          : language === 'english'
-          ? 'ONLY respond in English'
-          : language === 'urdu_script'
-          ? 'ONLY respond in Urdu script (اردو)'
-          : language === 'arabic'
-          ? 'ONLY respond in Arabic'
-          : 'ONLY respond in Roman Urdu'
+      const languageInstruction = 
+        language === 'roman_urdu' ? 'ALWAYS respond in Roman Urdu (Urdu words in English letters). Never use Hindi or Urdu script.' :
+        language === 'english' ? 'ALWAYS respond in English only.' :
+        language === 'urdu_script' ? 'ALWAYS respond in Urdu script (Arabic letters).' :
+        language === 'arabic' ? 'ALWAYS respond in Arabic.' :
+        'ALWAYS respond in Roman Urdu.'
 
       const toneInstruction =
-        tone === 'professional'
-          ? 'Be formal and professional'
-          : tone === 'friendly'
-          ? 'Be warm, friendly and approachable'
-          : 'Be casual and relaxed'
+        tone === 'professional' ? 'Be formal and professional in responses.' :
+        tone === 'friendly' ? 'Be warm, friendly and approachable.' :
+        tone === 'casual' ? 'Be casual and relaxed, like a friend.' :
+        'Be friendly and helpful.'
 
       // ─── Fetch Knowledge Base ───────────────────────────
       const { data: kbData } = await supabase
@@ -165,14 +181,28 @@ export async function POST(request: NextRequest) {
       }
 
       // ─── Generate AI Response ───────────────────────────
+      const greeting_message = settings?.greeting_message || 'Hello! How can I help you today?'
+      
       const chatCompletion = await groq.chat.completions.create({
         messages: [
           {
             role: 'system',
-            content: `You are ${botName}, a helpful customer service assistant. ${languageInstruction}. ${toneInstruction}. Keep responses short (2-3 sentences max). If info not available say: "Is baare mein hamari team aap se rabta karegi."
+            content: `You are ${botName}, an AI WhatsApp assistant for ${orgName}.
+
+${languageInstruction}
+
+${toneInstruction}
 
 KNOWLEDGE BASE:
-${knowledgeContext}`
+${knowledgeContext}
+
+RULES:
+- Only answer questions related to this business
+- If you don't know something, say "Mujhe is baray mein maloomat nahi, please call karein"
+- Keep responses short and helpful
+- Never make up prices or information not in knowledge base
+
+Greeting: ${greeting_message}`
           },
           { role: 'user', content: messageText }
         ],

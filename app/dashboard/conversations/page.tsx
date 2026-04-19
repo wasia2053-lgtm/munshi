@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { LogoCompact } from '@/components/logos';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Conversation {
@@ -135,23 +137,12 @@ export default function ConversationsPage() {
           lg:relative lg:translate-x-0 lg:flex lg:flex-shrink-0
         `}
       >
+        
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-          <div
-            style={{ backgroundColor: '#D4A853' }}
-            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-base"
-          >
-            <span style={{ color: '#102C26', fontWeight: 800, fontSize: '16px' }}>M</span>
-          </div>
-          <span className="text-white font-bold text-lg tracking-wide">MUNSHI</span>
-          <button
-            className="ml-auto lg:hidden text-white/60 hover:text-white"
-            onClick={() => setSidebarOpen(false)}
-          >
-            ✕
-          </button>
+        <div style={{ padding: '20px 16px 16px 16px' }}>
+          <LogoCompact />
         </div>
-
+        
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navLinks.map(link => (
