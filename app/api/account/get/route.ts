@@ -9,23 +9,22 @@ const supabase = createClient(
 const BUSINESS_ID = 'dfaa4c16-a081-431a-93d2-ab9ff5637de9'
 
 export async function GET() {
-  const { data: settings } = await supabase
+  console.log('[account/get] called')
+  
+  const { data, error } = await supabase
     .from('business_settings')
-    .select('*')
+    .select('organization_name, avatar_url, bot_name')
     .eq('business_id', BUSINESS_ID)
     .single()
 
-  const { count: msgCount } = await supabase
-    .from('messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('sender', 'customer')
+  console.log('[account/get] result:', JSON.stringify(data), 'error:', error?.message)
+
+  if (error || !data) {
+    return NextResponse.json({ name: '', avatar_url: null })
+  }
 
   return NextResponse.json({
-    name: settings?.organization_name || 'User',
-    bot_name: settings?.bot_name || '',
-    avatar_url: settings?.avatar_url || null,
-    plan: 'free',
-    messages_used: msgCount || 0,
-    messages_limit: 500,
+    name: data.organization_name || '',
+    avatar_url: data.avatar_url || null,
   })
 }

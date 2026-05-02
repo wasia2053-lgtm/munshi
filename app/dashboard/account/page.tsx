@@ -5,21 +5,37 @@ import Link from 'next/link'
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<any>(null)
-  const [name, setName] = useState('')
+  const [orgName, setOrgName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showError, setShowError] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    // First load from localStorage
+    const cached = localStorage.getItem('munshi_profile')
+    if (cached) {
+      const p = JSON.parse(cached)
+      setOrgName(p.name || '')
+      setAvatarUrl(p.avatar_url || null)
+    }
+    
+    // Then fetch from /api/account/get to get fresh data
     fetch('/api/account/get')
       .then(r => r.json())
       .then(data => {
         setProfile(data)
-        setName(data.name || '')
+        setOrgName(data.name || '')
         setAvatarUrl(data.avatar_url || null)
+        
+        // Update localStorage with fresh data
+        localStorage.setItem('munshi_profile', JSON.stringify({
+          name: data.name || '',
+          avatar_url: data.avatar_url || null
+        }))
       })
   }, [])
 
@@ -31,24 +47,52 @@ export default function AccountPage() {
     formData.append('avatar', file)
     const res = await fetch('/api/account/upload-avatar', { method: 'POST', body: formData })
     const data = await res.json()
-    if (data.url) {
-      setAvatarUrl(data.url)
-      console.log('Avatar URL:', data.url)
-      console.log('avatarUrl state:', avatarUrl)
+    if (data.avatar_url) {
+      setAvatarUrl(data.avatar_url)
+      
+      // Update account with new avatar URL
+      await fetch('/api/account/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: data.avatar_url })
+      })
+      
+      // Save to localStorage immediately
+      localStorage.setItem('munshi_profile', JSON.stringify({
+        name: orgName,
+        avatar_url: data.avatar_url
+      }))
+      
+      window.dispatchEvent(new Event('munshi_profile_updated'))
+      window.dispatchEvent(new CustomEvent('account-updated'))
     }
     setUploading(false)
   }
 
   const handleSave = async () => {
     setSaving(true)
-    await fetch('/api/account/update', {
+    const res = await fetch('/api/account/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, avatar_url: avatarUrl })
+      body: JSON.stringify({ name: orgName })
     })
     setSaving(false)
-    setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 3000)
+    if (res.ok) {
+      // Save to localStorage immediately
+      localStorage.setItem('munshi_profile', JSON.stringify({
+        name: orgName,
+        avatar_url: avatarUrl
+      }))
+      
+      window.dispatchEvent(new Event('munshi_profile_updated'))
+      
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
+      window.dispatchEvent(new CustomEvent('account-updated'))
+    } else {
+      setShowError(true)
+      setTimeout(() => setShowError(false), 3000)
+    }
   }
 
   const messagesPercent = profile ? (profile.messages_used / profile.messages_limit) * 100 : 0
@@ -100,7 +144,7 @@ export default function AccountPage() {
                 />
               ) : (
                 <span style={{ color: '#D4A853', fontSize: '2rem', fontWeight: '700' }}>
-                  {name?.[0]?.toUpperCase() || 'U'}
+                  {orgName?.[0]?.toUpperCase() || 'U'}
                 </span>
               )}
               <div style={{
@@ -129,8 +173,8 @@ export default function AccountPage() {
               Organization Name
             </label>
             <input
-              value={name}
-              onChange={e => setName(e.target.value)}
+              value={orgName}
+              onChange={e => setOrgName(e.target.value)}
               style={{
                 width: '100%', padding: '12px 16px', borderRadius: '10px',
                 backgroundColor: '#102C26', border: '1px solid rgba(212,168,83,0.2)',
@@ -249,6 +293,37 @@ export default function AccountPage() {
                 }}
               >
                 Done
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error Modal */}
+        {showError && (
+          <div style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000
+          }}>
+            <div style={{
+              backgroundColor: '#102C26', border: '1px solid #ff5050',
+              borderRadius: '16px', padding: '40px 48px', textAlign: 'center', maxWidth: '360px'
+            }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>❌</div>
+              <h3 style={{ color: '#F7E7CE', fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>
+                Failed to save
+              </h3>
+              <p style={{ color: '#ff5050', fontSize: '0.875rem', marginBottom: '24px' }}>
+                There was an error saving your changes. Please try again.
+              </p>
+              <button
+                onClick={() => setShowError(false)}
+                style={{
+                  backgroundColor: '#ff5050', color: 'white', border: 'none',
+                  borderRadius: '8px', padding: '10px 32px', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                Close
               </button>
             </div>
           </div>

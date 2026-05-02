@@ -19,7 +19,7 @@ const navItems = [
   { href: '/dashboard/conversations', icon: '💬', label: 'Conversations', badge: '5' },
   { href: '/dashboard/analytics',     icon: '📊', label: 'Analytics' },
   { href: '/dashboard/settings',      icon: '⚙️', label: 'Settings' },
-  { href: '/dashboard/account',       icon: '👤', label: 'Account' },
+  { href: '/dashboard/account',       icon: '⭕️', label: 'Account' },
 ]
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -34,8 +34,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
   const [convCount, setConvCount]     = useState(0)
-  const [avatarUrl, setAvatarUrl]     = useState<string | null>(null)
-  const [orgName, setOrgName]         = useState<string>('')
+  function getProfileFromStorage() {
+    if (typeof window === 'undefined') return { name: 'User', avatar_url: null }
+    try {
+      const raw = localStorage.getItem('munshi_profile')
+      if (raw) return JSON.parse(raw)
+    } catch {}
+    return { name: 'User', avatar_url: null }
+  }
+
+  const [profileName, setProfileName] = useState(() => getProfileFromStorage().name || 'User')
+  const [profileAvatar, setProfileAvatar] = useState(() => getProfileFromStorage().avatar_url)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -64,11 +74,42 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     fetch('/api/usage/conv-count').then(r => r.json()).then(d => setConvCount(d.count || 0))
   }, [])
 
+  async function fetchUnread() {
+    const res = await fetch('/api/notifications')
+    const data = await res.json()
+    setUnreadCount(data.unread_count || 0)
+  }
+
   useEffect(() => {
-    fetch('/api/account/get').then(r => r.json()).then(d => {
-      setAvatarUrl(d.avatar_url || null)
-      setOrgName(d.name || '')
+    // Listen for updates from account page
+    const handler = () => {
+      const p = getProfileFromStorage()
+      setProfileName(p.name || 'User')
+      setProfileAvatar(p.avatar_url || null)
+    }
+    window.addEventListener('munshi_profile_updated', handler)
+    
+    // Also fetch fresh from API on mount
+    fetch('/api/account/get').then(r => r.json()).then(data => {
+      if (data.name) {
+        setProfileName(data.name)
+        localStorage.setItem('munshi_profile', JSON.stringify({
+          name: data.name,
+          avatar_url: data.avatar_url
+        }))
+      }
+      if (data.avatar_url) setProfileAvatar(data.avatar_url)
     })
+    
+    // Fetch unread count on mount
+    fetchUnread()
+    
+    return () => window.removeEventListener('munshi_profile_updated', handler)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(fetchUnread, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -204,10 +245,26 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <Link href="/dashboard/account" style={{ textDecoration: 'none' }}>
               <div className="dl-user-row">
                 <div className="dl-avatar">
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : user?.email?.[0]?.toUpperCase() || 'U'}
+                  {profileAvatar ? (
+                    <img 
+                      src={profileAvatar} 
+                      alt="avatar"
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '32px', height: '32px', borderRadius: '50%', 
+                      background: '#D4A853', display: 'flex', 
+                      alignItems: 'center', justifyContent: 'center',
+                      color: '#102C26', fontWeight: 700
+                    }}>
+                      {profileName?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
                 </div>
                 <div className="dl-user-info">
-                  <div className="dl-user-name">{orgName || user?.user_metadata?.name || 'User'}</div>
+                  <div className="dl-user-name">{profileName || user?.user_metadata?.name || 'User'}</div>
                   <div className="dl-user-email">{user?.email}</div>
                 </div>
                 <button
@@ -233,15 +290,50 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </div>
             </div>
             <div className="dl-topbar-right">
-              <Link href="/dashboard/notifications">
-                <div className="dl-notif-btn">
-                  🔔
-                  <span className="dl-notif-dot" />
-                </div>
-              </Link>
+              <div 
+                onClick={() => router.push('/dashboard/notifications')}
+                style={{ position: 'relative', cursor: 'pointer', padding: '8px' }}
+              >
+                {/* Bell SVG */}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" 
+                  stroke="#D4A853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                
+                {/* Red badge */}
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '2px', right: '2px',
+                    background: '#ef4444', color: 'white',
+                    borderRadius: '50%', minWidth: '18px', height: '18px',
+                    fontSize: '10px', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px'
+                  }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <Link href="/dashboard/account">
                 <div className="dl-user-avatar">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                  {profileAvatar ? (
+                    <img 
+                      src={profileAvatar} 
+                      alt=""
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '32px', height: '32px', borderRadius: '50%', 
+                      background: '#D4A853', display: 'flex', 
+                      alignItems: 'center', justifyContent: 'center',
+                      color: '#102C26', fontWeight: 700
+                    }}>
+                      {profileName?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
                 </div>
               </Link>
             </div>

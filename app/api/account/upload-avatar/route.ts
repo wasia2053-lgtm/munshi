@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
@@ -16,13 +16,14 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(bytes)
   const ext = file.name.split('.').pop()
   const fileName = `avatar-${BUSINESS_ID}.${ext}` 
-  await supabase.storage.createBucket('avatars', { public: true }).catch(() => {})
-  const { error: uploadError } = await supabase.storage
+  await supabaseAdmin.storage.createBucket('avatars', { public: true }).catch(() => {})
+  const { error: uploadError } = await supabaseAdmin.storage
     .from('avatars')
     .upload(fileName, buffer, { contentType: file.type, upsert: true })
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
-  const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-  await supabase.from('business_settings')
-    .upsert({ business_id: BUSINESS_ID, avatar_url: publicUrl }, { onConflict: 'business_id' })
-  return NextResponse.json({ url: publicUrl })
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('avatars').getPublicUrl(fileName)
+  await supabaseAdmin.from('businesses')
+    .update({ avatar_url: publicUrl })
+    .eq('id', BUSINESS_ID)
+  return NextResponse.json({ avatar_url: publicUrl })
 }
