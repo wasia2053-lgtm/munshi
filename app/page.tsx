@@ -605,9 +605,9 @@ export default function Home() {
             <div className="footer-tagline">Reply Fast. Sell More. Sleep Easy.</div>
           </div>
           <div className="footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms</a>
-            <a href="#">Contact</a>
+            <a href="/privacy-policy" style={{ color: '#D4A853', textDecoration: 'none', fontSize: '13px', transition: 'color 0.2s' }}>Privacy Policy</a>
+            <a href="/terms" style={{ color: '#D4A853', textDecoration: 'none', fontSize: '13px', transition: 'color 0.2s' }}>Terms of Service</a>
+            <a href="/refund-policy" style={{ color: '#D4A853', textDecoration: 'none', fontSize: '13px', transition: 'color 0.2s' }}>Refund Policy</a>
           </div>
           <div className="footer-copy">© 2025 Munshi. Made with ❤️ for Pakistani Sellers.</div>
         </footer>

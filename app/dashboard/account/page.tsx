@@ -2,12 +2,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import Link from 'next/link'
+import Toast from '@/components/Toast'
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<any>(null)
   const [orgName, setOrgName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  
+  // Toast State
+  const [toast, setToast] = useState<{message:string, type:'success'|'error'|'info'} | null>(null)
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showError, setShowError] = useState(false)
@@ -24,7 +28,7 @@ export default function AccountPage() {
     }
     
     // Then fetch from /api/account/get to get fresh data
-    fetch('/api/account/get')
+    fetch('/api/account/get', { credentials: 'include' })
       .then(r => r.json())
       .then(data => {
         setProfile(data)
@@ -45,7 +49,7 @@ export default function AccountPage() {
     setUploading(true)
     const formData = new FormData()
     formData.append('avatar', file)
-    const res = await fetch('/api/account/upload-avatar', { method: 'POST', body: formData })
+    const res = await fetch('/api/account/upload-avatar', { method: 'POST', credentials: 'include', body: formData })
     const data = await res.json()
     if (data.avatar_url) {
       setAvatarUrl(data.avatar_url)
@@ -53,6 +57,7 @@ export default function AccountPage() {
       // Update account with new avatar URL
       await fetch('/api/account/update', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatar_url: data.avatar_url })
       })
@@ -63,6 +68,11 @@ export default function AccountPage() {
         avatar_url: data.avatar_url
       }))
       
+      // Set avatar URL in localStorage
+      localStorage.setItem('avatarUrl', data.avatar_url)
+      
+      // Dispatch events
+      window.dispatchEvent(new Event('avatarUpdated'))
       window.dispatchEvent(new Event('munshi_profile_updated'))
       window.dispatchEvent(new CustomEvent('account-updated'))
     }
@@ -73,6 +83,7 @@ export default function AccountPage() {
     setSaving(true)
     const res = await fetch('/api/account/update', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: orgName })
     })
@@ -86,12 +97,11 @@ export default function AccountPage() {
       
       window.dispatchEvent(new Event('munshi_profile_updated'))
       
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
-      window.dispatchEvent(new CustomEvent('account-updated'))
+      setToast({ message: 'Account save ho gayi! ✅', type: 'success' })
+      setTimeout(() => setToast(null), 3000)
     } else {
-      setShowError(true)
-      setTimeout(() => setShowError(false), 3000)
+      setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
+      setTimeout(() => setToast(null), 3000)
     }
   }
 
@@ -130,22 +140,14 @@ export default function AccountPage() {
                 cursor: 'pointer', overflow: 'hidden', position: 'relative'
               }}
             >
-              {avatarUrl ? (
-                <img 
-                  src={avatarUrl} 
-                  alt="avatar" 
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    objectFit: 'cover',
-                    borderRadius: '50%',
-                    display: 'block'
-                  }} 
-                />
+              {avatarUrl && avatarUrl !== 'NULL' && avatarUrl !== 'null' ? (
+                <img src={avatarUrl} style={{width:80,height:80,borderRadius:'50%',objectFit:'cover'}} />
               ) : (
-                <span style={{ color: '#D4A853', fontSize: '2rem', fontWeight: '700' }}>
-                  {orgName?.[0]?.toUpperCase() || 'U'}
-                </span>
+                <div style={{width:80,height:80,borderRadius:'50%',backgroundColor:'#D4A853',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:'32px',fontWeight:'bold',color:'#102C26'}}>
+                  {orgName?.charAt(0)?.toUpperCase() || 'W'}
+                </div>
               )}
               <div style={{
                 position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
@@ -267,66 +269,13 @@ export default function AccountPage() {
           </button>
         </div>
 
-        {/* Success Modal */}
-        {showSuccess && (
-          <div style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: '#102C26', border: '1px solid #D4A853',
-              borderRadius: '16px', padding: '40px 48px', textAlign: 'center', maxWidth: '360px'
-            }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>✅</div>
-              <h3 style={{ color: '#F7E7CE', fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>
-                Profile Updated!
-              </h3>
-              <p style={{ color: '#D4A853', fontSize: '0.875rem', marginBottom: '24px' }}>
-                Your account has been saved successfully
-              </p>
-              <button
-                onClick={() => setShowSuccess(false)}
-                style={{
-                  backgroundColor: '#D4A853', color: '#102C26', border: 'none',
-                  borderRadius: '8px', padding: '10px 32px', fontWeight: '600', cursor: 'pointer'
-                }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Error Modal */}
-        {showError && (
-          <div style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: '#102C26', border: '1px solid #ff5050',
-              borderRadius: '16px', padding: '40px 48px', textAlign: 'center', maxWidth: '360px'
-            }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>❌</div>
-              <h3 style={{ color: '#F7E7CE', fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>
-                Failed to save
-              </h3>
-              <p style={{ color: '#ff5050', fontSize: '0.875rem', marginBottom: '24px' }}>
-                There was an error saving your changes. Please try again.
-              </p>
-              <button
-                onClick={() => setShowError(false)}
-                style={{
-                  backgroundColor: '#ff5050', color: 'white', border: 'none',
-                  borderRadius: '8px', padding: '10px 32px', fontWeight: '600', cursor: 'pointer'
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
+        {/* Toast Notification */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         )}
 
         {/* Delete Confirm Modal */}

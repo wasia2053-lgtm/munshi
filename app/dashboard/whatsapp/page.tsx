@@ -1,339 +1,382 @@
 'use client'
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-import React, { useState } from 'react'
-import { DashboardLayout } from '@/components/DashboardLayout'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import DashboardLayout from '@/components/DashboardLayout'
 
 export default function WhatsAppPage() {
-  const [isConnected, setIsConnected] = useState(false)
-  const [autoReply, setAutoReply] = useState(true)
-  const [officeHours, setOfficeHours] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'not_connected'>('not_connected')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [whatsappPhoneId, setWhatsappPhoneId] = useState('')
+  const [testPhone, setTestPhone] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('')
+  const [bizData, setBizData] = useState<any>(null)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    fetchConnectionStatus()
+  }, [])
+
+  const fetchConnectionStatus = async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status', { credentials: 'include' })
+      const data = await res.json()
+      
+      if (data.whatsapp_status === 'connected') {
+        setConnectionStatus('connected')
+        setWhatsappPhoneId(data.whatsapp_phone_id || '')
+        setPhoneNumber(data.whatsapp_number || '')
+      }
+    } catch (error) {
+      console.error('Connection status error:', error)
+    }
+  }
+
+  const handleCopy = (text: string, type: string) => {
+    navigator.clipboard.writeText(text)
+    setMessage(`${type} copied to clipboard!`)
+    setMessageType('success')
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const handleSendTest = async () => {
+    if (!testPhone.trim()) {
+      setMessage('Please enter a phone number')
+      setMessageType('error')
+      return
+    }
+
+    setLoading(true)
+    setMessage('')
+
+    try {
+      const res = await fetch('/api/whatsapp/test', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: testPhone.trim() })
+      })
+
+      const result = await res.json()
+      
+      if (result.success) {
+        setMessage('Test message sent successfully!')
+        setMessageType('success')
+        setTestPhone('')
+      } else {
+        setMessage(result.error || 'Failed to send test message')
+        setMessageType('error')
+      }
+    } catch (error: any) {
+      setMessage('Network error: ' + error.message)
+      setMessageType('error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const webhookUrl = 'https://unreversed-latoya-masculinely.ngrok-free.dev/api/whatsapp/webhook'
+  const verifyToken = 'munshi_verify_123'
 
   return (
-    <DashboardLayout
-      title="WhatsApp Integration"
-      subtitle="Connect your WhatsApp number to enable automated responses"
-    >
-      <style>{`
-        /* ── STATUS BANNER ── */
-        .wa-banner {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 16px;
-          border-radius: 14px;
-          font-size: 14px;
-          margin-bottom: 24px;
-          line-height: 1.5;
-        }
-        .wa-banner-icon { font-size: 20px; flex-shrink: 0; }
+    <DashboardLayout>
+      <div style={{ 
+        backgroundColor: '#102C26',
+        minHeight: '100vh',
+        padding: '16px',
+        fontFamily: "'DM Sans', sans-serif"
+      }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          {/* Page Header */}
+          <div style={{ marginBottom: '32px' }}>
+            <h1 style={{ 
+              color: '#F7E7CE', 
+              fontSize: '28px', 
+              fontWeight: '700',
+              marginBottom: '8px',
+              fontFamily: "'Cormorant Garamond', serif"
+            }}>
+              WhatsApp Integration
+            </h1>
+            <p style={{ color: '#8A7560', fontSize: '14px' }}>
+              Manage your WhatsApp business connection and test messaging
+            </p>
+          </div>
 
-        /* ── CARD ── */
-        .wa-card {
-          background: linear-gradient(135deg, #1A3D35, #142E28);
-          border: 1px solid #2A4A42;
-          border-radius: 20px;
-          padding: 32px;
-        }
-
-        /* ── QR BOX ── */
-        .qr-box {
-          width: 200px;
-          height: 200px;
-          margin: 0 auto 24px;
-          background: #0D2420;
-          border: 2px dashed #2A4A42;
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          position: relative;
-          overflow: hidden;
-        }
-        .qr-emoji { font-size: 44px; }
-        .qr-label { font-size: 11px; color: #8A7560; text-align: center; padding: 0 12px; }
-
-        /* ── STEPS ── */
-        .steps-list { text-align: left; margin-bottom: 24px; }
-        .steps-title {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 17px;
-          font-weight: 700;
-          color: #F7E7CE;
-          margin-bottom: 16px;
-        }
-        .step-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-          padding: 12px 0;
-          border-bottom: 1px solid rgba(42,74,66,0.4);
-        }
-        .step-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .step-num {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: rgba(212,168,83,0.1);
-          border: 1px solid rgba(212,168,83,0.25);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 600;
-          color: #D4A853;
-          flex-shrink: 0;
-          margin-top: 1px;
-        }
-        .step-text { font-size: 13px; color: #C4A882; line-height: 1.6; }
-
-        /* ── CONNECT BTN ── */
-        .btn-connect {
-          width: 100%;
-          padding: 13px;
-          background: linear-gradient(135deg, #D4A853, #C4983F);
-          color: #0D2420;
-          font-size: 15px;
-          font-weight: 600;
-          border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-family: 'DM Sans', sans-serif;
-        }
-        .btn-connect:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 28px rgba(212,168,83,0.3);
-        }
-
-        /* ── CONNECTED STATE ── */
-        .connected-card {
-          background: linear-gradient(135deg, #1A3D35, #142E28);
-          border: 1px solid #2A4A42;
-          border-radius: 20px;
-          padding: 36px 24px;
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        .connected-emoji { font-size: 52px; margin-bottom: 16px; display: block; }
-        .connected-number {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 28px;
-          font-weight: 700;
-          color: #D4A853;
-          margin-bottom: 6px;
-        }
-        .connected-since { font-size: 13px; color: #8A7560; margin-bottom: 24px; }
-        .btn-disconnect {
-          padding: 9px 24px;
-          border: 1px solid rgba(224,92,92,0.35);
-          color: #E05C5C;
-          background: transparent;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-family: 'DM Sans', sans-serif;
-        }
-        .btn-disconnect:hover {
-          background: rgba(224,92,92,0.08);
-          border-color: #E05C5C;
-        }
-
-        /* ── SETTINGS CARD ── */
-        .settings-card {
-          background: linear-gradient(135deg, #1A3D35, #142E28);
-          border: 1px solid #2A4A42;
-          border-radius: 20px;
-          padding: 24px;
-        }
-        .settings-title {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 18px;
-          font-weight: 700;
-          color: #F7E7CE;
-          margin-bottom: 20px;
-        }
-        .toggle-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          padding: 16px 0;
-          border-bottom: 1px solid rgba(42,74,66,0.4);
-        }
-        .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .toggle-label { font-size: 14px; color: #F7E7CE; font-weight: 500; margin-bottom: 3px; }
-        .toggle-desc { font-size: 12px; color: #8A7560; line-height: 1.4; }
-        .toggle-switch {
-          position: relative;
-          width: 44px;
-          height: 24px;
-          flex-shrink: 0;
-          cursor: pointer;
-        }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .toggle-track {
-          position: absolute;
-          inset: 0;
-          border-radius: 999px;
-          transition: background 0.2s;
-        }
-        .toggle-thumb {
-          position: absolute;
-          top: 2px;
-          left: 2px;
-          width: 20px;
-          height: 20px;
-          background: white;
-          border-radius: 50%;
-          transition: transform 0.2s;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 640px) {
-          .wa-card { padding: 20px 16px; }
-          .qr-box { width: 160px; height: 160px; }
-          .qr-emoji { font-size: 36px; }
-          .connected-card { padding: 28px 16px; }
-          .connected-number { font-size: 22px; }
-          .connected-emoji { font-size: 44px; }
-          .settings-card { padding: 18px 14px; }
-          .toggle-row { gap: 12px; }
-          .toggle-desc { font-size: 11px; }
-          .step-text { font-size: 12px; }
-        }
-      `}</style>
-
-      {/* Status Banner */}
-      <div
-        className="wa-banner"
-        style={{
-          background: isConnected
-            ? 'rgba(76,175,130,0.08)'
-            : 'rgba(240,160,48,0.07)',
-          border: `1px solid ${isConnected ? 'rgba(76,175,130,0.25)' : 'rgba(240,160,48,0.25)'}`,
-          color: isConnected ? '#4CAF82' : '#F0A030',
-        }}
-      >
-        <span className="wa-banner-icon">{isConnected ? '✅' : '⚠️'}</span>
-        <span>
-          {isConnected
-            ? 'Your WhatsApp is successfully connected and active'
-            : 'Connect your WhatsApp number to start automating customer responses'}
-        </span>
-      </div>
-
-      {!isConnected ? (
-        /* ── DISCONNECTED STATE ── */
-        <div style={{ maxWidth: 480, margin: '0 auto' }}>
-          <div className="wa-card" style={{ textAlign: 'center' }}>
-
-            {/* QR Code Box */}
-            <div className="qr-box">
+          {/* CARD 1 - Connection Status */}
+          <div style={{
+            backgroundColor: '#0D2420',
+            border: '1px solid #2A4A42',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '16px'
+          }}>
+            <h2 style={{ 
+              color: '#F7E7CE', 
+              fontSize: '18px', 
+              fontWeight: '600',
+              marginBottom: '16px'
+            }}>
+              Connection Status
+            </h2>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(135deg, rgba(212,168,83,0.04), transparent)',
-                pointerEvents: 'none'
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: connectionStatus === 'connected' ? '#4CAF82' : '#EF4444'
               }} />
-              <span className="qr-emoji">📱</span>
-              <span className="qr-label">QR Code will appear here</span>
+              <span style={{
+                color: connectionStatus === 'connected' ? '#4CAF82' : '#EF4444',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}>
+                {connectionStatus === 'connected' ? 'Connected' : 'Not Connected'}
+              </span>
             </div>
 
-            {/* Steps */}
-            <div className="steps-list">
-              <div className="steps-title">How to connect:</div>
-              {[
-                'Open WhatsApp on your phone and go to Settings → Linked Devices',
-                'Tap "Link a device" and scan the QR code above',
-                'Wait for the connection to establish automatically',
-                'Verify your phone number appears in the dashboard',
-                'Configure your bot settings and activate auto-reply',
-              ].map((text, i) => (
-                <div className="step-row" key={i}>
-                  <div className="step-num">{i + 1}</div>
-                  <p className="step-text">{text}</p>
-                </div>
-              ))}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ 
+                color: '#8A7560', 
+                fontSize: '12px', 
+                fontWeight: '500',
+                display: 'block',
+                marginBottom: '4px'
+              }}>
+                Phone Number
+              </label>
+              <div style={{
+                backgroundColor: '#1A3D35',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#F7E7CE',
+                fontSize: '14px',
+                fontWeight: '600',
+                border: '1px solid #2A4A42'
+              }}>
+                {phoneNumber || 'Not set'}
+              </div>
             </div>
 
-            {/* Connect Button */}
-            <button className="btn-connect" onClick={() => setIsConnected(true)}>
-              🔗 Simulate Connection
+            <div>
+              <label style={{ 
+                color: '#8A7560', 
+                fontSize: '12px', 
+                fontWeight: '500',
+                display: 'block',
+                marginBottom: '4px'
+              }}>
+                WhatsApp Phone Number ID
+              </label>
+              <div style={{
+                backgroundColor: '#1A3D35',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#F7E7CE',
+                fontSize: '14px',
+                border: '1px solid #2A4A42',
+                fontFamily: 'monospace',
+                wordBreak: 'break-all'
+              }}>
+                {whatsappPhoneId || 'Not available'}
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 2 - Send Test Message */}
+          <div style={{
+            backgroundColor: '#0D2420',
+            border: '1px solid #2A4A42',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '16px'
+          }}>
+            <h2 style={{ 
+              color: '#F7E7CE', 
+              fontSize: '18px', 
+              fontWeight: '600',
+              marginBottom: '16px'
+            }}>
+              Send Test Message
+            </h2>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                color: '#8A7560', 
+                fontSize: '12px', 
+                fontWeight: '500',
+                display: 'block',
+                marginBottom: '8px'
+              }}>
+                Phone Number (Pakistani format: 923xxxxxxxx)
+              </label>
+              <input
+                type="tel"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="923xxxxxxxx"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#1A3D35',
+                  border: '1px solid #2A4A42',
+                  borderRadius: '8px',
+                  color: '#F7E7CE',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#D4A853'}
+                onBlur={(e) => e.target.style.borderColor = '#2A4A42'}
+              />
+            </div>
+
+            <button
+              onClick={handleSendTest}
+              disabled={loading || !testPhone.trim()}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: loading ? '#8A7560' : '#D4A853',
+                color: '#102C26',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {loading ? 'Sending...' : 'Send Test Message'}
             </button>
+
+            {message && (
+              <div style={{
+                marginTop: '12px',
+                padding: '12px 16px',
+                backgroundColor: messageType === 'success' ? '#1A3D35' : '#2A1A1A',
+                border: `1px solid ${messageType === 'success' ? '#4CAF82' : '#EF4444'}`,
+                borderRadius: '8px',
+                color: messageType === 'success' ? '#4CAF82' : '#EF4444',
+                fontSize: '13px'
+              }}>
+                {message}
+              </div>
+            )}
+          </div>
+
+          {/* CARD 3 - Webhook Information */}
+          <div style={{
+            backgroundColor: '#0D2420',
+            border: '1px solid #2A4A42',
+            borderRadius: '12px',
+            padding: '24px'
+          }}>
+            <h2 style={{ 
+              color: '#F7E7CE', 
+              fontSize: '18px', 
+              fontWeight: '600',
+              marginBottom: '16px'
+            }}>
+              Webhook Information
+            </h2>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <label style={{ 
+                  color: '#8A7560', 
+                  fontSize: '12px', 
+                  fontWeight: '500'
+                }}>
+                  Webhook URL
+                </label>
+                <button
+                  onClick={() => handleCopy(webhookUrl, 'Webhook URL')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#D4A853',
+                    color: '#102C26',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+              <div style={{
+                backgroundColor: '#1A3D35',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#F7E7CE',
+                fontSize: '14px',
+                border: '1px solid #2A4A42',
+                fontFamily: 'monospace',
+                wordBreak: 'break-all'
+              }}>
+                {webhookUrl}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <label style={{ 
+                  color: '#8A7560', 
+                  fontSize: '12px', 
+                  fontWeight: '500'
+                }}>
+                  Verify Token
+                </label>
+                <button
+                  onClick={() => handleCopy(verifyToken, 'Verify Token')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#D4A853',
+                    color: '#102C26',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+              <div style={{
+                backgroundColor: '#1A3D35',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#F7E7CE',
+                fontSize: '14px',
+                border: '1px solid #2A4A42',
+                fontFamily: 'monospace',
+                wordBreak: 'break-all'
+              }}>
+                {verifyToken}
+              </div>
+            </div>
           </div>
         </div>
-      ) : (
-        /* ── CONNECTED STATE ── */
-        <div style={{ maxWidth: 520, margin: '0 auto' }}>
-
-          {/* Connection Status Card */}
-          <div className="connected-card">
-            <span className="connected-emoji">✅</span>
-            <div className="connected-number">+92 301 1234567</div>
-            <div className="connected-since">Connected since May 1, 2025</div>
-            <button className="btn-disconnect" onClick={() => setIsConnected(false)}>
-              Disconnect
-            </button>
-          </div>
-
-          {/* Bot Settings Card */}
-          <div className="settings-card">
-            <div className="settings-title">Bot Settings</div>
-
-            {/* Auto Reply */}
-            <div className="toggle-row">
-              <div>
-                <div className="toggle-label">Auto-Reply</div>
-                <div className="toggle-desc">Automatically respond to incoming messages</div>
-              </div>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={autoReply}
-                  onChange={e => setAutoReply(e.target.checked)}
-                />
-                <div
-                  className="toggle-track"
-                  style={{ background: autoReply ? '#D4A853' : '#2A4A42' }}
-                />
-                <div
-                  className="toggle-thumb"
-                  style={{ transform: autoReply ? 'translateX(20px)' : 'translateX(0)' }}
-                />
-              </label>
-            </div>
-
-            {/* Office Hours */}
-            <div className="toggle-row">
-              <div>
-                <div className="toggle-label">Office Hours Only</div>
-                <div className="toggle-desc">Only respond during business hours (9 AM – 6 PM)</div>
-              </div>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={officeHours}
-                  onChange={e => setOfficeHours(e.target.checked)}
-                />
-                <div
-                  className="toggle-track"
-                  style={{ background: officeHours ? '#D4A853' : '#2A4A42' }}
-                />
-                <div
-                  className="toggle-thumb"
-                  style={{ transform: officeHours ? 'translateX(20px)' : 'translateX(0)' }}
-                />
-              </label>
-            </div>
-          </div>
-
-        </div>
-      )}
+      </div>
     </DashboardLayout>
   )
 }

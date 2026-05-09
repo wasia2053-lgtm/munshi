@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
+import { LogOut } from 'lucide-react'
 import { LogoCompact } from './logos'
 import Link from 'next/link'
+import SidebarProfile from './SidebarProfile'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -34,29 +36,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
   const [convCount, setConvCount]     = useState(0)
-  function getProfileFromStorage() {
-    if (typeof window === 'undefined') return { name: 'User', avatar_url: null }
-    try {
-      const raw = localStorage.getItem('munshi_profile')
-      if (raw) return JSON.parse(raw)
-    } catch {}
-    return { name: 'User', avatar_url: null }
-  }
-
-  const [profileName, setProfileName] = useState(() => getProfileFromStorage().name || 'User')
-  const [profileAvatar, setProfileAvatar] = useState(() => getProfileFromStorage().avatar_url)
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     const checkAuth = async () => {
+      const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
       setUser(session.user)
       setLoading(false)
     }
     checkAuth()
+    const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: any, session: any) => {
         if (event === 'SIGNED_OUT') router.push('/login')
         else if (session) setUser(session.user)
       }
@@ -67,44 +60,22 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   useEffect(() => { setSidebarOpen(false) }, [pathname])
 
   useEffect(() => {
-    fetch('/api/usage/message-count').then(r => r.json()).then(d => setMessageCount(d.count || 0))
+    fetch('/api/usage/message-count', { credentials: 'include' }).then(r => r.json()).then(d => setMessageCount(d.count || 0))
   }, [])
 
   useEffect(() => {
-    fetch('/api/usage/conv-count').then(r => r.json()).then(d => setConvCount(d.count || 0))
+    fetch('/api/usage/conv-count', { credentials: 'include' }).then(r => r.json()).then(d => setConvCount(d.count || 0))
   }, [])
 
   async function fetchUnread() {
-    const res = await fetch('/api/notifications')
+    const res = await fetch('/api/notifications', { credentials: 'include' })
     const data = await res.json()
     setUnreadCount(data.unread_count || 0)
   }
 
   useEffect(() => {
-    // Listen for updates from account page
-    const handler = () => {
-      const p = getProfileFromStorage()
-      setProfileName(p.name || 'User')
-      setProfileAvatar(p.avatar_url || null)
-    }
-    window.addEventListener('munshi_profile_updated', handler)
-    
-    // Also fetch fresh from API on mount
-    fetch('/api/account/get').then(r => r.json()).then(data => {
-      if (data.name) {
-        setProfileName(data.name)
-        localStorage.setItem('munshi_profile', JSON.stringify({
-          name: data.name,
-          avatar_url: data.avatar_url
-        }))
-      }
-      if (data.avatar_url) setProfileAvatar(data.avatar_url)
-    })
-    
     // Fetch unread count on mount
     fetchUnread()
-    
-    return () => window.removeEventListener('munshi_profile_updated', handler)
   }, [])
 
   useEffect(() => {
@@ -119,8 +90,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   }, [])
 
   const handleLogout = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    window.location.href = '/login'
   }
 
   const isActive = (href: string) =>
@@ -141,7 +113,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         .dl-shell { display: flex; min-height: 100vh; background: #102C26; overflow-x: hidden; }
         .dl-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 40; }
         .dl-overlay.open { display: block; }
-        .dl-sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; background: #0D2420; border-right: 1px solid #2A4A42; display: flex; flex-direction: column; z-index: 50; transition: transform 0.28s ease; }
+        .dl-sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; height: 100vh; background: #0D2420; border-right: 1px solid #2A4A42; display: flex; flex-direction: column; z-index: 50; transition: transform 0.28s ease; overflow: hidden; }
         @media (min-width: 1024px) { .dl-sidebar { transform: translateX(0) !important; } }
         @media (max-width: 1023px) { .dl-sidebar { transform: translateX(-100%); } .dl-sidebar.open { transform: translateX(0); } }
         .dl-sidebar-header { padding: 20px 16px; border-bottom: 1px solid #2A4A42; display: flex; align-items: center; justify-content: space-between; min-height: 64px; }
@@ -154,7 +126,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         .dl-nav-item.active { background: rgba(212,168,83,0.08); color: #D4A853; border-color: rgba(212,168,83,0.2); }
         .dl-nav-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
         .dl-nav-badge { margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(212,168,83,0.15); color: #D4A853; padding: 2px 8px; border-radius: 999px; }
-        .dl-sidebar-bottom { padding: 12px 10px; border-top: 1px solid #2A4A42; }
+        .dl-sidebar-bottom { padding: 12px 10px; border-top: 1px solid #2A4A42; margin-top: auto; flex-shrink: 0; overflowY: visible; }
         .dl-plan-pill { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(212,168,83,0.06); border: 1px solid rgba(212,168,83,0.2); border-radius: 10px; margin-bottom: 10px; }
         .dl-plan-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #D4A853; }
         .dl-plan-upgrade { font-size: 11px; background: rgba(212,168,83,0.15); color: #D4A853; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
@@ -242,38 +214,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </div>
             </div>
 
-            <Link href="/dashboard/account" style={{ textDecoration: 'none' }}>
-              <div className="dl-user-row">
-                <div className="dl-avatar">
-                  {profileAvatar ? (
-                    <img 
-                      src={profileAvatar} 
-                      alt="avatar"
-                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-                      onError={(e) => { e.currentTarget.style.display = 'none' }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      width: '32px', height: '32px', borderRadius: '50%', 
-                      background: '#D4A853', display: 'flex', 
-                      alignItems: 'center', justifyContent: 'center',
-                      color: '#102C26', fontWeight: 700
-                    }}>
-                      {profileName?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                  )}
-                </div>
-                <div className="dl-user-info">
-                  <div className="dl-user-name">{profileName || user?.user_metadata?.name || 'User'}</div>
-                  <div className="dl-user-email">{user?.email}</div>
-                </div>
-                <button
-                  className="dl-logout"
-                  onClick={(e) => { e.preventDefault(); handleLogout(); }}
-                  title="Logout"
-                >⏻</button>
-              </div>
-            </Link>
+            <SidebarProfile />
           </div>
 
         </aside>
@@ -315,27 +256,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   </span>
                 )}
               </div>
-              <Link href="/dashboard/account">
-                <div className="dl-user-avatar">
-                  {profileAvatar ? (
-                    <img 
-                      src={profileAvatar} 
-                      alt=""
-                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-                      onError={(e) => { e.currentTarget.style.display = 'none' }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      width: '32px', height: '32px', borderRadius: '50%', 
-                      background: '#D4A853', display: 'flex', 
-                      alignItems: 'center', justifyContent: 'center',
-                      color: '#102C26', fontWeight: 700
-                    }}>
-                      {profileName?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                  )}
-                </div>
-              </Link>
             </div>
           </header>
 

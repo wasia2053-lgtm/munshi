@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { LogoCompact } from '@/components/logos';
+import { SkeletonCard } from '@/components/SkeletonLoader'
+import EmptyState from '@/components/EmptyState'
+import SidebarProfile from '@/components/SidebarProfile'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Conversation {
@@ -19,9 +22,9 @@ interface Message {
   id: string;
   conversation_id: string;
   customer_phone: string;
-  message_text: string;
-  message_type: 'incoming' | 'outgoing';
-  created_at: string;
+  content: string;
+  sender: 'bot' | 'customer';
+  timestamp: string;
   whatsapp_message_id?: string;
 }
 
@@ -67,11 +70,14 @@ export default function ConversationsPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState('');
   const [panelView, setPanelView] = useState<'list' | 'chat'>('list'); // mobile toggle
+  const [msgCount, setMsgCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ── Fetch conversations ──
+  // ── Fetch conversations & message count ──
   useEffect(() => {
     fetchConversations();
+    fetch('/api/usage/message-count', { credentials: 'include' })
+      .then(r => r.json()).then(d => setMsgCount(d.count || 0));
   }, []);
 
   async function fetchConversations() {
@@ -95,8 +101,10 @@ export default function ConversationsPage() {
     setMessagesLoading(true);
     setPanelView('chat');
     try {
+      console.log('fetching msgs for conv id:', conv.id);
       const res = await fetch(`/api/conversations/${conv.id}/messages`);
       const data = await res.json();
+      console.log('raw response:', data);
       if (!res.ok) throw new Error(data.error || 'Failed to load messages');
       setMessages(data.messages || []);
     } catch (e: any) {
@@ -183,24 +191,13 @@ export default function ConversationsPage() {
               <span className="text-xs text-white/60">FREE PLAN</span>
               <span style={{ color: '#D4A853' }} className="text-xs font-bold">Upgrade</span>
             </div>
-            <div className="text-xs text-white/50">Messages: 2 / 500</div>
+            <div className="text-xs text-white/50">Messages: {msgCount} / 500</div>
             <div className="mt-1.5 h-1.5 rounded-full bg-white/10">
-              <div style={{ width: '0.4%', backgroundColor: '#D4A853' }} className="h-full rounded-full" />
+              <div style={{ width: `${(msgCount/500)*100}%`, backgroundColor: '#D4A853' }} className="h-full rounded-full" />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2 px-1">
-            <div
-              style={{ backgroundColor: '#D4A853' }}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-            >
-              <span style={{ color: '#102C26' }}>W</span>
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-white font-medium truncate">User</div>
-              <div className="text-xs text-white/40 truncate">wasia2053@gmail.com</div>
-            </div>
-          </div>
-        </div>
+          <SidebarProfile />
+                  </div>
       </aside>
     </>
   );
@@ -253,14 +250,16 @@ export default function ConversationsPage() {
       {/* List */}
       <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#F7E7CE08' }}>
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="text-center">
-              <div
-                className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin mx-auto mb-2"
-                style={{ borderColor: '#D4A853', borderTopColor: 'transparent' }}
-              />
-              <p className="text-sm" style={{ color: '#102C26' + '80' }}>Loading...</p>
-            </div>
+          <div className="space-y-3 p-4">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#1a3a34' }}>
+                <div className="w-8 h-8 rounded-full bg-gray-600 animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
+                  <div className="h-3 bg-gray-600 rounded animate-pulse w-3/4" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="p-6 text-center">
@@ -274,11 +273,11 @@ export default function ConversationsPage() {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 px-6 text-center">
-            <div className="text-4xl mb-3">💬</div>
-            <p className="text-sm font-medium" style={{ color: '#102C26' }}>Abhi tak koi conversation nahi</p>
-            <p className="text-xs mt-1 text-gray-400">WhatsApp pe message aane ka wait karo</p>
-          </div>
+          <EmptyState 
+            icon="💬"
+            title="Koi conversation nahi"
+            description="Jab customers WhatsApp pe message karenge, yahan dikhega"
+          />
         ) : (
           filtered.map(conv => (
             <button
@@ -389,34 +388,33 @@ export default function ConversationsPage() {
               messages.map(msg => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.message_type === 'outgoing' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${msg.sender === 'bot' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
                     className="max-w-[75%] md:max-w-[65%] px-4 py-2.5 rounded-2xl text-sm shadow-sm"
                     style={
-                      msg.message_type === 'outgoing'
+                      msg.sender === 'bot'
                         ? {
                             backgroundColor: '#102C26',
                             color: '#F7E7CE',
-                            borderBottomRightRadius: '4px',
                           }
                         : {
-                            backgroundColor: 'white',
-                            color: '#1a1a1a',
-                            borderBottomLeftRadius: '4px',
+                            backgroundColor: '#F7E7CE',
+                            color: '#102C26',
+                            border: '1px solid rgba(16,44,38,0.1)',
                           }
                     }
                   >
                     <p className="leading-relaxed whitespace-pre-wrap break-words">
-                      {msg.message_text}
+                      {msg.content}
                     </p>
                     <div
                       className={`text-xs mt-1.5 flex items-center gap-1 ${
-                        msg.message_type === 'outgoing' ? 'justify-end text-white/40' : 'justify-end text-gray-400'
+                        msg.sender === 'bot' ? 'justify-end text-white/40' : 'justify-end text-gray-400'
                       }`}
                     >
-                      {formatChatTime(msg.created_at)}
-                      {msg.message_type === 'outgoing' && (
+                      {formatChatTime(msg.timestamp)}
+                      {msg.sender === 'bot' && (
                         <span style={{ color: '#D4A853' }}>✓✓</span>
                       )}
                     </div>

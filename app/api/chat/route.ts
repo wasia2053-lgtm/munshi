@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import Groq from 'groq-sdk'
 import { trainingCache } from '../../../lib/trainingCache'
 
@@ -7,37 +8,42 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
   
   try {
-    const { message, businessId, customerPhone } = await request.json()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const business_id = user.id
 
-    if (!message || !businessId) {
+    const { message, customerPhone } = await request.json()
+
+    if (!message) {
       return NextResponse.json(
-        { error: 'Message and businessId required' },
+        { error: 'Message required' },
         { status: 400 }
       )
     }
 
     console.log(`\n📨 [CHAT] New request: "${message.substring(0, 30)}..."`)
-    console.log(`   BusinessId: ${businessId}`)
+    console.log(`   BusinessId: ${business_id}`)
     console.log(`   Customer: ${customerPhone || 'unknown'}`)
 
     // Fetch training data (with cache)
     console.log('\n🧠 [TRAINING] Fetching data...')
-    let trainingData = trainingCache.get(businessId)
+    let trainingData = trainingCache.get(business_id)
     
     if (!trainingData) {
       const { data, error } = await supabase
         .from('knowledge_base')
         .select('id, source_type, source_url, content')
-        .eq('business_id', businessId)
+        .eq('business_id', business_id)
         .limit(5)
 
       if (error) {
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`   ✅ Fetched ${data?.length || 0} entries`)
         trainingData = data || []
-        trainingCache.set(businessId, trainingData)
+        trainingCache.set(business_id, trainingData)
       }
     }
 
@@ -70,7 +76,7 @@ export async function POST(request: NextRequest) {
       const { data: messages, error } = await supabase
         .from('messages')
         .select('message_text, message_type')
-        .eq('business_id', businessId)
+        .eq('business_id', business_id)
         .eq('customer_phone', customerPhone)
         .order('created_at', { ascending: false })
         .limit(5)

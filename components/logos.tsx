@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 export const LogoCompact: React.FC<{ className?: string }> = ({ className }) => (
-  <Link href="/" style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px 0', cursor: 'pointer' }}>
+  <Link href="/" style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px 0', cursor: 'pointer', textAlign: 'center' }}>
     <span style={{
       fontFamily: "'Cormorant Garamond', serif",
       fontSize: '26px',

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { supabase } from '@/lib/supabase'
+import { SkeletonCard } from '@/components/SkeletonLoader'
 
 type RecentConv = {
   id: string
@@ -205,10 +206,17 @@ const { data: msgs } = await supabase
             </div>
 
             {loading ? (
-              <div className="space-y-2">
-                {[1,2,3].map(i => (
-                  <div key={i} className="h-8 bg-[#0D2420] rounded animate-pulse" />
-                ))}
+              <div>
+                <div className="space-y-2">
+                  <SkeletonCard lines={3} />
+                  <SkeletonCard lines={2} />
+                  <SkeletonCard lines={3} />
+                </div>
+                <div>
+                  {[1,2,3].map(i => (
+                    <div key={i} className="h-8 bg-[#0D2420] rounded animate-pulse" />
+                  ))}
+                </div>
               </div>
             ) : recentConvs.length === 0 ? (
               <div className="text-center py-6 text-[#8A7560] text-xs">

@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import * as cheerio from 'cheerio'
 
 export const maxDuration = 60 // 60 second timeout
 export const dynamic = 'force-dynamic'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
 const MAX_PAGES = 20
 
 async function fetchPage(url: string): Promise<string | null> {
@@ -87,6 +82,16 @@ Content: ${bodyText}`
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const business_id = user.id
+
     const { url } = await request.json()
     
     if (!url) {
@@ -103,7 +108,7 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('knowledge_base')
       .delete()
-      .eq('business_id', BUSINESS_ID)
+      .eq('business_id', business_id)
       .eq('source_type', 'website')
 
     while (queue.length > 0 && visited.size < MAX_PAGES) {
@@ -122,7 +127,7 @@ export async function POST(request: NextRequest) {
 
       // Save to Supabase
       await supabase.from('knowledge_base').insert({
-        business_id: BUSINESS_ID,
+        business_id,
         source_type: 'website',
         source_url: currentUrl,
         content: content,

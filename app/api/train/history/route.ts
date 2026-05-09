@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
-    const businessId = request.nextUrl.searchParams.get('businessId')
-
-    if (!businessId) {
-      return NextResponse.json({ error: 'Business ID required' }, { status: 400 })
-    }
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const business_id = user.id
 
     const { data, error } = await supabase
       .from('knowledge_base')
       .select('*')
-      .eq('business_id', businessId)
+      .eq('business_id', business_id)
       .order('created_at', { ascending: false })
 
     if (error) {

@@ -141,9 +141,35 @@ export async function POST(request: NextRequest) {
       // ─── Fetch Business Settings ────────────────────────
       const { data: settings } = await supabase
         .from('business_settings')
-        .select('bot_name, organization_name, language, tone, greeting_message')
+        .select('bot_name, organization_name, language, tone, greeting_message, operating_hours, away_message')
         .eq('business_id', BUSINESS_ID)
         .single()
+
+      // Helper function to check if business is open
+      function isBusinessOpen(operatingHours: any): boolean {
+        if (!operatingHours) return true // default open
+        
+        // Pakistan timezone (UTC+5)
+        const now = new Date()
+        const pakistanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000))
+        
+        const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+        const dayName = days[pakistanTime.getUTCDay()]
+        const daySettings = operatingHours[dayName]
+        
+        if (!daySettings || !daySettings.enabled) return false
+        
+        const currentHour = pakistanTime.getUTCHours()
+        const currentMin = pakistanTime.getUTCMinutes()
+        const currentTotal = currentHour * 60 + currentMin
+        
+        const [openH, openM] = daySettings.open.split(':').map(Number)
+        const [closeH, closeM] = daySettings.close.split(':').map(Number)
+        const openTotal = openH * 60 + openM
+        const closeTotal = closeH * 60 + closeM
+        
+        return currentTotal >= openTotal && currentTotal <= closeTotal
+      }
 
       const botName = settings?.bot_name || 'Munshi'
       const orgName = settings?.organization_name || 'Company'
@@ -165,12 +191,25 @@ export async function POST(request: NextRequest) {
         tone === 'casual' ? 'Be casual and relaxed, like a friend.' :
         'Be friendly and helpful.'
 
+      // ─── Fetch Conversation History ───────────────────────────
+      const { data: recentMsgs } = await supabase
+        .from('messages')
+        .select('sender, content, timestamp')
+        .eq('conversation_id', conversationId)
+        .order('timestamp', { ascending: false })
+        .limit(20)
+
+      const conversationHistory = recentMsgs ? recentMsgs.reverse().map(m => ({
+        role: m.sender === 'bot' ? 'assistant' : 'user',
+        content: m.content
+      })) : []
+
       // ─── Fetch Knowledge Base ───────────────────────────
       const { data: kbData } = await supabase
         .from('knowledge_base')
         .select('source_type, source_url, content')
         .eq('business_id', BUSINESS_ID)
-        .limit(20)
+        .limit(30)
 
       let knowledgeContext = 'No knowledge available'
       if (kbData && kbData.length > 0) {
@@ -180,30 +219,95 @@ export async function POST(request: NextRequest) {
         console.log(`📚 Knowledge base loaded: ${kbData.length} entries`)
       }
 
+      // ─── Check Business Hours ───────────────────────────
+      const open = isBusinessOpen(settings?.operating_hours)
+      if (!open) {
+        const awayMsg = settings?.away_message || 'Assalam o alaikum! Abhi hum available nahi hain.'
+        
+        // Send away message via WhatsApp
+        const waRes = await fetch(
+          `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              messaging_product: 'whatsapp',
+              to: customerPhone,
+              type: 'text',
+              text: { body: awayMsg }
+            })
+          }
+        )
+        
+        const waResult = await waRes.json()
+        if (!waRes.ok) {
+          console.log('❌ WhatsApp Away Message Error:', waResult)
+        } else {
+          console.log('✅ Away message sent:', awayMsg)
+        }
+        
+        // Save away message to database
+        const { error: awayError } = await supabase.from('messages').insert({
+          conversation_id: conversationId,
+          sender: 'bot',
+          content: awayMsg,
+          timestamp: new Date().toISOString()
+        })
+        
+        if (awayError) {
+          console.log('❌ Away message save error:', awayError.message)
+        } else {
+          console.log('✅ Away message saved to messages table')
+        }
+        
+        continue // Skip AI generation and move to next message
+      }
+
       // ─── Generate AI Response ───────────────────────────
       const greeting_message = settings?.greeting_message || 'Hello! How can I help you today?'
       
       const chatCompletion = await groq.chat.completions.create({
         messages: [
-          {
-            role: 'system',
-            content: `You are ${botName}, an AI WhatsApp assistant for ${orgName}.
+          { role: 'system', content: `Tu Munshi hai — ${orgName} ka WhatsApp sales agent.
+Tera kaam hai customers ki madad karna bilkul ek real Pakistani sales representative ki tarah.
 
-${languageInstruction}
+STRICT LANGUAGE RULES:
+- SIRF Roman Urdu mein baat karo
+- Hindi words BILKUL nahi: "aapka", "hain", "mein" nahi bolna — Pakistani style: "apka", "hen", "me"
+- "Ji" use karo — "haan" nahi
+- Kabhi bhi robotic/formal mat lagna
+- Chhoti sentences, natural flow
 
-${toneInstruction}
+PERSONALITY:
+- Warm, friendly, thoda casual
+- Jaise koi dukaan ka helpful banda ho
+- Customer ki baat dhyan se suno
+- Khud se suggest karo related products
+
+NEGOTIATION RULES:
+- Agar customer price kam karne ko kahe:
+  → Product ki value explain karo (quality, taste, etc.)
+  → Agar knowledge base mein koi sale/discount mention hai to wahi batao
+  → Agar koi discount nahi hai knowledge base mein to seedha kaho: "Bhai abhi koi offer nahi chal raha, lekin quality guaranteed hai — ek baar try karo"
+  → KABHI BHI khud se discount mat do jo knowledge base mein nahi hai
+
+SALES RULES:
+- Agar koi product puche → price batao + upsell karo
+- "Ye bhi try karo" → related product suggest karo
+- Order lane ki koshish karo conversation mein hi
+- Agar stock/delivery puche → website se jo pata hai batao
+
+FALLBACK RULE:
+- Sirf tab "website dekho" kaho jab GENUINELY koi info nahi ho — warna khud jawab do
 
 KNOWLEDGE BASE:
 ${knowledgeContext}
 
-RULES:
-- Only answer questions related to this business
-- If you don't know something, say "Mujhe is baray mein maloomat nahi, please call karein"
-- Keep responses short and helpful
-- Never make up prices or information not in knowledge base
-
-Greeting: ${greeting_message}`
-          },
+Greeting: ${greeting_message}` },
+          ...conversationHistory,
           { role: 'user', content: messageText }
         ],
         model: 'llama-3.3-70b-versatile',

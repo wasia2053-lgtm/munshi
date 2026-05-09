@@ -1,6 +1,8 @@
 'use client'
+
 import { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import EmptyState from '@/components/EmptyState'
 
 interface Notification {
   id: string
@@ -135,13 +137,11 @@ export default function NotificationsPage() {
             Loading...
           </div>
         ) : notifications.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#8A7560' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔔</div>
-            <div style={{ fontSize: '1.125rem', marginBottom: '8px' }}>Koi notification nahi</div>
-            <div style={{ fontSize: '0.875rem', color: '#6B5A4A' }}>
-              Jab koi update hogi to yahan dikhegi
-            </div>
-          </div>
+          <EmptyState
+            icon="🔔"
+            title="Koi notification nahi"
+            description="Nayi activity hone par yahan dikhega"
+          />
         ) : (
           <>
             {notifications.filter(n => !n.is_read).length === 0 && !showRead && (

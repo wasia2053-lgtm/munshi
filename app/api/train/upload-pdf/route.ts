@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const business_id = user.id
+
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const businessId = formData.get('businessId') as string
 
     if (!file) {
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 })
-    }
-
-    if (!businessId) {
-      return NextResponse.json({ success: false, error: 'Business ID required' }, { status: 400 })
     }
 
     if (file.size > 10 * 1024 * 1024) {
@@ -49,14 +50,14 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('knowledge_base')
       .delete()
-      .eq('business_id', businessId)
+      .eq('business_id', business_id)
       .eq('source_url', file.name)
       .eq('source_type', 'pdf')
 
     const { error } = await supabase
       .from('knowledge_base')
       .insert([{
-        business_id: businessId,
+        business_id,
         source_type: 'pdf',
         source_url: file.name,
         content: cleanText,

@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// ✅ Service role key use karo — RLS bypass hoga
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { businessId, text, title } = body
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const business_id = user.id
 
-    if (!businessId) {
-      return NextResponse.json({ success: false, error: 'Business ID required' }, { status: 400 })
-    }
+    const body = await request.json()
+    const { text, title } = body
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json({ success: false, error: 'Text required' }, { status: 400 })
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase
       .from('knowledge_base')
       .insert([{
-        business_id: businessId,
+        business_id,
         source_type: 'text',
         source_url: title || 'Manual Entry',
         content: text,

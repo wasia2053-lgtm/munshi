@@ -1,34 +1,43 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-const BUSINESS_ID = 'dfaa4c16-a081-431a-93d2-ab9ff5637de9'
-
 export async function POST(req: Request) {
-  const body = await req.json()
-  const { id } = body
+  try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const business_id = user.id
 
-  let query = supabase
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('business_id', BUSINESS_ID)
+    const body = await req.json()
+    const { id } = body
 
-  // If specific id provided, only mark that one as read
-  // Otherwise mark all as read
-  if (id) {
-    query = query.eq('id', id)
+    let query = supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('business_id', business_id)
+
+    // If specific id provided, only mark that one as read
+    // Otherwise mark all as read
+    if (id) {
+      query = query.eq('id', id)
+    }
+
+    const { error } = await query
+
+    if (error) {
+      console.log('[notifications/mark-read POST] error:', error)
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Mark-read notifications POST error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  const { error } = await query
-
-  if (error) {
-    console.log('[notifications/mark-read POST] error:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true })
 }

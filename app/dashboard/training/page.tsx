@@ -4,14 +4,21 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { supabase } from '@/lib/supabase'
+import Toast from '@/components/Toast'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts'
+import SkeletonLoader from '@/components/SkeletonLoader'
+import EmptyState from '@/components/EmptyState'
 
 export default function TrainingPage() {
   const [businessId, setBusinessId] = useState('')
   const [trainingHistory, setTrainingHistory] = useState<any[]>([])
+  
+  // Toast State
+  const [toast, setToast] = useState<{message:string, type:'success'|'error'|'info'} | null>(null)
   const [stats, setStats] = useState({ totalTrainings: 0, websiteCount: 0, pdfCount: 0, textCount: 0, totalChunks: 0 })
   const [activeTab, setActiveTab] = useState<'website' | 'pdf' | 'text'>('website')
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
 
   // Website tab state
   const [websiteUrl, setWebsiteUrl] = useState('')
@@ -64,11 +71,11 @@ export default function TrainingPage() {
 
   const fetchHistory = async () => {
     try {
-      const { data, error } = await supabase
-        .from('knowledge_base')
-        .select('*')
-        .eq('business_id', businessId)
-        .order('created_at', { ascending: false })
+      const res = await fetch('/api/train/history', {
+        method: 'GET',
+        credentials: 'include'
+      })
+      const { data, error } = await res.json()
 
       if (data && !error) {
         // Group by source_url to avoid duplicates (chunks)
@@ -103,7 +110,7 @@ export default function TrainingPage() {
     if (!websiteUrl.trim()) return
     setIsTraining(true)
     setTrainingProgress(0)
-    setMessage(null)
+    setMessage('')
 
 const steps = [
   { pct: 10, label: 'Connecting to website...' },
@@ -127,6 +134,7 @@ const steps = [
     try {
       const res = await fetch('/api/train/scrape-website', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: websiteUrl.trim(), businessId }),
       })
@@ -136,18 +144,20 @@ const steps = [
       if (result.success) {
         setTrainingProgress(100)
         setProgressLabel('Training complete!')
-        setMessage({ type: 'success', text: `✅ Website trained! ${result.pages_crawled} pages crawled from ${websiteUrl}` })
+        setToast({ message: 'Training complete! ✅', type: 'success' })
+        setTimeout(() => setToast(null), 3000)
         setWebsiteUrl('')
         await fetchHistory()
         setTimeout(() => { setTrainingProgress(0); setProgressLabel('') }, 2000)
       } else {
-        setMessage({ type: 'error', text: `❌ ${result.error || 'Training failed'}` })
+        setToast({ message: `Training failed: ${result.error || 'Network error'} ❌`, type: 'error' })
+        setTimeout(() => setToast(null), 3000)
         setTrainingProgress(0)
         setProgressLabel('')
       }
     } catch (err: any) {
       clearInterval(progressInterval)
-      setMessage({ type: 'error', text: `❌ Network error: ${err.message}` })
+      setToast({ type: 'error', message: `❌ Network error: ${err.message}` })
       setTrainingProgress(0)
       setProgressLabel('')
     } finally {
@@ -160,22 +170,22 @@ const steps = [
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
-    setMessage(null)
+    setMessage('')
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('businessId', businessId)
-      const res = await fetch('/api/train/upload-pdf', { method: 'POST', body: formData })
+      const res = await fetch('/api/train/upload-pdf', { method: 'POST', credentials: 'include', body: formData })
       const result = await res.json()
       if (result.success) {
-        setMessage({ type: 'success', text: `✅ PDF uploaded! ${result.chunks} chunks created` })
+        setToast({ type: 'success', message: `✅ PDF uploaded! ${result.chunks} chunks created` })
         await fetchHistory()
         e.target.value = ''
       } else {
-        setMessage({ type: 'error', text: `❌ ${result.error || 'Upload failed'}` })
+        setToast({ type: 'error', message: `❌ ${result.error || 'Upload failed'}` })
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: `❌ Error: ${err.message}` })
+      setToast({ type: 'error', message: `❌ Error: ${err.message}` })
     } finally {
       setUploading(false)
     }
@@ -183,26 +193,29 @@ const steps = [
 
   // ── Manual Text ──
   const handleTextSubmit = async () => {
-    if (!textInput.trim()) { setMessage({ type: 'error', text: '❌ Please enter text' }); return }
+    if (!textInput.trim()) { setToast({ type: 'error', message: '❌ Please enter text' }); return }
     setTextSubmitting(true)
-    setMessage(null)
+    setMessage('')
     try {
       const res = await fetch('/api/train/add-text', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId, text: textInput, title: textTitle || 'Manual Entry' }),
       })
       const result = await res.json()
       if (result.success) {
-        setMessage({ type: 'success', text: `✅ Text added! ${result.chunks} chunks created` })
+        setToast({ message: 'Text added successfully! ✅', type: 'success' })
+        setTimeout(() => setToast(null), 3000)
         setTextInput('')
         setTextTitle('')
         await fetchHistory()
       } else {
-        setMessage({ type: 'error', text: `❌ ${result.error || 'Failed to add'}` })
+        setToast({ message: `Failed to add text: ${result.error || 'Network error'} ❌`, type: 'error' })
+        setTimeout(() => setToast(null), 3000)
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: `❌ Error: ${err.message}` })
+      setToast({ type: 'error', message: `❌ Error: ${err.message}` })
     } finally {
       setTextSubmitting(false)
     }
@@ -212,21 +225,22 @@ const steps = [
   const handleDelete = async (sourceType: string, sourceUrl: string) => {
     if (!confirm('Delete this training data?')) return
     try {
-      const { error } = await supabase
-        .from('knowledge_base')
-        .delete()
-        .eq('business_id', businessId)
-        .eq('source_type', sourceType)
-        .eq('source_url', sourceUrl)
+      const res = await fetch('/api/train/delete', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sourceUrl })
+      })
+      const { error } = await res.json()
 
       if (!error) {
-        setMessage({ type: 'success', text: '✅ Deleted!' })
+        setToast({ type: 'success', message: '✅ Deleted!' })
         await fetchHistory()
       } else {
-        setMessage({ type: 'error', text: `❌ Delete failed` })
+        setToast({ type: 'error', message: `❌ Delete failed` })
       }
     } catch {
-      setMessage({ type: 'error', text: `❌ Error deleting` })
+      setToast({ type: 'error', message: `❌ Error deleting` })
     }
   }
 
@@ -448,18 +462,13 @@ const steps = [
         </div>
       </div>
 
-      {/* ── MESSAGE ── */}
-      {message && (
-        <div className={`tr-msg ${message.type}`}>{message.text}</div>
-      )}
-
       {/* ── TABS ── */}
       <div className="tr-tabs">
         {tabs.map(t => (
           <button
             key={t.key}
             className={`tr-tab${activeTab === t.key ? ' active' : ''}`}
-            onClick={() => { setActiveTab(t.key as any); setMessage(null) }}
+            onClick={() => { setActiveTab(t.key as any); setToast(null) }}
           >
             {t.label}
           </button>
@@ -609,11 +618,13 @@ const steps = [
           <div className="tr-card-sub">All sources your bot has learned from.</div>
 
           {trainingHistory.length === 0 ? (
-            <div className="tr-empty">
-              <div style={{ fontSize: 32, marginBottom: 10 }}>🤖</div>
-              <div>No training data yet</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>Add a website URL, PDF, or text to get started!</div>
-            </div>
+            <EmptyState
+              icon="🧠"
+              title="Bot trained nahi hua abhi"
+              description="Website, PDF ya text se bot ko train karo"
+              actionLabel="Train Karo"
+              onAction={() => setActiveTab('website')}
+            />
           ) : (
             <div className="tr-history-list">
               {trainingHistory.map((item: any, i: number) => (

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { supabase } from '@/lib/supabase'
+import Toast from '@/components/Toast'
 const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
 
 export default function SettingsPage() {
@@ -23,10 +24,27 @@ export default function SettingsPage() {
   const [selectedPlan, setSelectedPlan] = useState<'growth' | 'pro'>('growth')
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentSubmitted, setPaymentSubmitted] = useState(false)
+  
+  // Operating Hours State
+  const [operatingHours, setOperatingHours] = useState({
+    monday: { enabled: false, open: '09:00', close: '18:00' },
+    tuesday: { enabled: false, open: '09:00', close: '18:00' },
+    wednesday: { enabled: false, open: '09:00', close: '18:00' },
+    thursday: { enabled: false, open: '09:00', close: '18:00' },
+    friday: { enabled: false, open: '09:00', close: '18:00' },
+    saturday: { enabled: false, open: '09:00', close: '18:00' },
+    sunday: { enabled: false, open: '09:00', close: '18:00' }
+  })
+  
+  // Away Message State
+  const [awayMessage, setAwayMessage] = useState('')
+  
+  // Toast State
+  const [toast, setToast] = useState<{message:string, type:'success'|'error'|'info'} | null>(null)
 
 
 React.useEffect(() => {
-  fetch('/api/settings/get')
+  fetch('/api/settings/get', { credentials: 'include' })
     .then(r => r.json())
     .then(data => {
       setBotName(data.bot_name || '')
@@ -34,6 +52,16 @@ React.useEffect(() => {
       setLanguage(data.language || 'roman_urdu')
       setTone(data.tone || 'friendly')
       setGreeting(data.greeting_message || '')
+      
+      // Load operating hours
+      if (data.operating_hours) {
+        setOperatingHours(data.operating_hours)
+      }
+      
+      // Load away message
+      if (data.away_message) {
+        setAwayMessage(data.away_message)
+      }
     })
 }, [])
 
@@ -42,6 +70,7 @@ const handleSave = async () => {
   const res = await fetch('/api/settings/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       bot_name: botName,
       organization_name: orgName,
@@ -51,8 +80,47 @@ const handleSave = async () => {
     })
   })
   if (res.ok) {
-    setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 3000)
+    setToast({ message: 'Settings save ho gayi! ✅', type: 'success' })
+    setTimeout(() => setToast(null), 3000)
+  } else {
+    setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
+    setTimeout(() => setToast(null), 3000)
+  }
+}
+
+const handleSaveOperatingHours = async () => {
+  const res = await fetch('/api/settings/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      operating_hours: operatingHours
+    })
+  })
+  if (res.ok) {
+    setToast({ message: 'Operating hours save ho gayi! ✅', type: 'success' })
+    setTimeout(() => setToast(null), 3000)
+  } else {
+    setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
+    setTimeout(() => setToast(null), 3000)
+  }
+}
+
+const handleSaveAwayMessage = async () => {
+  const res = await fetch('/api/settings/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      away_message: awayMessage
+    })
+  })
+  if (res.ok) {
+    setToast({ message: 'Away message save ho gayi! ✅', type: 'success' })
+    setTimeout(() => setToast(null), 3000)
+  } else {
+    setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
+    setTimeout(() => setToast(null), 3000)
   }
 }
 
@@ -353,6 +421,237 @@ const handleSave = async () => {
             Upgrade to Growth Plan
           </button>
         </div>
+
+        {/* Operating Hours */}
+        <div style={{
+          backgroundColor: '#0D2420',
+          border: '1px solid #2A4A42',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{
+            fontFamily: 'serif',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#F7E7CE',
+            marginBottom: '24px'
+          }}>
+            Operating Hours
+          </h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            {Object.entries(operatingHours).map(([day, hours]) => (
+              <div key={day} style={{
+                backgroundColor: '#1A3D35',
+                border: '1px solid #2A4A42',
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#D4A853',
+                    textTransform: 'capitalize'
+                  }}>
+                    {day.slice(0, 3)}
+                  </span>
+                  <label style={{
+                    position: 'relative',
+                    display: 'inline-block',
+                    width: '44px',
+                    height: '24px'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={hours.enabled}
+                      onChange={(e) => setOperatingHours(prev => ({
+                        ...prev,
+                        [day]: { ...prev[day as keyof typeof prev], enabled: e.target.checked }
+                      }))}
+                      style={{
+                        opacity: 0,
+                        width: 0,
+                        height: 0
+                      }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: hours.enabled ? '#D4A853' : '#2A4A42',
+                      transition: '.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: hours.enabled ? '20px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '.4s',
+                        borderRadius: '50%'
+                      }}></span>
+                    </span>
+                  </label>
+                </div>
+                
+                {hours.enabled && (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        color: '#8A7560',
+                        marginBottom: '4px'
+                      }}>
+                        Open
+                      </label>
+                      <input
+                        type="time"
+                        value={hours.open}
+                        onChange={(e) => setOperatingHours(prev => ({
+                          ...prev,
+                          [day]: { ...prev[day as keyof typeof prev], open: e.target.value }
+                        }))}
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          backgroundColor: '#0D2420',
+                          border: '1px solid #2A4A42',
+                          borderRadius: '4px',
+                          color: '#F7E7CE',
+                          fontSize: '12px'
+                        }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        color: '#8A7560',
+                        marginBottom: '4px'
+                      }}>
+                        Close
+                      </label>
+                      <input
+                        type="time"
+                        value={hours.close}
+                        onChange={(e) => setOperatingHours(prev => ({
+                          ...prev,
+                          [day]: { ...prev[day as keyof typeof prev], close: e.target.value }
+                        }))}
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          backgroundColor: '#0D2420',
+                          border: '1px solid #2A4A42',
+                          borderRadius: '4px',
+                          color: '#F7E7CE',
+                          fontSize: '12px'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <button
+            onClick={handleSaveOperatingHours}
+            style={{
+              marginTop: '20px',
+              padding: '12px 24px',
+              backgroundColor: '#D4A853',
+              color: '#102C26',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Save Operating Hours
+          </button>
+        </div>
+
+        {/* Away Message */}
+        <div style={{
+          backgroundColor: '#0D2420',
+          border: '1px solid #2A4A42',
+          borderRadius: '16px',
+          padding: '24px'
+        }}>
+          <h3 style={{
+            fontFamily: 'serif',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#F7E7CE',
+            marginBottom: '24px'
+          }}>
+            Away Message
+          </h3>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#C4A882',
+              marginBottom: '12px'
+            }}>
+              Away Message
+            </label>
+            <textarea
+              value={awayMessage}
+              onChange={(e) => setAwayMessage(e.target.value)}
+              placeholder="Abhi available nahi hen. Thori der baad contact karein ya website visit karein."
+              style={{
+                width: '100%',
+                minHeight: '100px',
+                padding: '12px 16px',
+                backgroundColor: '#1A3D35',
+                border: '1px solid #2A4A42',
+                borderRadius: '8px',
+                color: '#F7E7CE',
+                fontSize: '14px',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+            <p style={{
+              fontSize: '12px',
+              color: '#8A7560',
+              marginTop: '8px',
+              lineHeight: '1.4'
+            }}>
+              Ye message tab jayega jab bot operating hours ke bahar message receive kare
+            </p>
+          </div>
+          
+          <button
+            onClick={handleSaveAwayMessage}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#D4A853',
+              color: '#102C26',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Save Away Message
+          </button>
+        </div>
       </div>
 
       {/* Payment Modal */}
@@ -416,6 +715,15 @@ const handleSave = async () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       {showSuccess && (
