@@ -1,20 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   try {
     // Get authenticated user
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authHeader.split(' ')[1]
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
       return Response.json({ error: 'Invalid token' }, { status: 401 })
@@ -87,15 +83,15 @@ export async function GET(request: Request) {
     if (conversationIds.length > 0) {
       let query = supabase
         .from('messages')
-        .select('created_at')
+        .select('timestamp')
         .in('conversation_id', conversationIds)
-        .order('created_at', { ascending: true })
+        .order('timestamp', { ascending: true })
 
       // Apply date filter if not ALL
       if (days > 0) {
         const fromDate = new Date()
         fromDate.setDate(fromDate.getDate() - days)
-        query = query.gte('created_at', fromDate.toISOString())
+        query = query.gte('timestamp', fromDate.toISOString())
       }
 
       const { data: messages, error: msgDataError } = await query
@@ -109,7 +105,7 @@ export async function GET(request: Request) {
       const groupedByDate: { [key: string]: number } = {}
       
       messages?.forEach(msg => {
-        const date = new Date(msg.created_at).toISOString().split('T')[0]
+        const date = new Date(msg.timestamp).toISOString().split('T')[0]
         groupedByDate[date] = (groupedByDate[date] || 0) + 1
       })
 
