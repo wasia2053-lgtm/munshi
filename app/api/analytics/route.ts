@@ -48,9 +48,11 @@ export async function GET(request: Request) {
       return Response.json({ error: 'Failed to fetch conversation IDs' }, { status: 500 })
     }
 
-    // Get messages count
+    // Get messages count and bot/customer breakdown
     const conversationIds = convIds?.map(c => c.id) || []
     let totalMessages = 0
+    let botMessages = 0
+    let customerMessages = 0
     
     if (conversationIds.length > 0) {
       const { count: msgCount, error: msgError } = await supabase
@@ -64,6 +66,28 @@ export async function GET(request: Request) {
       }
       
       totalMessages = msgCount || 0
+
+      // Count bot messages
+      const { count: botCount, error: botError } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('conversation_id', conversationIds)
+        .eq('sender', 'bot')
+
+      if (!botError) {
+        botMessages = botCount || 0
+      }
+
+      // Count customer messages
+      const { count: customerCount, error: customerError } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('conversation_id', conversationIds)
+        .eq('sender', 'customer')
+
+      if (!customerError) {
+        customerMessages = customerCount || 0
+      }
     }
 
     // Get knowledge base count
@@ -122,7 +146,9 @@ export async function GET(request: Request) {
         totalConversations: totalConversations || 0,
         trainingCount: trainingCount || 0
       },
-      msgData
+      msgData,
+      bot_messages: botMessages || 0,
+      customer_messages: customerMessages || 0
     })
 
   } catch (error) {

@@ -98,4 +98,3 @@ export function SkeletonTable({ rows = 5, cols = 4 }: SkeletonTableProps) {
   )
 }
 
-export default { SkeletonLine, SkeletonCard, SkeletonTable }

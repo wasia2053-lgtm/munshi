@@ -20,6 +20,7 @@ const navItems = [
   { href: '/dashboard/training',      icon: '🧠', label: 'Train Bot' },
   { href: '/dashboard/conversations', icon: '💬', label: 'Conversations', badge: '5' },
   { href: '/dashboard/analytics',     icon: '📊', label: 'Analytics' },
+  { href: '/dashboard/billing',       icon: '💳', label: 'Billing' },
   { href: '/dashboard/settings',      icon: '⚙️', label: 'Settings' },
   { href: '/dashboard/account',       icon: '⭕️', label: 'Account' },
 ]
