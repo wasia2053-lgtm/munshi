@@ -1,78 +1,102 @@
-import { createServerClient } from '@/lib/supabase-server'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  // 1. Get session from cookies
-  const cookieStore = cookies()
-  const supabase = createServerClient()
-  
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' }, 
-      { status: 401 }
-    )
-  }
-
-  // 2. Validate body
-  let body: { is_resolved?: boolean }
   try {
-    body = await request.json()
-    if (typeof body.is_resolved !== 'boolean') {
-      throw new Error('Invalid payload')
+    const { id } = await params
+
+    const cookieStore = await cookies()
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {}
+          },
+        },
+      }
+    )
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Invalid request body' }, 
-      { status: 400 }
-    )
-  }
 
-  // 3. Verify conversation ownership
-  const { data: conversation, error: fetchError } = await supabase
-    .from('conversations')
-    .select('id, business_id')
-    .eq('id', params.id)
-    .single()
-  
-  if (fetchError || !conversation) {
-    return NextResponse.json(
-      { error: 'Conversation not found' }, 
-      { status: 404 }
-    )
-  }
+    const body = await request.json()
 
-  // business_id must match authenticated user
-  if (conversation.business_id !== session.user.id) {
-    return NextResponse.json(
-      { error: 'Forbidden' }, 
-      { status: 403 }
-    )
-  }
+    if (typeof body.is_resolved !== 'boolean') {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      )
+    }
 
-  // 4. Update conversation
-  const { error: updateError } = await supabase
-    .from('conversations')
-    .update({ 
+    const { data: conversation, error: fetchError } = await supabase
+      .from('conversations')
+      .select('id, business_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !conversation) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      )
+    }
+
+    if (conversation.business_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    const { error: updateError } = await supabase
+      .from('conversations')
+      .update({
+        is_resolved: body.is_resolved,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+
+    if (updateError) {
+      console.error(updateError)
+
+      return NextResponse.json(
+        { error: 'Database update failed' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
       is_resolved: body.is_resolved,
-      updated_at: new Date().toISOString() 
     })
-    .eq('id', params.id)
-  
-  if (updateError) {
+  } catch (error) {
+    console.error('Resolve API Error:', error)
+
     return NextResponse.json(
-      { error: 'Database update failed' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
-
-  // 5. Return success
-  return NextResponse.json(
-    { success: true, is_resolved: body.is_resolved },
-    { status: 200 }
-  )
 }
