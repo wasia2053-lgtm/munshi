@@ -3,66 +3,47 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import Toast from '@/components/Toast'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts'
-import SkeletonLoader from '@/components/SkeletonLoader'
+import { SkeletonCard } from '@/components/SkeletonLoader'
 import EmptyState from '@/components/EmptyState'
 
 export default function TrainingPage() {
+  const supabase = createClient()
   const [businessId, setBusinessId] = useState('')
   const [trainingHistory, setTrainingHistory] = useState<any[]>([])
   
-  // Toast State
   const [toast, setToast] = useState<{message:string, type:'success'|'error'|'info'} | null>(null)
   const [stats, setStats] = useState({ totalTrainings: 0, websiteCount: 0, pdfCount: 0, textCount: 0, totalChunks: 0 })
   const [activeTab, setActiveTab] = useState<'website' | 'pdf' | 'text'>('website')
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
 
-  // Website tab state
+  // Website tab
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [isTraining, setIsTraining] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
 
-  // PDF tab state
+  // PDF tab
   const [uploading, setUploading] = useState(false)
 
-  // Text tab state
+  // Text tab
   const [textInput, setTextInput] = useState('')
   const [textTitle, setTextTitle] = useState('')
   const [textSubmitting, setTextSubmitting] = useState(false)
 
   useEffect(() => {
-    const getBusinessId = async () => {
+    const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        // Get actual business ID from businesses table
-        if (session?.user) {
-          const { data: business } = await supabase
-            .from('businesses')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .single()
-          
-          if (business?.id) {
-            setBusinessId(business.id)
-          } else {
-            // fallback
-            setBusinessId('00000000-0000-0000-0000-000000000001')
-          }
-        } else {
-          setBusinessId('00000000-0000-0000-0000-000000000001')
-        }
-      } catch {
-        setBusinessId('00000000-0000-0000-0000-000000000001')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) setBusinessId(user.id)
+      } catch (e) {
+        console.error('Auth error:', e)
       } finally {
         setLoading(false)
       }
     }
-    getBusinessId()
+    init()
   }, [])
 
   useEffect(() => {
@@ -76,9 +57,7 @@ export default function TrainingPage() {
         credentials: 'include'
       })
       const { data, error } = await res.json()
-
       if (data && !error) {
-        // Group by source_url to avoid duplicates (chunks)
         const seen = new Set()
         const unique = data.filter((item: any) => {
           const key = `${item.source_type}:${item.source_url}`
@@ -87,16 +66,12 @@ export default function TrainingPage() {
           return true
         })
         setTrainingHistory(unique)
-
-        // Stats
         const websiteCount = unique.filter((i: any) => i.source_type === 'website').length
         const pdfCount = unique.filter((i: any) => i.source_type === 'pdf').length
         const textCount = unique.filter((i: any) => i.source_type === 'manual' || i.source_type === 'text').length
         setStats({
           totalTrainings: unique.length,
-          websiteCount,
-          pdfCount,
-          textCount,
+          websiteCount, pdfCount, textCount,
           totalChunks: data.length,
         })
       }
@@ -105,23 +80,20 @@ export default function TrainingPage() {
     }
   }
 
-  // ── Website Training ──
   const handleWebsiteTraining = async () => {
     if (!websiteUrl.trim()) return
     setIsTraining(true)
     setTrainingProgress(0)
-    setMessage('')
 
-const steps = [
-  { pct: 10, label: 'Connecting to website...' },
-  { pct: 25, label: 'Crawling pages (1-5)...' },
-  { pct: 50, label: 'Crawling pages (6-12)...' },
-  { pct: 75, label: 'Crawling pages (13-20)...' },
-  { pct: 90, label: 'Saving to knowledge base...' },
-  { pct: 100, label: '✅ Training complete!' },
-]
+    const steps = [
+      { pct: 10, label: 'Connecting to website...' },
+      { pct: 25, label: 'Crawling pages (1-5)...' },
+      { pct: 50, label: 'Crawling pages (6-12)...' },
+      { pct: 75, label: 'Crawling pages (13-20)...' },
+      { pct: 90, label: 'Saving to knowledge base...' },
+      { pct: 100, label: '✅ Training complete!' },
+    ]
 
-    // Fake progress while API runs
     let stepIndex = 0
     const progressInterval = setInterval(() => {
       if (stepIndex < steps.length - 1) {
@@ -129,7 +101,7 @@ const steps = [
         setProgressLabel(steps[stepIndex].label)
         stepIndex++
       }
-}, 2000)
+    }, 2000)
 
     try {
       const res = await fetch('/api/train/scrape-website', {
@@ -140,37 +112,30 @@ const steps = [
       })
       const result = await res.json()
       clearInterval(progressInterval)
-
       if (result.success) {
         setTrainingProgress(100)
         setProgressLabel('Training complete!')
-        setToast({ message: 'Training complete! ✅', type: 'success' })
-        setTimeout(() => setToast(null), 3000)
+        setToast({ message: `✅ ${result.pages_crawled} pages trained!`, type: 'success' })
         setWebsiteUrl('')
         await fetchHistory()
         setTimeout(() => { setTrainingProgress(0); setProgressLabel('') }, 2000)
       } else {
-        setToast({ message: `Training failed: ${result.error || 'Network error'} ❌`, type: 'error' })
-        setTimeout(() => setToast(null), 3000)
-        setTrainingProgress(0)
-        setProgressLabel('')
+        setToast({ message: `❌ ${result.error || 'Training failed'}`, type: 'error' })
+        setTrainingProgress(0); setProgressLabel('')
       }
     } catch (err: any) {
       clearInterval(progressInterval)
       setToast({ type: 'error', message: `❌ Network error: ${err.message}` })
-      setTrainingProgress(0)
-      setProgressLabel('')
+      setTrainingProgress(0); setProgressLabel('')
     } finally {
       setIsTraining(false)
     }
   }
 
-  // ── PDF Upload ──
   const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
-    setMessage('')
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -178,7 +143,7 @@ const steps = [
       const res = await fetch('/api/train/upload-pdf', { method: 'POST', credentials: 'include', body: formData })
       const result = await res.json()
       if (result.success) {
-        setToast({ type: 'success', message: `✅ PDF uploaded! ${result.chunks} chunks created` })
+        setToast({ type: 'success', message: `✅ PDF trained! ${result.chunks} chunks` })
         await fetchHistory()
         e.target.value = ''
       } else {
@@ -191,56 +156,47 @@ const steps = [
     }
   }
 
-  // ── Manual Text ──
   const handleTextSubmit = async () => {
-    if (!textInput.trim()) { setToast({ type: 'error', message: '❌ Please enter text' }); return }
+    if (!textInput.trim()) { setToast({ type: 'error', message: '❌ Text required' }); return }
     setTextSubmitting(true)
-    setMessage('')
     try {
       const res = await fetch('/api/train/add-text', {
-        method: 'POST',
-        credentials: 'include',
+        method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId, text: textInput, title: textTitle || 'Manual Entry' }),
       })
       const result = await res.json()
       if (result.success) {
-        setToast({ message: 'Text added successfully! ✅', type: 'success' })
-        setTimeout(() => setToast(null), 3000)
-        setTextInput('')
-        setTextTitle('')
+        setToast({ message: '✅ Text added!', type: 'success' })
+        setTextInput(''); setTextTitle('')
         await fetchHistory()
       } else {
-        setToast({ message: `Failed to add text: ${result.error || 'Network error'} ❌`, type: 'error' })
-        setTimeout(() => setToast(null), 3000)
+        setToast({ message: `❌ ${result.error || 'Failed'}`, type: 'error' })
       }
     } catch (err: any) {
-      setToast({ type: 'error', message: `❌ Error: ${err.message}` })
+      setToast({ type: 'error', message: `❌ ${err.message}` })
     } finally {
       setTextSubmitting(false)
     }
   }
 
-  // ── Delete ──
   const handleDelete = async (sourceType: string, sourceUrl: string) => {
     if (!confirm('Delete this training data?')) return
     try {
       const res = await fetch('/api/train/delete', {
-        method: 'DELETE',
-        credentials: 'include',
+        method: 'DELETE', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: sourceUrl })
       })
       const { error } = await res.json()
-
       if (!error) {
         setToast({ type: 'success', message: '✅ Deleted!' })
         await fetchHistory()
       } else {
-        setToast({ type: 'error', message: `❌ Delete failed` })
+        setToast({ type: 'error', message: '❌ Delete failed' })
       }
     } catch {
-      setToast({ type: 'error', message: `❌ Error deleting` })
+      setToast({ type: 'error', message: '❌ Error deleting' })
     }
   }
 
@@ -252,8 +208,8 @@ const steps = [
 
   const progressSteps = [
     { label: 'Connecting to website...', threshold: 15 },
-    { label: 'Fetching page content...', threshold: 35 },
-    { label: 'Extracting text data...', threshold: 60 },
+    { label: 'Crawling pages (1-5)...', threshold: 35 },
+    { label: 'Crawling pages (6-12)...', threshold: 60 },
     { label: 'Saving to knowledge base...', threshold: 80 },
     { label: 'Training complete!', threshold: 100 },
   ]
@@ -261,237 +217,119 @@ const steps = [
   if (loading) {
     return (
       <DashboardLayout title="Train Bot" subtitle="Upload documents or add text to train your AI bot">
-        <div style={{ color: '#F7E7CE' }}>Loading...</div>
+        <SkeletonCard lines={4} />
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout title="Train Bot" subtitle="Teach your bot about your business and products">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
       <style>{`
-        /* ── STATS ── */
         .tr-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
         @media (max-width: 900px) { .tr-stats { grid-template-columns: repeat(3, 1fr); } }
         @media (max-width: 540px) { .tr-stats { grid-template-columns: repeat(2, 1fr); } }
-        .tr-stat-card {
-          background: linear-gradient(135deg, #1A3D35, #142E28);
-          border: 1px solid #2A4A42;
-          border-radius: 14px;
-          padding: 16px;
-        }
-        .tr-stat-icon { font-size: 22px; margin-bottom: 8px; }
+        .tr-stat-card { background: #0a1f1b; border: 1px solid #2A4A42; border-radius: 12px; padding: 16px; }
+        .tr-stat-icon { font-size: 20px; margin-bottom: 8px; }
         .tr-stat-label { font-size: 11px; color: #8A7560; margin-bottom: 4px; }
-        .tr-stat-val { font-size: 22px; font-weight: 700; color: #F7E7CE; font-family: 'Cormorant Garamond', serif; }
-
-        /* ── MESSAGE ── */
-        .tr-msg {
-          padding: 12px 16px; border-radius: 10px;
-          font-size: 13px; margin-bottom: 20px; line-height: 1.5;
-        }
-        .tr-msg.success { background: rgba(76,175,130,0.1); color: #4CAF82; border: 1px solid rgba(76,175,130,0.2); }
-        .tr-msg.error   { background: rgba(224,92,92,0.1);  color: #E05C5C; border: 1px solid rgba(224,92,92,0.2); }
-
-        /* ── TABS ── */
-        .tr-tabs {
-          display: flex; gap: 4px;
-          background: #0D2420; padding: 4px;
-          border-radius: 14px; margin-bottom: 24px;
-          width: fit-content; max-width: 100%;
-          overflow-x: auto; scrollbar-width: none;
-        }
+        .tr-stat-val { font-size: 22px; font-weight: 700; color: #D4A853; }
+        .tr-tabs { display: flex; gap: 4px; background: #0D2420; padding: 4px; border-radius: 12px; margin-bottom: 24px; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
         .tr-tabs::-webkit-scrollbar { display: none; }
-        .tr-tab {
-          padding: 9px 18px; border-radius: 10px;
-          font-size: 13px; font-weight: 500;
-          border: none; cursor: pointer;
-          white-space: nowrap;
-          font-family: 'DM Sans', sans-serif;
-          background: transparent; color: #C4A882;
-          transition: all 0.2s;
-        }
+        .tr-tab { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; background: transparent; color: #C4A882; transition: all 0.2s; }
         .tr-tab:hover { color: #F7E7CE; }
         .tr-tab.active { background: #1A3D35; color: #D4A853; border: 1px solid rgba(212,168,83,0.2); }
-
-        /* ── MAIN GRID ── */
         .tr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .tr-grid { grid-template-columns: 1fr; } }
-
-        /* ── CARD ── */
-        .tr-card {
-          background: linear-gradient(135deg, #1A3D35, #142E28);
-          border: 1px solid #2A4A42;
-          border-radius: 18px;
-          padding: 24px;
-        }
-        .tr-card-title {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 18px; font-weight: 700;
-          color: #F7E7CE; margin-bottom: 6px;
-        }
+        .tr-card { background: #0a1f1b; border: 1px solid #2A4A42; border-radius: 16px; padding: 24px; }
+        .tr-card-title { font-size: 17px; font-weight: 700; color: #F7E7CE; margin-bottom: 6px; }
         .tr-card-sub { font-size: 12px; color: #8A7560; margin-bottom: 20px; line-height: 1.5; }
-
-        /* ── INFO BOX ── */
-        .tr-info {
-          padding: 12px 14px;
-          background: #0D2420;
-          border-left: 3px solid #D4A853;
-          border-radius: 0 8px 8px 0;
-          font-size: 12px; color: #C4A882;
-          line-height: 1.6; margin-bottom: 16px;
-        }
-
-        /* ── URL INPUT ── */
+        .tr-info { padding: 12px 14px; background: #102C26; border-left: 3px solid #D4A853; border-radius: 0 8px 8px 0; font-size: 12px; color: #C4A882; line-height: 1.6; margin-bottom: 16px; }
         .tr-url-row { display: flex; gap: 10px; margin-bottom: 16px; }
-        .tr-input {
-          flex: 1; min-width: 0;
-          padding: 11px 14px;
-          background: #0D2420;
-          border: 1px solid #2A4A42;
-          border-radius: 10px;
-          color: #F7E7CE; font-size: 14px;
-          font-family: 'DM Sans', sans-serif;
-          outline: none; transition: border 0.2s;
-        }
+        .tr-input { flex: 1; min-width: 0; padding: 11px 14px; background: #102C26; border: 1px solid #2A4A42; border-radius: 10px; color: #F7E7CE; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border 0.2s; }
         .tr-input::placeholder { color: #8A7560; }
-        .tr-input:focus { border-color: #D4A853; box-shadow: 0 0 0 3px rgba(212,168,83,0.1); }
-        .tr-btn {
-          padding: 11px 20px;
-          background: linear-gradient(135deg, #D4A853, #C4983F);
-          color: #0D2420; font-size: 14px; font-weight: 600;
-          border: none; border-radius: 10px;
-          cursor: pointer; white-space: nowrap;
-          font-family: 'DM Sans', sans-serif;
-          transition: all 0.2s; flex-shrink: 0;
-        }
-        .tr-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,168,83,0.3); }
+        .tr-input:focus { border-color: #D4A853; }
+        .tr-btn { padding: 11px 20px; background: linear-gradient(135deg, #D4A853, #C4983F); color: #0D2420; font-size: 14px; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; transition: all 0.2s; flex-shrink: 0; }
+        .tr-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
         .tr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .tr-btn-full { width: 100%; padding: 13px; }
         @media (max-width: 480px) { .tr-url-row { flex-direction: column; } .tr-btn { width: 100%; } }
-
-        /* ── PROGRESS ── */
-        .tr-progress-box {
-          background: #0D2420; border: 1px solid #2A4A42;
-          border-radius: 12px; padding: 18px;
-        }
+        .tr-progress-box { background: #102C26; border: 1px solid #2A4A42; border-radius: 12px; padding: 18px; }
         .tr-progress-header { display: flex; justify-content: space-between; font-size: 12px; color: #C4A882; margin-bottom: 8px; }
         .tr-bar-bg { height: 6px; background: #2A4A42; border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
         .tr-bar-fill { height: 100%; background: linear-gradient(90deg, #D4A853, #F0C96A); border-radius: 999px; transition: width 0.5s ease; }
         .tr-step { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #C4A882; padding: 3px 0; }
-        .tr-step-dot {
-          width: 18px; height: 18px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 9px; flex-shrink: 0;
-        }
-        .tr-step-dot.done   { background: rgba(76,175,130,0.15); border: 1px solid #4CAF82; color: #4CAF82; }
+        .tr-step-dot { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; }
+        .tr-step-dot.done { background: rgba(76,175,130,0.15); border: 1px solid #4CAF82; color: #4CAF82; }
         .tr-step-dot.active { background: rgba(212,168,83,0.15); border: 1px solid #D4A853; color: #D4A853; }
-        .tr-step-dot.idle   { background: rgba(42,74,66,0.5); border: 1px solid #2A4A42; }
-
-        /* ── UPLOAD ZONE ── */
-        .tr-upload-zone {
-          border: 2px dashed #2A4A42; border-radius: 14px;
-          padding: 36px 20px; text-align: center;
-          background: #0D2420; transition: all 0.2s;
-          cursor: pointer;
-        }
+        .tr-step-dot.idle { background: rgba(42,74,66,0.5); border: 1px solid #2A4A42; }
+        .tr-upload-zone { border: 2px dashed #2A4A42; border-radius: 14px; padding: 36px 20px; text-align: center; background: #102C26; transition: all 0.2s; cursor: pointer; }
         .tr-upload-zone:hover { border-color: rgba(212,168,83,0.4); background: rgba(212,168,83,0.02); }
-
-        /* ── TEXTAREA ── */
-        .tr-textarea {
-          width: 100%; padding: 12px 14px;
-          background: #0D2420; border: 1px solid #2A4A42;
-          border-radius: 10px; color: #F7E7CE;
-          font-size: 13px; font-family: 'DM Sans', sans-serif;
-          line-height: 1.6; resize: vertical; min-height: 140px;
-          outline: none; transition: border 0.2s;
-        }
+        .tr-textarea { width: 100%; padding: 12px 14px; background: #102C26; border: 1px solid #2A4A42; border-radius: 10px; color: #F7E7CE; font-size: 13px; font-family: 'DM Sans', sans-serif; line-height: 1.6; resize: vertical; min-height: 140px; outline: none; transition: border 0.2s; box-sizing: border-box; }
         .tr-textarea::placeholder { color: #8A7560; }
-        .tr-textarea:focus { border-color: #D4A853; box-shadow: 0 0 0 3px rgba(212,168,83,0.1); }
-
-        /* ── HISTORY ── */
-        .tr-history-list { display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; }
-        .tr-history-item {
-          display: flex; align-items: flex-start; gap: 12px;
-          background: #0D2420; border: 1px solid #2A4A42;
-          border-radius: 10px; padding: 12px 14px;
-          transition: border 0.2s;
-        }
-        .tr-history-item:hover { border-color: rgba(212,168,83,0.2); }
-        .tr-history-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .tr-textarea:focus { border-color: #D4A853; }
+        .tr-history-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+        .tr-history-item { display: flex; align-items: flex-start; gap: 12px; background: #102C26; border: 1px solid #2A4A42; border-radius: 10px; padding: 12px 14px; transition: border 0.2s; }
+        .tr-history-item:hover { border-color: rgba(212,168,83,0.25); }
+        .tr-history-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
         .tr-history-info { flex: 1; min-width: 0; }
-        .tr-history-name { font-size: 13px; font-weight: 500; color: #F7E7CE; word-break: break-all; margin-bottom: 3px; }
+        .tr-history-name { font-size: 12px; font-weight: 500; color: #F7E7CE; word-break: break-all; margin-bottom: 3px; }
         .tr-history-meta { font-size: 11px; color: #8A7560; }
-        .tr-type-pill {
-          display: inline-block; padding: 2px 8px;
-          border-radius: 999px; font-size: 10px; font-weight: 500;
-          margin-bottom: 4px;
-        }
+        .tr-type-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 500; margin-bottom: 4px; }
         .tr-type-website { background: rgba(76,175,130,0.1); color: #4CAF82; border: 1px solid rgba(76,175,130,0.2); }
-        .tr-type-pdf     { background: rgba(212,168,83,0.1); color: #D4A853; border: 1px solid rgba(212,168,83,0.2); }
-        .tr-type-text    { background: rgba(196,168,130,0.1); color: #C4A882; border: 1px solid rgba(196,168,130,0.2); }
-        .tr-del-btn { background: none; border: none; color: #8A7560; cursor: pointer; font-size: 16px; flex-shrink: 0; padding: 2px; transition: color 0.2s; }
+        .tr-type-pdf { background: rgba(212,168,83,0.1); color: #D4A853; border: 1px solid rgba(212,168,83,0.2); }
+        .tr-type-text { background: rgba(196,168,130,0.1); color: #C4A882; border: 1px solid rgba(196,168,130,0.2); }
+        .tr-icon-btn { background: none; border: none; cursor: pointer; font-size: 15px; flex-shrink: 0; padding: 2px 4px; transition: color 0.2s; }
+        .tr-retrain-btn { color: #D4A853; }
+        .tr-retrain-btn:hover { color: #F0C96A; }
+        .tr-del-btn { color: #8A7560; }
         .tr-del-btn:hover { color: #E05C5C; }
-        .tr-empty { text-align: center; padding: 32px; color: #8A7560; font-size: 13px; }
       `}</style>
 
-      {/* ── STATS ── */}
+      {/* STATS */}
       <div className="tr-stats">
-        <div className="tr-stat-card">
-          <div className="tr-stat-icon">📚</div>
-          <div className="tr-stat-label">Total Sources</div>
-          <div className="tr-stat-val">{stats.totalTrainings}</div>
-        </div>
-        <div className="tr-stat-card">
-          <div className="tr-stat-icon">🌐</div>
-          <div className="tr-stat-label">Websites</div>
-          <div className="tr-stat-val">{stats.websiteCount}</div>
-        </div>
-        <div className="tr-stat-card">
-          <div className="tr-stat-icon">📄</div>
-          <div className="tr-stat-label">PDFs</div>
-          <div className="tr-stat-val">{stats.pdfCount}</div>
-        </div>
-        <div className="tr-stat-card">
-          <div className="tr-stat-icon">✏️</div>
-          <div className="tr-stat-label">Text Entries</div>
-          <div className="tr-stat-val">{stats.textCount}</div>
-        </div>
-        <div className="tr-stat-card">
-          <div className="tr-stat-icon">🧩</div>
-          <div className="tr-stat-label">Total Chunks</div>
-          <div className="tr-stat-val">{stats.totalChunks}</div>
-        </div>
+        {[
+          { icon: '📚', label: 'Total Sources', val: stats.totalTrainings },
+          { icon: '🌐', label: 'Websites', val: stats.websiteCount },
+          { icon: '📄', label: 'PDFs', val: stats.pdfCount },
+          { icon: '✏️', label: 'Text Entries', val: stats.textCount },
+          { icon: '🧩', label: 'Total Chunks', val: stats.totalChunks },
+        ].map((s, i) => (
+          <div className="tr-stat-card" key={i}>
+            <div className="tr-stat-icon">{s.icon}</div>
+            <div className="tr-stat-label">{s.label}</div>
+            <div className="tr-stat-val">{s.val}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ── TABS ── */}
+      {/* TABS */}
       <div className="tr-tabs">
         {tabs.map(t => (
           <button
             key={t.key}
             className={`tr-tab${activeTab === t.key ? ' active' : ''}`}
-            onClick={() => { setActiveTab(t.key as any); setToast(null) }}
+            onClick={() => setActiveTab(t.key as any)}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* ── MAIN GRID ── */}
+      {/* MAIN GRID */}
       <div className="tr-grid">
 
-        {/* LEFT: Input Panel */}
+        {/* LEFT */}
         <div className="tr-card">
 
-          {/* ── WEBSITE TAB ── */}
+          {/* WEBSITE */}
           {activeTab === 'website' && (
             <>
               <div className="tr-card-title">Train from Website</div>
-              <div className="tr-card-sub">
-                Paste your website URL — our AI will crawl and learn from your product pages, services, policies, and business info automatically.
-              </div>
+              <div className="tr-card-sub">Website URL paste karo — AI crawl karke knowledge base banayega automatically.</div>
               <div className="tr-info">
-                💡 Works best with product pages, FAQs, about pages, and policy pages. Bot will answer exactly from your website content.
+                💡 Product pages, FAQs, about pages, policies — sab kuch seekhega bot.
               </div>
-
               <div className="tr-url-row">
                 <input
                   className="tr-input"
@@ -510,13 +348,11 @@ const steps = [
                   {isTraining ? '⏳ Training...' : '🚀 Train'}
                 </button>
               </div>
-
-              {/* Progress */}
               {isTraining && (
                 <div className="tr-progress-box">
                   <div className="tr-progress-header">
                     <span>{progressLabel || 'Starting...'}</span>
-                    <span>{trainingProgress}%</span>
+                    <span style={{ color: '#D4A853', fontWeight: 600 }}>{trainingProgress}%</span>
                   </div>
                   <div className="tr-bar-bg">
                     <div className="tr-bar-fill" style={{ width: `${trainingProgress}%` }} />
@@ -531,7 +367,9 @@ const steps = [
                           <div className={`tr-step-dot ${done ? 'done' : active ? 'active' : 'idle'}`}>
                             {done ? '✓' : active ? '⟳' : ''}
                           </div>
-                          <span>{s.label}</span>
+                          <span style={{ color: done ? '#4CAF82' : active ? '#D4A853' : '#8A7560' }}>
+                            {s.label}
+                          </span>
                         </div>
                       )
                     })}
@@ -541,20 +379,13 @@ const steps = [
             </>
           )}
 
-          {/* ── PDF TAB ── */}
+          {/* PDF */}
           {activeTab === 'pdf' && (
             <>
               <div className="tr-card-title">Upload PDF Document</div>
-              <div className="tr-card-sub">
-                Upload product catalogs, price lists, FAQs, or any PDF document to train your bot.
-              </div>
-              <input
-                type="file" accept=".pdf"
-                onChange={handlePDFUpload}
-                disabled={uploading}
-                className="hidden" id="pdf-upload"
-              />
-              <label htmlFor="pdf-upload">
+              <div className="tr-card-sub">Product catalog, price list, FAQ, ya koi bhi PDF upload karo.</div>
+              <input type="file" accept=".pdf" onChange={handlePDFUpload} disabled={uploading} className="hidden" id="pdf-upload" />
+              <label htmlFor="pdf-upload" style={{ cursor: 'pointer' }}>
                 <div className="tr-upload-zone">
                   <div style={{ fontSize: 36, marginBottom: 10, opacity: 0.7 }}>📄</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#F7E7CE', marginBottom: 6 }}>
@@ -566,17 +397,13 @@ const steps = [
             </>
           )}
 
-          {/* ── TEXT TAB ── */}
+          {/* TEXT */}
           {activeTab === 'text' && (
             <>
               <div className="tr-card-title">Add Manual Text</div>
-              <div className="tr-card-sub">
-                Manually add product descriptions, FAQs, policies, or any text you want your bot to know.
-              </div>
+              <div className="tr-card-sub">Products, FAQs, policies — jo bhi bot ko yaad karwana ho.</div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, color: '#C4A882', marginBottom: 6, fontWeight: 500 }}>
-                  Title (Optional)
-                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#C4A882', marginBottom: 6, fontWeight: 500 }}>Title (Optional)</label>
                 <input
                   className="tr-input"
                   type="text"
@@ -587,14 +414,12 @@ const steps = [
                 />
               </div>
               <div style={{ marginBottom: 8 }}>
-                <label style={{ display: 'block', fontSize: 12, color: '#C4A882', marginBottom: 6, fontWeight: 500 }}>
-                  Text Content
-                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#C4A882', marginBottom: 6, fontWeight: 500 }}>Text Content</label>
                 <textarea
                   className="tr-textarea"
                   value={textInput}
                   onChange={e => setTextInput(e.target.value)}
-                  placeholder="Enter information about your business, products, services, pricing, policies..."
+                  placeholder="Business info, products, pricing, policies..."
                   rows={7}
                 />
                 <div style={{ fontSize: 11, color: '#8A7560', textAlign: 'right', marginTop: 4 }}>
@@ -602,7 +427,7 @@ const steps = [
                 </div>
               </div>
               <button
-                className={`tr-btn tr-btn-full`}
+                className="tr-btn tr-btn-full"
                 onClick={handleTextSubmit}
                 disabled={textSubmitting || !textInput.trim()}
               >
@@ -612,10 +437,10 @@ const steps = [
           )}
         </div>
 
-        {/* RIGHT: History */}
+        {/* RIGHT — History */}
         <div className="tr-card">
           <div className="tr-card-title">Training History</div>
-          <div className="tr-card-sub">All sources your bot has learned from.</div>
+          <div className="tr-card-sub">Bot ne kahan se kya seekha.</div>
 
           {trainingHistory.length === 0 ? (
             <EmptyState
@@ -637,21 +462,36 @@ const steps = [
                       item.source_type === 'website' ? 'tr-type-website' :
                       item.source_type === 'pdf' ? 'tr-type-pdf' : 'tr-type-text'
                     }`}>
-                      {item.source_type === 'website' ? 'Website' :
-                       item.source_type === 'pdf' ? 'PDF' : 'Text'}
+                      {item.source_type === 'website' ? 'Website' : item.source_type === 'pdf' ? 'PDF' : 'Text'}
                     </div>
-                    <div className="tr-history-name">
-                      {item.source_url || item.source_type}
-                    </div>
+                    <div className="tr-history-name">{item.source_url || item.source_type}</div>
                     <div className="tr-history-meta">
                       {item.chunks_count ? `${item.chunks_count} chunks • ` : ''}
                       {new Date(item.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
                   </div>
+                  {/* Re-train button */}
                   <button
-                    className="tr-del-btn"
-                    onClick={() => handleDelete(item.source_type, item.source_url)}
+                    className="tr-icon-btn tr-retrain-btn"
+                    title="Re-train"
+                    onClick={() => {
+                      if (item.source_type === 'website') {
+                        setActiveTab('website')
+                        setWebsiteUrl(item.source_url)
+                      } else if (item.source_type === 'pdf') {
+                        setActiveTab('pdf')
+                      } else {
+                        setActiveTab('text')
+                      }
+                    }}
+                  >
+                    ↺
+                  </button>
+                  {/* Delete button */}
+                  <button
+                    className="tr-icon-btn tr-del-btn"
                     title="Delete"
+                    onClick={() => handleDelete(item.source_type, item.source_url)}
                   >
                     ✕
                   </button>

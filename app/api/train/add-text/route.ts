@@ -42,6 +42,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Failed to save: ' + error.message }, { status: 500 })
     }
 
+
+// Training complete notification
+await supabase
+  .from('notifications')
+  .insert({
+    business_id,
+    type: 'training_complete',
+    title: 'Text Training Complete! ✍️',
+    message: `Text training complete ho gayi. Bot ab yeh information use karega.`,
+    is_read: false
+  })
+
     return NextResponse.json({ success: true, chunks })
 
   } catch (error: any) {

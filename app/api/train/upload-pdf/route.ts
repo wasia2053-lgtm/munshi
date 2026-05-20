@@ -72,6 +72,17 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
+// Training complete notification
+await supabase
+  .from('notifications')
+  .insert({
+    business_id,
+    type: 'training_complete',
+    title: 'PDF Training Complete! 📄',
+    message: `PDF training complete ho gayi. Bot ab is document se jawab de sakta hai.`,
+    is_read: false
+  })
+
     return NextResponse.json({ 
       success: true, 
       chunks,

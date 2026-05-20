@@ -58,6 +58,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Check email confirmation for authenticated users
+  if (session && !session.user.email_confirmed_at && 
+      request.nextUrl.pathname.startsWith('/dashboard') &&
+      request.nextUrl.pathname !== '/dashboard') {
+    const redirectUrl = new URL('/verify-email', request.url)
+    return NextResponse.redirect(redirectUrl)
+  }
+
   // Redirect authenticated users away from auth pages
   if (session && (request.nextUrl.pathname === '/login' || 
       request.nextUrl.pathname === '/signup')) {

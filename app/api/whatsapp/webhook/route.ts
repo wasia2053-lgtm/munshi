@@ -9,7 +9,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
+const BUSINESS_ID = '1707687c-a780-4fed-a335-a0174751c6f9'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -138,6 +138,17 @@ export async function POST(request: NextRequest) {
         console.log('✅ Incoming message saved to messages table')
       }
 
+      // ─── New Message Notification ───────────────────────
+      await supabase
+        .from('notifications')
+        .insert({
+          business_id: BUSINESS_ID,
+          type: 'new_message',
+          title: 'Naya Message Aaya! 💬',
+          message: `Customer (${customerPhone}) ne message bheja: "${messageText.substring(0, 50)}${messageText.length > 50 ? '...' : ''}"`,
+          is_read: false
+        })
+
       // ─── Fetch Business Settings ────────────────────────
       const { data: settings } = await supabase
         .from('business_settings')
@@ -264,6 +275,106 @@ export async function POST(request: NextRequest) {
         }
         
         continue // Skip AI generation and move to next message
+      }
+
+      // ─── Message Limit Check ───────────────────────────
+      // Step 1: Get conversation IDs for this business
+      const { data: convs } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('business_id', BUSINESS_ID)
+
+      const convIds = convs?.map((c: any) => c.id) || []
+
+      let botMsgCount = 0
+      if (convIds.length > 0) {
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .in('conversation_id', convIds)
+          .eq('sender', 'bot')
+        botMsgCount = count || 0
+      }
+
+      // Step 2: Plan limit check
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('plan, messages_limit, valid_until')
+        .eq('user_id', BUSINESS_ID)
+        .order('valid_until', { ascending: false })
+        .limit(1)
+        .single()
+
+      const messagesLimit = sub?.messages_limit || 500
+
+      // Step 3: Limit exceeded - send limit message and return
+      if (botMsgCount >= messagesLimit) {
+        const limitMsg = `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
+        
+        // Send limit message via WhatsApp
+        const waRes = await fetch(
+          `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              messaging_product: 'whatsapp',
+              to: customerPhone,
+              type: 'text',
+              text: { body: limitMsg }
+            })
+          }
+        )
+        
+        const waResult = await waRes.json()
+        if (!waRes.ok) {
+          console.log('❌ WhatsApp Limit Message Error:', waResult)
+        } else {
+          console.log('✅ Limit message sent:', limitMsg)
+        }
+        
+        // Save limit message to database
+        const { error: limitError } = await supabase.from('messages').insert({
+          conversation_id: conversationId,
+          sender: 'bot',
+          content: limitMsg,
+          timestamp: new Date().toISOString()
+        })
+        
+        if (limitError) {
+          console.log('❌ Limit message save error:', limitError.message)
+        } else {
+          console.log('✅ Limit message saved to messages table')
+        }
+        
+        continue // Skip AI generation and move to next message
+      }
+
+      // Step 4: Notification trigger at 80% limit
+      if (botMsgCount >= messagesLimit * 0.8) {
+        // Check if notification already sent
+        const { data: existingNotif } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('business_id', BUSINESS_ID)
+          .eq('type', 'credits_low')
+          .limit(1)
+
+        if (!existingNotif || existingNotif.length === 0) {
+          await supabase
+            .from('notifications')
+            .insert({
+              business_id: BUSINESS_ID,
+              type: 'credits_low',
+              title: 'Message Limit Almost Reached!',
+              message: `Aap ne ${botMsgCount}/${messagesLimit} messages use kar liye hain. Upgrade karein taake bot band na ho.`,
+              is_read: false
+            })
+          console.log('✅ Credits low notification sent')
+        }
       }
 
       // ─── Generate AI Response ───────────────────────────

@@ -147,7 +147,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`✅ Crawl complete! ${results.length} pages saved`)
-    
+    // Training complete notification
+await supabase
+  .from('notifications')
+  .insert({
+    business_id,
+    type: 'training_complete',
+    title: 'Website Training Complete! 🎓',
+    message: `Website training complete ho gayi. ${results.length} pages se knowledge base update hua.`,
+    is_read: false
+  })
     return NextResponse.json({ 
       success: true,
       pages_crawled: results.length,

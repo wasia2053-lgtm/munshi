@@ -16,6 +16,8 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailSent, setEmailSent] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
 
   const handleGoogleSignUp = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -56,7 +58,8 @@ export default function SignupPage() {
       if (error) {
         setError(error.message)
       } else {
-        router.push('/dashboard')
+        setUserEmail(email)
+        setEmailSent(true)
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -82,47 +85,73 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* Title */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="font-serif text-xl sm:text-2xl md:text-2xl font-bold text-[#F7E7CE] mb-2">
-              Create Account
-            </h1>
-            <p className="text-xs sm:text-sm text-[#8A7560]">
-              Start your free Munshi trial
-            </p>
-          </div>
-
-          {/* Google Sign Up Button */}
-          <button
-            onClick={handleGoogleSignUp}
-            className="w-full bg-white text-black rounded-lg py-3 flex items-center justify-center gap-3 hover:bg-gray-100 transition-colors mb-6"
-          >
-            {/* Google SVG Icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            <span className="font-medium">Continue with Google</span>
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-[#2A4A42]"></div>
-            <span className="text-sm text-[#F7E7CE]">or</span>
-            <div className="flex-1 h-px bg-[#2A4A42]"></div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-[rgba(224,92,92,0.1)] border border-[rgba(224,92,92,0.25)] rounded-lg text-[#E05C5C] text-xs sm:text-sm">
-              {error}
+          {emailSent ? (
+            /* Verification Message Card */
+            <div className="text-center">
+              <div className="text-5xl mb-4">✉️</div>
+              <h1 className="font-serif text-2xl font-bold text-[#F7E7CE] mb-3">
+                Email Check Karein!
+              </h1>
+              <p className="text-sm text-[#8A7560] mb-4">
+                Humne <span className="text-[#D4A853] font-medium">{userEmail}</span> pe verification link bheja hai.
+              </p>
+              <p className="text-xs text-[#8A7560] mb-6">
+                Link click karke account activate karein.
+              </p>
+              <div className="border-t border-[#2A4A42] my-6"></div>
+              <p className="text-xs text-[#8A7560] mb-6">
+                Email nahi aya? Spam folder check karein.
+              </p>
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] text-sm sm:text-base font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
+              >
+                Login pe Jao
+              </button>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Title */}
+              <div className="text-center mb-6 sm:mb-8">
+                <h1 className="font-serif text-xl sm:text-2xl md:text-2xl font-bold text-[#F7E7CE] mb-2">
+                  Create Account
+                </h1>
+                <p className="text-xs sm:text-sm text-[#8A7560]">
+                  Start your free Munshi trial
+                </p>
+              </div>
 
-          {/* Signup Form */}
-          <form onSubmit={handleSignup} className="space-y-4 sm:space-y-5">
+              {/* Google Sign Up Button */}
+              <button
+                onClick={handleGoogleSignUp}
+                className="w-full bg-white text-black rounded-lg py-3 flex items-center justify-center gap-3 hover:bg-gray-100 transition-colors mb-6"
+              >
+                {/* Google SVG Icon */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span className="font-medium">Continue with Google</span>
+              </button>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-[#2A4A42]"></div>
+                <span className="text-sm text-[#F7E7CE]">or</span>
+                <div className="flex-1 h-px bg-[#2A4A42]"></div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-[rgba(224,92,92,0.1)] border border-[rgba(224,92,92,0.25)] rounded-lg text-[#E05C5C] text-xs sm:text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Signup Form */}
+              <form onSubmit={handleSignup} className="space-y-4 sm:space-y-5">
             {/* Name Input */}
             <div>
               <label className="block text-xs sm:text-sm font-medium text-[#C4A882] mb-2">
@@ -225,6 +254,8 @@ export default function SignupPage() {
               </Link>
             </p>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
