@@ -1,29 +1,25 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@/lib/supabase-server'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import type { Database } from '@/lib/database.types'
-
-type RequestBody = {
-  is_resolved: boolean
-}
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const supabase = createRouteHandlerClient<Database>({ cookies })
+  // 1. Get session from cookies
+  const cookieStore = cookies()
+  const supabase = createServerClient()
   
-  // 1. Authenticate user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) {
     return NextResponse.json(
       { error: 'Unauthorized' }, 
       { status: 401 }
     )
   }
 
-  // 2. Verify request body
-  let body: RequestBody
+  // 2. Validate body
+  let body: { is_resolved?: boolean }
   try {
     body = await request.json()
     if (typeof body.is_resolved !== 'boolean') {
@@ -36,7 +32,7 @@ export async function PATCH(
     )
   }
 
-  // 3. Verify conversation exists and belongs to user
+  // 3. Verify conversation ownership
   const { data: conversation, error: fetchError } = await supabase
     .from('conversations')
     .select('id, business_id')
@@ -50,7 +46,8 @@ export async function PATCH(
     )
   }
 
-  if (conversation.business_id !== user.id) {
+  // business_id must match authenticated user
+  if (conversation.business_id !== session.user.id) {
     return NextResponse.json(
       { error: 'Forbidden' }, 
       { status: 403 }
@@ -68,7 +65,7 @@ export async function PATCH(
   
   if (updateError) {
     return NextResponse.json(
-      { error: 'Failed to update conversation' }, 
+      { error: 'Database update failed' }, 
       { status: 500 }
     )
   }
