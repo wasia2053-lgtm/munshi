@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
-      return Response.json({ error: 'Invalid token' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     // Get filter parameter
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
 
     if (convError) {
       console.error('Conversations count error:', convError)
-      return Response.json({ error: 'Failed to fetch conversations' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
     }
 
     // Get conversation IDs for messages count
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
 
     if (convIdsError) {
       console.error('Conversation IDs error:', convIdsError)
-      return Response.json({ error: 'Failed to fetch conversation IDs' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch conversation IDs' }, { status: 500 })
     }
 
     // Get messages count and bot/customer breakdown
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
     let totalMessages = 0
     let botMessages = 0
     let customerMessages = 0
-    
+
     if (conversationIds.length > 0) {
       const { count: msgCount, error: msgError } = await supabase
         .from('messages')
@@ -62,9 +63,9 @@ export async function GET(request: Request) {
 
       if (msgError) {
         console.error('Messages count error:', msgError)
-        return Response.json({ error: 'Failed to fetch messages' }, { status: 500 })
+        return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
       }
-      
+
       totalMessages = msgCount || 0
 
       // Count bot messages
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
 
     if (kbError) {
       console.error('Knowledge base count error:', kbError)
-      return Response.json({ error: 'Failed to fetch training data' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch training data' }, { status: 500 })
     }
 
     // Get message data by date
@@ -122,12 +123,12 @@ export async function GET(request: Request) {
 
       if (msgDataError) {
         console.error('Message data error:', msgDataError)
-        return Response.json({ error: 'Failed to fetch message data' }, { status: 500 })
+        return NextResponse.json({ error: 'Failed to fetch message data' }, { status: 500 })
       }
 
       // Group messages by date
       const groupedByDate: { [key: string]: number } = {}
-      
+
       messages?.forEach(msg => {
         const date = new Date(msg.timestamp).toISOString().split('T')[0]
         groupedByDate[date] = (groupedByDate[date] || 0) + 1
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
       }))
     }
 
-    return Response.json({
+    return NextResponse.json({
       stats: {
         totalMessages: totalMessages || 0,
         totalConversations: totalConversations || 0,
@@ -153,6 +154,6 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('Analytics API error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
