@@ -58,7 +58,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     totalMessages: 0, totalConversations: 0,
     trainingCount: 0, responseRate: 0,
-    messagesUsed: 0, messagesLimit: 500,
+    messagesUsed: 0, messagesLimit: 50,
   })
   const [recentConvs, setRecentConvs] = useState<RecentConv[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
@@ -156,7 +156,7 @@ export default function DashboardPage() {
           credentials: 'include'
         })
         const billingData = await billingRes.json()
-        const dynamicLimit = billingData?.messages_limit ?? 500
+        const dynamicLimit = billingData?.messages_limit ?? 50
 
         setStats({
           totalMessages,
