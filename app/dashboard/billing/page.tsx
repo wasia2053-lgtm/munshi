@@ -293,7 +293,7 @@ export default function BillingPage() {
               Payment History
             </h2>
             {paymentHistory.length === 0 ? (
-              <EmptyState title="No payments yet" message="Your payment history will appear here" />
+                             <EmptyState title="No payments yet" description="Your payment history will appear here" icon="📄" />
             ) : (
               <div style={{
                 backgroundColor: '#0a1f1b',

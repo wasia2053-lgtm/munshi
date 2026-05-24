@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
-
+type Message = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 const supabase = createClient(
@@ -380,9 +383,9 @@ export async function POST(request: NextRequest) {
       // ─── Generate AI Response ───────────────────────────
       const greeting_message = settings?.greeting_message || 'Hello! How can I help you today?'
       
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: `Tu Munshi hai — ${orgName} ka WhatsApp sales agent.
+      // Prepare messages with explicit typing to satisfy Groq SDK role requirements
+      const messages: Message[] = [
+        { role: 'system', content: `Tu Munshi hai — ${orgName} ka WhatsApp sales agent.
 Tera kaam hai customers ki madad karna bilkul ek real Pakistani sales representative ki tarah.
 
 STRICT LANGUAGE RULES:
@@ -418,13 +421,16 @@ KNOWLEDGE BASE:
 ${knowledgeContext}
 
 Greeting: ${greeting_message}` },
-          ...conversationHistory,
-          { role: 'user', content: messageText }
-        ],
+        ...conversationHistory,
+        { role: 'user', content: messageText }
+      ];
+
+      const chatCompletion = await groq.chat.completions.create({
+        messages,
         model: 'llama-3.3-70b-versatile',
         temperature: 0.7,
         max_tokens: 256
-      })
+      });
 
       const aiReply = chatCompletion.choices[0]?.message?.content
       if (!aiReply) continue

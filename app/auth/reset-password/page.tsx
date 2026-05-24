@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LogoCompact } from '@/components/logos'
+import { Suspense } from 'react'
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -280,4 +281,15 @@ export default function ResetPasswordPage() {
       <title>Password Reset - Munshi</title>
     </div>
   )
+} 
+
+function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
+  );
 }
+
+export default ResetPasswordPage;
+
