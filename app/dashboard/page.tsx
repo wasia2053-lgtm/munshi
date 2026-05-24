@@ -156,7 +156,7 @@ export default function DashboardPage() {
           credentials: 'include'
         })
         const billingData = await billingRes.json()
-        const dynamicLimit = billingData?.messages_limit ?? 50
+        const messagesLimit = billingData?.messages_limit ?? 50
 
         setStats({
           totalMessages,
@@ -164,7 +164,7 @@ export default function DashboardPage() {
           trainingCount: trainingCount || 0,
           responseRate,
           messagesUsed: botMessages,
-          messagesLimit: dynamicLimit,
+          messagesLimit,
         })
       setRecentConvs(convsWithMsg)
       setActivities(notifs || [])
