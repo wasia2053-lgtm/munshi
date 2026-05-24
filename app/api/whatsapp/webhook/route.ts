@@ -192,11 +192,20 @@ export async function POST(request: NextRequest) {
 
       console.log(`⚙️ Settings - Name: ${botName}, Org: ${orgName}, Lang: ${language}, Tone: ${tone}`)
 
-      const languageInstruction =
-  language === 'english_us' ? 'Reply in American English' :
-  language === 'english_uk' ? 'Reply in British English' :
-  language === 'roman_urdu' ? 'Reply in Roman Urdu (Urdu words in English letters)' :
-  language === 'arabic' ? 'Reply in Arabic' :
+      const detectedLanguage = (() => {
+  const text = messageText;
+  if (/[\u0600-\u06FF]/.test(text)) return 'arabic';
+  const romanUrduWords = /\b(hai|he|hain|kya|aur|or|nahi|mujhe|apna)\b/i;
+  if (romanUrduWords.test(text)) return 'roman_urdu';
+  if (/^[A-Za-z0-9\s.,!?-]*$/.test(text)) return 'english';
+  return language; // fallback to bot default
+})();
+
+const languageInstruction =
+  detectedLanguage === 'english_us' ? 'Reply in American English' :
+  detectedLanguage === 'english_uk' ? 'Reply in British English' :
+  detectedLanguage === 'roman_urdu' ? 'Reply in Roman Urdu (Urdu words in English letters)' :
+  detectedLanguage === 'arabic' ? 'Reply in Arabic (العربية)' :
   'Reply in English';
 
       const toneInstruction =
@@ -420,7 +429,7 @@ FALLBACK RULE:
 KNOWLEDGE BASE:
 ${knowledgeContext}
 
-Greeting: ${greeting_message}` },
+          Greeting: ${greeting_message}\nLanguage Instruction: ${languageInstruction}` },
         ...conversationHistory,
         { role: 'user', content: messageText }
       ];
