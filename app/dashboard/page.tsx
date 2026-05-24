@@ -74,7 +74,10 @@ export default function DashboardPage() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
       // Get org name
       const { data: settings } = await supabase

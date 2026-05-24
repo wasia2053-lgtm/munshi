@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import Link from 'next/link'
 import Toast from '@/components/Toast'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<any>(null)
@@ -15,7 +16,7 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showError, setShowError] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -104,6 +105,12 @@ export default function AccountPage() {
       setTimeout(() => setToast(null), 3000)
     }
   }
+
+const handleLogout = async () => {
+  const supabase = createClient()
+  await supabase.auth.signOut()
+  window.location.href = '/login'
+}
 
   const messagesPercent = profile ? (profile.messages_used / profile.messages_limit) * 100 : 0
 
@@ -217,7 +224,7 @@ export default function AccountPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ color: '#8A7560', fontSize: '0.875rem' }}>Messages this month</span>
               <span style={{ color: '#D4A853', fontSize: '0.875rem', fontWeight: '600' }}>
-                {profile?.messages_used || 0} / {profile?.messages_limit || 500}
+                {profile?.messages_used || 0} / {profile?.messages_limit || 50}
               </span>
             </div>
             <div style={{ backgroundColor: '#102C26', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
@@ -227,7 +234,7 @@ export default function AccountPage() {
               }} />
             </div>
             <p style={{ color: '#8A7560', fontSize: '0.75rem', marginTop: '6px' }}>
-              {(profile?.messages_limit || 500) - (profile?.messages_used || 0)} messages remaining
+                {(profile?.messages_limit || 50) - (profile?.messages_used || 0)} messages remaining
             </p>
           </div>
 
@@ -250,22 +257,23 @@ export default function AccountPage() {
         </div>
 
         {/* Danger Zone */}
-        <div style={{
-          backgroundColor: '#0D2420', borderRadius: '16px', padding: '32px',
-          border: '1px solid rgba(255,80,80,0.2)'
-        }}>
-          <h2 style={{ color: '#ff5050', fontSize: '1rem', fontWeight: '600', marginBottom: '16px' }}>
-            Danger Zone
-          </h2>
+                {/* Log Out */}
+        <div style={{ backgroundColor: '#0D2420', borderRadius: '16px', padding: '32px', border: '1px solid rgba(212,168,83,0.2)' }}>
           <button
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={handleLogout}
             style={{
-              backgroundColor: 'transparent', color: '#ff5050',
-              border: '1px solid rgba(255,80,80,0.3)', borderRadius: '8px',
-              padding: '10px 20px', cursor: 'pointer', fontSize: '0.875rem'
+              background: 'transparent',
+              color: '#D4A853',
+              border: '1px solid #D4A853',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.9rem',
+              width: '100%'
             }}
           >
-            Delete Account
+            Log Out
           </button>
         </div>
 
@@ -276,46 +284,6 @@ export default function AccountPage() {
             type={toast.type}
             onClose={() => setToast(null)}
           />
-        )}
-
-        {/* Delete Confirm Modal */}
-        {showDeleteConfirm && (
-          <div style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: '#102C26', border: '1px solid rgba(255,80,80,0.3)',
-              borderRadius: '16px', padding: '40px 48px', textAlign: 'center', maxWidth: '380px'
-            }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⚠️</div>
-              <h3 style={{ color: '#F7E7CE', fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>
-                Delete Account?
-              </h3>
-              <p style={{ color: '#8A7560', fontSize: '0.875rem', marginBottom: '24px' }}>
-                This will permanently delete all your data, conversations, and training. This cannot be undone.
-              </p>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  style={{
-                    backgroundColor: 'transparent', color: '#F7E7CE',
-                    border: '1px solid rgba(247,231,206,0.2)', borderRadius: '8px',
-                    padding: '10px 24px', cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button style={{
-                  backgroundColor: '#ff5050', color: 'white', border: 'none',
-                  borderRadius: '8px', padding: '10px 24px', cursor: 'pointer', fontWeight: '600'
-                }}>
-                  Delete Everything
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </DashboardLayout>

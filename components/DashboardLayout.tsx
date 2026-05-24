@@ -36,27 +36,37 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [loading, setLoading]         = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
+  const [messagesLimit, setMessagesLimit] = useState(50)
   const [convCount, setConvCount]     = useState(0)
   const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/billing/current', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        setMessagesLimit(data.messages_limit || 50)
+      })
+  }, [])
 
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/login'); return }
-      setUser(session.user)
+      if (session) {
+        setUser(session.user)
+      }
       setLoading(false)
     }
     checkAuth()
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: any, session: any) => {
-        if (event === 'SIGNED_OUT') router.push('/login')
-        else if (session) setUser(session.user)
+        if (session) setUser(session.user)
       }
     )
     return () => subscription.unsubscribe()
   }, [router])
+
 
   useEffect(() => { setSidebarOpen(false) }, [pathname])
 
@@ -208,10 +218,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="dl-usage">
               <div className="dl-usage-row">
                 <span>Messages Used</span>
-                <span className="dl-usage-val">{messageCount} / 500</span>
+                <span className="dl-usage-val">{messageCount} / {messagesLimit}</span>
               </div>
               <div className="dl-usage-bar">
-                <div className="dl-usage-fill" style={{ width: `max(${(messageCount/500)*100}%, 4px)` }} />
+                <div className="dl-usage-fill" style={{ width: `max(${(messageCount/messagesLimit)*100}%, 4px)` }} />
               </div>
             </div>
 

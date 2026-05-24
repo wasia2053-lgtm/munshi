@@ -189,12 +189,12 @@ export async function POST(request: NextRequest) {
 
       console.log(`⚙️ Settings - Name: ${botName}, Org: ${orgName}, Lang: ${language}, Tone: ${tone}`)
 
-      const languageInstruction = 
-        language === 'roman_urdu' ? 'ALWAYS respond in Roman Urdu (Urdu words in English letters). Never use Hindi or Urdu script.' :
-        language === 'english' ? 'ALWAYS respond in English only.' :
-        language === 'urdu_script' ? 'ALWAYS respond in Urdu script (Arabic letters).' :
-        language === 'arabic' ? 'ALWAYS respond in Arabic.' :
-        'ALWAYS respond in Roman Urdu.'
+      const languageInstruction =
+  language === 'english_us' ? 'Reply in American English' :
+  language === 'english_uk' ? 'Reply in British English' :
+  language === 'roman_urdu' ? 'Reply in Roman Urdu (Urdu words in English letters)' :
+  language === 'arabic' ? 'Reply in Arabic' :
+  'Reply in English';
 
       const toneInstruction =
         tone === 'professional' ? 'Be formal and professional in responses.' :
@@ -210,8 +210,8 @@ export async function POST(request: NextRequest) {
         .order('timestamp', { ascending: false })
         .limit(20)
 
-      const conversationHistory = recentMsgs ? recentMsgs.reverse().map(m => ({
-        role: m.sender === 'bot' ? 'assistant' : 'user',
+      const conversationHistory: Message[] = recentMsgs ? recentMsgs.reverse().map(m => ({
+        role: (m.sender === 'bot' ? 'assistant' : 'user') as Message['role'],
         content: m.content
       })) : []
 
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .single()
 
-      const messagesLimit = sub?.messages_limit || 500
+      const messagesLimit = sub?.messages_limit || 50
 
       // Step 3: Limit exceeded - send limit message and return
       if (botMsgCount >= messagesLimit) {

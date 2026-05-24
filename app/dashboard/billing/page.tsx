@@ -10,8 +10,8 @@ const PLANS = [
     name: 'Starter',
     price: 0,
     priceLabel: 'Free',
-    messages: 500,
-    features: ['1 WhatsApp number', '500 msgs/month', 'Website training (5 pages)', 'Basic AI bot', 'Roman Urdu support'],
+    messages: 50,
+    features: ['1 WhatsApp number', '50 msgs/month', 'Website training (5 pages)', 'Basic AI bot', 'Roman Urdu support'],
     cta: 'Current Plan',
   },
   {
@@ -186,7 +186,7 @@ export default function BillingPage() {
                     Messages Used
                   </span>
                   <span style={{ color: '#D4A853', fontSize: '14px', fontWeight: '600', fontFamily: 'DM Sans, sans-serif' }}>
-                    {currentPlan?.messages_used || 0} / {currentPlan?.messages_limit || 500}
+                    {currentPlan?.messages_used || 0} / {currentPlan?.messages_limit || 50}
                   </span>
                 </div>
                 <div style={{ backgroundColor: '#F7E7CE33', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>

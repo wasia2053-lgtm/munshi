@@ -3,80 +3,66 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const requestUrl = new URL(request.url)
-  const path = requestUrl.pathname
-
-  // Create Supabase client
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
+
+  const path = request.nextUrl.pathname
+
+  // ⚡️ FAST PASS: Bypass heavy middleware network calls for internal API routes
+  // This prevents Turbopack concurrent connection panics and drops API response times to ms
+  if (path.startsWith('/api/')) {
+    return response
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request,
           })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  // Get session
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect dashboard routes
-  if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = new URL('/login', request.url)
-    return NextResponse.redirect(redirectUrl)
+  // 1. Protect dashboard routes
+  if (!user && path.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Check email confirmation for authenticated users
-  if (session && !session.user.email_confirmed_at && 
-      request.nextUrl.pathname.startsWith('/dashboard') &&
-      request.nextUrl.pathname !== '/dashboard') {
-    const redirectUrl = new URL('/verify-email', request.url)
-    return NextResponse.redirect(redirectUrl)
+  // 2. Email confirmation guard
+  if (
+    user &&
+    !user.email_confirmed_at &&
+    path.startsWith('/dashboard') &&
+    path !== '/dashboard'
+  ) {
+    return NextResponse.redirect(new URL('/verify-email', request.url))
   }
 
-  // Redirect authenticated users away from auth pages
-  if (session && (request.nextUrl.pathname === '/login' || 
-      request.nextUrl.pathname === '/signup')) {
-    const redirectUrl = new URL('/dashboard', request.url)
-    return NextResponse.redirect(redirectUrl)
+  // 3. Prevent logged-in users from visiting auth pages
+  if (user && (path === '/login' || path === '/signup')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Continue for all other routes
   return response
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/whatsapp/webhook).*)'],
 }

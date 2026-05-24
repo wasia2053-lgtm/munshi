@@ -268,12 +268,12 @@ const handleSaveAwayMessage = async () => {
               Primary Language
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-{ value: 'roman_urdu', label: 'Roman Urdu', icon: '🇵🇰' },
-{ value: 'english', label: 'English', icon: '🇬🇧' },
-{ value: 'urdu_script', label: 'Urdu Script', icon: '✍️' },
-{ value: 'arabic', label: 'Arabic', icon: '🇸🇦' },
-              ].map((langOption) => (
+                {[
+                  { value: 'english_us', label: 'English (US)', icon: '🇺🇸' },
+                  { value: 'english_uk', label: 'English (UK)', icon: '🇬🇧' },
+                  { value: 'roman_urdu', label: 'Roman Urdu', icon: '🇵🇰' },
+                  { value: 'arabic', label: 'Arabic', icon: '🇸🇦' },
+                ].map((langOption) => (
                 <div
                   key={langOption.value}
                   onClick={() => setLanguage(langOption.value)}

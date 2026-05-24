@@ -44,7 +44,7 @@ export async function GET() {
       return NextResponse.json({
         plan: 'starter',
         messages_used: messagesUsed,
-        messages_limit: 500,
+        messages_limit: 50,
         valid_until: null
       })
     }
@@ -52,7 +52,7 @@ export async function GET() {
     return NextResponse.json({
       plan: subscription.plan,
       messages_used: messagesUsed,
-      messages_limit: subscription.messages_limit || 500,
+      messages_limit: subscription.messages_limit || 50,
       valid_until: subscription.valid_until
     })
   } catch (error) {

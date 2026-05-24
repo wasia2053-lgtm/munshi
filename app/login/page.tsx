@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import { LogoCompact } from '@/components/logos'
 import Link from 'next/link'
 
 export default function LoginPage() {
+  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,6 +41,8 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else {
+        // Ensure session is established before navigating
+        await supabase.auth.getSession()
         window.location.href = '/dashboard'
       }
     } catch (err) {

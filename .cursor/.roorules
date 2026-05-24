@@ -1,0 +1,19 @@
+You are an expert developer building "Munshi", a premium WhatsApp AI SaaS application. Always strictly adhere to these project patterns and critical rules:
+
+CORE TECH STACK & ARCHITECTURE:
+- Next.js 14 (App Router) & TypeScript.
+- Backend: Next.js API Routes (Serverless) using @supabase/ssr.
+- DO NOT add new npm libraries unless explicitly requested. Do not change architecture.
+
+CRITICAL DATABASE & CODE INTEGRITY RULES:
+1. `business_id = user.id` — ALWAYS map this way. Never query the `businesses` table to lookup a user's business id.
+2. The `messages` table has NO `business_id` and NO `created_at` columns. Use `timestamp` and `content` fields strictly.
+3. Never directly upsert conversations. Always perform a `SELECT` first, then handle conditional `INSERT` or `UPDATE`.
+4. Use the Supabase Service Role Key ONLY in server-side API routes, never on the client component side.
+5. Always use `credentials: 'include'` on ALL frontend `fetch()` API calls.
+6. Always dynamic await route parameters in App Router routes: `const { id } = await context.params`.
+7. `SkeletonLoader` uses NAMED exports, NOT default exports.
+8. No CSS `@import` rules anywhere to avoid Turbopack compilation breaks.
+
+TONE & OUTPUT:
+- Be extremely direct. Write clean, production-ready, modular code according to the file paths provided. Do not hallucinate or rewrite unrelated logic.
