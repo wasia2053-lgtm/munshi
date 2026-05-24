@@ -151,14 +151,21 @@ export default function DashboardPage() {
         ? Math.round((botMessages / totalMessages) * 100)
         : 0
 
-      setStats({
-        totalMessages,
-        totalConversations: convCount || 0,
-        trainingCount: trainingCount || 0,
-        responseRate,
-        messagesUsed: botMessages,
-        messagesLimit: 500,
-      })
+        // Fetch billing info for dynamic message limit
+        const billingRes = await fetch('/api/billing/current', {
+          credentials: 'include'
+        })
+        const billingData = await billingRes.json()
+        const dynamicLimit = billingData?.messages_limit ?? 500
+
+        setStats({
+          totalMessages,
+          totalConversations: convCount || 0,
+          trainingCount: trainingCount || 0,
+          responseRate,
+          messagesUsed: botMessages,
+          messagesLimit: dynamicLimit,
+        })
       setRecentConvs(convsWithMsg)
       setActivities(notifs || [])
     } catch (e) {
