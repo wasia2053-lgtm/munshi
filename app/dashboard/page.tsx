@@ -163,8 +163,8 @@ export default function DashboardPage() {
           totalConversations: convCount || 0,
           trainingCount: trainingCount || 0,
           responseRate,
-          messagesUsed: botMessages,
-          messagesLimit,
+          messagesUsed: billingData?.messages_used ?? botMessages,
+          messagesLimit: billingData?.messages_limit ?? 50,
         })
       setRecentConvs(convsWithMsg)
       setActivities(notifs || [])
