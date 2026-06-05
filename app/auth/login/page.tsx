@@ -231,6 +231,7 @@ export default function LoginPage() {
           bottom: 0;
           width: 100%;
           padding: 32px 64px;
+          margin-top: 16px;
           display: none;
           justify-content: space-between;
           align-items: center;

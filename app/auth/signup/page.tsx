@@ -97,15 +97,13 @@ export default function SignupPage() {
           backdrop-filter: blur(24px);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 12px;
-          position: relative;
-          overflow: hidden;
           width: 100%;
           max-width: 480px;
-          padding: 32px;
+          padding: 24px;
         }
 
         @media (min-width: 768px) {
-          .glass-card { padding: 40px; }
+          .glass-card { padding: 28px; }
         }
 
         .glass-card::before {
@@ -122,7 +120,7 @@ export default function SignupPage() {
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid rgba(255, 255, 255, 0.05);
           border-radius: 8px;
-          padding: 12px 16px;
+          padding: 10px 16px;
           padding-left: 48px;
           font-family: 'Geist', sans-serif;
           font-size: 16px;
@@ -150,7 +148,7 @@ export default function SignupPage() {
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid rgba(255, 255, 255, 0.05);
           border-radius: 8px;
-          padding: 12px 48px 12px 48px;
+          padding: 10px 16px;
           font-family: 'Geist', sans-serif;
           font-size: 16px;
           color: #e3e2e2;
@@ -189,7 +187,7 @@ export default function SignupPage() {
 
         .btn-google {
           width: 100%;
-          height: 48px;
+          height: 44px; padding: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -211,7 +209,7 @@ export default function SignupPage() {
 
         .btn-primary {
           width: 100%;
-          height: 48px;
+          height: 44px; padding: 12px;
           background: #ffffff;
           color: #2f3131;
           font-family: 'Geist', sans-serif;
@@ -235,7 +233,7 @@ export default function SignupPage() {
           display: flex;
           align-items: center;
           gap: 16px;
-          margin: 32px 0;
+          margin: 20px 0;
         }
 
         .divider-line { height: 1px; flex: 1; background: rgba(255,255,255,0.05); }
@@ -246,6 +244,10 @@ export default function SignupPage() {
           letter-spacing: 0.1em;
           text-transform: uppercase;
           color: rgba(196, 199, 200, 0.4);
+        }
+
+        .footer-fixed {
+          margin-top: 16px;
         }
 
         .error-box {
@@ -381,7 +383,7 @@ export default function SignupPage() {
               </p>
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', marginBottom: '32px' }} />
               <button
-                onClick={() => window.location.href = '/login'}
+                onClick={() => window.location.href = '/auth/login'}
                 className="btn-primary"
               >
                 Go to Login
@@ -525,7 +527,7 @@ export default function SignupPage() {
         <footer style={{ marginTop: '48px', position: 'relative', zIndex: 1 }}>
           <p style={{ fontFamily: 'Geist', fontSize: '16px', color: 'rgba(196,199,200,0.6)', textAlign: 'center' }}>
             Already have an account?{' '}
-            <Link href="/login" style={{ color: '#ffffff', fontWeight: '500', textDecoration: 'underline', transition: 'color 0.2s' }}>
+            <Link href="/auth/login" style={{ color: '#ffffff', fontWeight: '500', textDecoration: 'underline', transition: 'color 0.2s' }}>
               Log In
             </Link>
           </p>
