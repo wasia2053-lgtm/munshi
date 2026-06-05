@@ -95,11 +95,11 @@ export default function LoginPage() {
           border: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
           border-radius: 12px;
-          padding: 40px;
+          padding: 24px;
         }
 
         @media (min-width: 768px) {
-          .glass-card { padding: 48px; }
+          .glass-card { padding: 28px; }
         }
 
         .input-field {
@@ -107,7 +107,7 @@ export default function LoginPage() {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-          padding: 16px;
+          padding: 10px 16px;
           font-family: 'Geist', sans-serif;
           font-size: 16px;
           color: #e3e2e2;
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
         .btn-google {
           width: 100%;
-          padding: 16px 24px;
+          height: 44px; padding: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -148,7 +148,7 @@ export default function LoginPage() {
 
         .btn-primary {
           width: 100%;
-          padding: 16px;
+          height: 44px; padding: 12px;
           background: #ffffff;
           color: #2f3131;
           font-family: 'Geist', sans-serif;
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
         .divider-text {
           position: relative;
-          padding: 32px 0;
+          padding: 20px 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -263,9 +263,9 @@ export default function LoginPage() {
 
         <main style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 10 }}>
           {/* Brand Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '48px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', textAlign: 'center' }}>
             <div style={{
-              width: '48px', height: '48px', marginBottom: '24px',
+              width: '40px', height: '40px', marginBottom: '24px',
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: '12px',
@@ -275,7 +275,7 @@ export default function LoginPage() {
             }}>
               M
             </div>
-            <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: 0 }}>
+            <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: 0 }}>
               Welcome Back
             </h1>
             <p style={{ fontFamily: 'Geist', fontSize: '16px', color: 'rgba(196, 199, 200, 0.6)', marginTop: '8px' }}>
@@ -306,7 +306,7 @@ export default function LoginPage() {
             {error && <div className="error-box">{error}</div>}
 
             {/* Form */}
-            <form onSubmit={handleEmailSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <form onSubmit={handleEmailSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label className="label-caps">Email Address</label>
                 <input
@@ -348,7 +348,7 @@ export default function LoginPage() {
           <div style={{ marginTop: '32px', textAlign: 'center' }}>
             <p style={{ fontFamily: 'Geist', fontSize: '16px', color: 'rgba(196, 199, 200, 0.6)' }}>
               Don&apos;t have an account?{' '}
-              <Link href="/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
+              <Link href="/auth/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
                 Sign Up
               </Link>
             </p>
