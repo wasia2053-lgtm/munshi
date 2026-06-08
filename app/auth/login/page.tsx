@@ -95,11 +95,11 @@ export default function LoginPage() {
           border: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
           border-radius: 12px;
-          padding: 24px;
+          padding: 20px 28px;
         }
 
         @media (min-width: 768px) {
-          .glass-card { padding: 24px; }
+          .glass-card { padding: 20px 28px; }
         }
 
         .input-field {
@@ -109,7 +109,7 @@ export default function LoginPage() {
           border-radius: 8px;
           padding: 10px 14px;
           font-family: 'Geist', sans-serif;
-          font-size: 16px;
+          font-size: 14px;
           color: #e3e2e2;
           transition: all 0.3s ease;
           box-sizing: border-box;
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
         .btn-google {
           width: 100%;
-          height: 44px; padding: 12px;
+          height: 44px; padding: 11px 24px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -135,7 +135,7 @@ export default function LoginPage() {
           background: white;
           color: #2f3131;
           font-family: 'Geist', sans-serif;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 500;
           border-radius: 8px;
           border: none;
@@ -148,11 +148,11 @@ export default function LoginPage() {
 
         .btn-primary {
           width: 100%;
-          height: 44px; padding: 12px;
+          height: 44px; padding: 11px;
           background: #ffffff;
           color: #2f3131;
           font-family: 'Geist', sans-serif;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
           border-radius: 8px;
           border: none;
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
         .divider-text {
           position: relative;
-          padding: 16px 0;
+          padding: 14px 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -243,7 +243,7 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="login-body relative flex flex-col items-center justify-center px-5 md:px-0" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="login-body relative flex flex-col items-center justify-center px-5 md:px-0" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {/* Atmospheric glows */}
         <div
           ref={glow1Ref}
@@ -264,19 +264,19 @@ export default function LoginPage() {
 
         <main style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 10 }}>
           {/* Brand Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px', textAlign: 'center' }}>
             <div style={{
               width: '36px', height: '36px', marginBottom: '12px',
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: '12px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '16px', fontWeight: '700', color: '#4ae176',
+              fontSize: '15px', fontWeight: '700', color: '#4ae176',
               letterSpacing: '-0.04em'
             }}>
               M
             </div>
-            <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: 0 }}>
+            <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: 0, marginBottom: '4px' }}>
               Welcome Back
             </h1>
             <p style={{ fontFamily: 'Geist', fontSize: '14px', color: 'rgba(196, 199, 200, 0.6)', marginTop: '4px' }}>
@@ -307,7 +307,7 @@ export default function LoginPage() {
             {error && <div className="error-box">{error}</div>}
 
             {/* Form */}
-            <form onSubmit={handleEmailSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleEmailSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label className="label-caps">Email Address</label>
                 <input
@@ -346,10 +346,10 @@ export default function LoginPage() {
           </div>
 
           {/* Footer link */}
-          <div style={{ marginTop: '12px', textAlign: 'center' }}>
+          <div style={{ marginTop: '16px', textAlign: 'center' }}>
             <p style={{ fontFamily: 'Geist', fontSize: '14px', color: 'rgba(196, 199, 200, 0.6)' }}>
               Don&apos;t have an account?{' '}
-              <Link href="https://munshi-ce60qnn4j-shahmeer-s-projects2.vercel.app/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
+              <Link href="/auth/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
                 Sign Up
               </Link>
             </p>
