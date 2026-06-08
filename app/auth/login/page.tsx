@@ -99,7 +99,7 @@ export default function LoginPage() {
         }
 
         @media (min-width: 768px) {
-          .glass-card { padding: 28px; }
+          .glass-card { padding: 24px; }
         }
 
         .input-field {
@@ -107,7 +107,7 @@ export default function LoginPage() {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-          padding: 10px 16px;
+          padding: 10px 14px;
           font-family: 'Geist', sans-serif;
           font-size: 16px;
           color: #e3e2e2;
@@ -135,7 +135,7 @@ export default function LoginPage() {
           background: white;
           color: #2f3131;
           font-family: 'Geist', sans-serif;
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 500;
           border-radius: 8px;
           border: none;
@@ -152,7 +152,7 @@ export default function LoginPage() {
           background: #ffffff;
           color: #2f3131;
           font-family: 'Geist', sans-serif;
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 700;
           border-radius: 8px;
           border: none;
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
         .divider-text {
           position: relative;
-          padding: 20px 0;
+          padding: 16px 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -243,7 +243,7 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="login-body relative flex items-center justify-center min-h-screen px-5 md:px-0">
+      <div className="login-body relative flex flex-col items-center justify-center px-5 md:px-0" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         {/* Atmospheric glows */}
         <div
           ref={glow1Ref}
@@ -264,22 +264,22 @@ export default function LoginPage() {
 
         <main style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 10 }}>
           {/* Brand Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', textAlign: 'center' }}>
             <div style={{
-              width: '40px', height: '40px', marginBottom: '24px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '20px', fontWeight: '700', color: '#4ae176',
-              letterSpacing: '-0.04em'
+              width: '36px', height: '36px', marginBottom: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '16px', fontWeight: '700', color: '#4ae176',
+                letterSpacing: '-0.04em'
             }}>
               M
             </div>
-            <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: 0 }}>
+            <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: 0 }}>
               Welcome Back
             </h1>
-            <p style={{ fontFamily: 'Geist', fontSize: '16px', color: 'rgba(196, 199, 200, 0.6)', marginTop: '8px' }}>
+            <p style={{ fontFamily: 'Geist', fontSize: '14px', color: 'rgba(196, 199, 200, 0.6)', marginTop: '4px' }}>
               Log in to your precision workspace
             </p>
           </div>
@@ -307,7 +307,7 @@ export default function LoginPage() {
             {error && <div className="error-box">{error}</div>}
 
             {/* Form */}
-            <form onSubmit={handleEmailSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleEmailSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label className="label-caps">Email Address</label>
                 <input
@@ -346,8 +346,8 @@ export default function LoginPage() {
           </div>
 
           {/* Footer link */}
-          <div style={{ marginTop: '32px', textAlign: 'center' }}>
-            <p style={{ fontFamily: 'Geist', fontSize: '16px', color: 'rgba(196, 199, 200, 0.6)' }}>
+          <div style={{ marginTop: '12px', textAlign: 'center' }}>
+            <p style={{ fontFamily: 'Geist', fontSize: '14px', color: 'rgba(196, 199, 200, 0.6)' }}>
               Don&apos;t have an account?{' '}
               <Link href="/auth/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
                 Sign Up
