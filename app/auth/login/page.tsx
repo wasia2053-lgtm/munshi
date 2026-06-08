@@ -267,12 +267,12 @@ export default function LoginPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', textAlign: 'center' }}>
             <div style={{
               width: '36px', height: '36px', marginBottom: '12px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '16px', fontWeight: '700', color: '#4ae176',
-                letterSpacing: '-0.04em'
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '16px', fontWeight: '700', color: '#4ae176',
+              letterSpacing: '-0.04em'
             }}>
               M
             </div>
@@ -349,7 +349,7 @@ export default function LoginPage() {
           <div style={{ marginTop: '12px', textAlign: 'center' }}>
             <p style={{ fontFamily: 'Geist', fontSize: '14px', color: 'rgba(196, 199, 200, 0.6)' }}>
               Don&apos;t have an account?{' '}
-              <Link href="/auth/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
+              <Link href="https://munshi-ce60qnn4j-shahmeer-s-projects2.vercel.app/signup" style={{ color: '#ffffff', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '4px', textDecorationColor: 'rgba(255,255,255,0.1)', transition: 'color 0.2s' }}>
                 Sign Up
               </Link>
             </p>
