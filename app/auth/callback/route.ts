@@ -92,8 +92,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Redirect to dashboard on success
-    return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+    // New user (just created business_settings) → onboarding
+// Existing user → dashboard
+if (!existingBusiness) {
+  return NextResponse.redirect(`${requestUrl.origin}/onboarding`)
+}
+return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
 
   } catch (error) {
     console.error('Callback error:', error)
