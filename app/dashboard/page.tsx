@@ -62,7 +62,7 @@ export default function DashboardPage() {
   })
   const [recentConvs, setRecentConvs] = useState<RecentConv[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
-  const [userName, setUserName] = useState('Wasi')
+  const [userName, setUserName] = useState('')
   const [loading, setLoading] = useState(true)
   const [testMessage, setTestMessage] = useState('')
   const [testResponse, setTestResponse] = useState('')

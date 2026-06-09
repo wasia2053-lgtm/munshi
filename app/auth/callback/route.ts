@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     // If business doesn't exist, create new business
     if (!existingBusiness) {
-      // Insert into business_settings table
+      // Check if onboarding is completeble
       const { error: settingsError } = await supabase
         .from('business_settings')
         .insert({
@@ -92,9 +92,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // New user (just created business_settings) → onboarding
-// Existing user → dashboard
-if (!existingBusiness) {
+    // Check if onboarding is complete
+const onboardingDone = existingBusiness?.onboarding_complete === true
+if (!onboardingDone) {
   return NextResponse.redirect(`${requestUrl.origin}/onboarding`)
 }
 return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
