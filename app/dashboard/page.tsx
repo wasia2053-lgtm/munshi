@@ -85,7 +85,12 @@ export default function DashboardPage() {
         .select('organization_name, bot_name')
         .eq('business_id', user.id)
         .single()
-      if (settings?.organization_name) setUserName(settings.organization_name)
+      if (settings?.organization_name) {
+        setUserName(settings.organization_name)
+      } else {
+        const { data: { user: u } } = await supabase.auth.getUser()
+        setUserName(u?.user_metadata?.full_name || u?.user_metadata?.name || u?.email?.split('@')[0] || '')
+      }
 
       // Conversations
       const { data: convs, count: convCount } = await supabase

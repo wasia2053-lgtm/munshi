@@ -15,8 +15,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [emailSent, setEmailSent] = useState(false)
-  const [userEmail, setUserEmail] = useState('')
+
 
   const glow1Ref = useRef<HTMLDivElement>(null)
   const glow2Ref = useRef<HTMLDivElement>(null)
@@ -61,8 +60,7 @@ export default function SignupPage() {
       if (error) {
         setError(error.message)
       } else {
-        setUserEmail(email)
-        setEmailSent(true)
+        window.location.href = '/onboarding'
       }
     } catch {
       setError('An unexpected error occurred')
@@ -296,17 +294,7 @@ export default function SignupPage() {
           color: #e3e2e2;
         }
 
-        .success-icon {
-          width: 64px;
-          height: 64px;
-          background: rgba(74, 225, 118, 0.1);
-          border: 1px solid rgba(74, 225, 118, 0.2);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 24px;
-        }
+
       `}</style>
 
       <div className="signup-body relative flex flex-col items-center justify-center min-h-screen p-5 md:p-6">
@@ -361,37 +349,6 @@ export default function SignupPage() {
 
         {/* Glass Card */}
         <div className="glass-card" style={{ position: 'relative', zIndex: 1 }}>
-          {emailSent ? (
-            /* Email sent state */
-            <div style={{ textAlign: 'center' }}>
-              <div className="success-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4Z" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M22 6L12 13L2 6" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <h2 style={{ fontFamily: 'Geist', fontSize: '24px', fontWeight: '500', color: '#ffffff', letterSpacing: '-0.02em', marginBottom: '12px' }}>
-                Check your email
-              </h2>
-              <p style={{ fontFamily: 'Geist', fontSize: '14px', color: 'rgba(196,199,200,0.6)', marginBottom: '8px' }}>
-                We sent a verification link to
-              </p>
-              <p style={{ fontFamily: 'Geist', fontSize: '14px', color: '#4ae176', fontWeight: '500', marginBottom: '24px' }}>
-                {userEmail}
-              </p>
-              <p style={{ fontFamily: 'Geist', fontSize: '12px', color: 'rgba(196,199,200,0.4)', marginBottom: '32px' }}>
-                Click the link to activate your account. Check spam if not received.
-              </p>
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', marginBottom: '32px' }} />
-              <button
-                onClick={() => window.location.href = '/auth/login'}
-                className="btn-primary"
-              >
-                Go to Login
-              </button>
-            </div>
-          ) : (
-            <>
               {/* Google */}
               <button className="btn-google" onClick={handleGoogleSignUp}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -520,8 +477,6 @@ export default function SignupPage() {
                 {' '}and{' '}
                 <Link href="/privacy" style={{ color: 'rgba(196,199,200,0.8)', textDecoration: 'underline' }}>Privacy Policy</Link>.
               </p>
-            </>
-          )}
         </div>
 
         {/* Footer link */}

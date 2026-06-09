@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
 
   if (!code) {
-    return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+    return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
   }
 
   const cookieStore = await cookies()
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     if (error || !session?.user) {
       console.error('Auth error:', error)
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+      return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
     }
 
     // Get user details
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     
     if (userError || !user) {
       console.error('User error:', userError)
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+      return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
     }
 
     // Check if business_settings exists for this user
@@ -55,18 +55,18 @@ export async function GET(request: NextRequest) {
 
     if (businessError && businessError.code !== 'PGRST116') {
       console.error('Business check error:', businessError)
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+      return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
     }
 
     // If business doesn't exist, create new business
     if (!existingBusiness) {
-      // Check if onboarding is completeble
+      // Insert into business_settings table
       const { error: settingsError } = await supabase
         .from('business_settings')
         .insert({
           business_id: user.id,
           bot_name: 'Munshi',
-          organization_name: user.user_metadata?.full_name || '',
+          organization_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
           language: 'roman_urdu',
           tone: 'friendly',
           greeting_message: 'Assalam o Alaikum! Main aapki kaise madad kar sakta hun?'
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
       if (settingsError) {
         console.error('Business settings insert error:', settingsError)
-        return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+        return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
       }
 
       // Insert into businesses table
@@ -88,19 +88,19 @@ export async function GET(request: NextRequest) {
 
       if (businessInsertError) {
         console.error('Business insert error:', businessInsertError)
-        return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+        return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
       }
     }
 
     // Check if onboarding is complete
-const onboardingDone = existingBusiness?.onboarding_complete === true
-if (!onboardingDone) {
-  return NextResponse.redirect(`${requestUrl.origin}/onboarding`)
-}
-return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+    const onboardingDone = existingBusiness?.onboarding_complete === true
+    if (!existingBusiness || !onboardingDone) {
+      return NextResponse.redirect(`${requestUrl.origin}/onboarding`)
+    }
+    return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
 
   } catch (error) {
     console.error('Callback error:', error)
-    return NextResponse.redirect(`${requestUrl.origin}/login?error=auth`)
+    return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
   }
 }
