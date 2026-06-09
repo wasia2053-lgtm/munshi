@@ -98,37 +98,37 @@ export default function LoginPage() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
           text-align: center;
         }
 
         .brand-icon {
-          width: 36px;
-          height: 36px;
-          margin-bottom: 10px;
+          width: 32px;
+          height: 32px;
+          margin-bottom: 8px;
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
           color: #4ae176;
           letter-spacing: -0.04em;
         }
 
         .brand-title {
-          font-size: clamp(22px, 4vw, 32px);
+          font-size: clamp(20px, 4vw, 28px);
           font-weight: 600;
           color: #ffffff;
           letter-spacing: -0.04em;
           line-height: 1.1;
-          margin-bottom: 4px;
+          margin-bottom: 3px;
         }
 
         .brand-sub {
-          font-size: 13px;
+          font-size: 12px;
           color: rgba(196, 199, 200, 0.6);
         }
 
@@ -265,7 +265,9 @@ export default function LoginPage() {
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .signup-row {
-          margin-top: 14px;
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255,255,255,0.06);
           text-align: center;
           font-size: 13px;
           color: rgba(196, 199, 200, 0.6);
@@ -280,43 +282,6 @@ export default function LoginPage() {
           transition: color 0.2s;
         }
         .signup-link:hover { color: #4ae176; }
-
-        .bottom-footer {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          padding: 20px 48px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          z-index: 10;
-        }
-
-        .footer-copy {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(196,199,200,0.3);
-        }
-
-        .footer-links {
-          display: flex;
-          gap: 24px;
-        }
-
-        .footer-link {
-          font-size: 12px;
-          color: rgba(196,199,200,0.4);
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .footer-link:hover { color: rgba(196,199,200,0.8); }
-
-        @media (max-width: 480px) {
-          .bottom-footer { display: none; }
-        }
       `}</style>
 
       <div className="login-root">
@@ -390,23 +355,14 @@ export default function LoginPage() {
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
-          </div>
 
-          {/* Signup link */}
-          <div className="signup-row">
-            Don&apos;t have an account?{' '}
-            <Link href="/auth/signup" className="signup-link">Sign Up</Link>
+            {/* Signup link — inside card */}
+            <div className="signup-row">
+              Don&apos;t have an account?{' '}
+              <Link href="/auth/signup" className="signup-link">Sign Up</Link>
+            </div>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer className="bottom-footer">
-          <span className="footer-copy">© 2025 Munshi AI</span>
-          <div className="footer-links">
-            <Link href="/privacy" className="footer-link">Privacy Policy</Link>
-            <Link href="/terms" className="footer-link">Terms of Service</Link>
-          </div>
-        </footer>
       </div>
     </>
   )
