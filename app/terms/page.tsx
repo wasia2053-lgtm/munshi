@@ -1,247 +1,169 @@
-import React from 'react'
+import PolicyLayout from '@/components/PolicyLayout'
+
+export const metadata = {
+  title: 'Terms of Service | Munshi AI',
+  description: 'Terms and conditions for using Munshi AI.',
+}
 
 export default function TermsOfService() {
-  return (
-    <div style={{ 
-      backgroundColor: '#102C26',
-      minHeight: '100vh',
-      color: '#F7E7CE',
-      fontFamily: "'DM Sans', sans-serif",
-      padding: '20px'
-    }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <h1 style={{ 
-            fontSize: '32px', 
-            fontWeight: '700',
-            marginBottom: '16px',
-            fontFamily: "'Cormorant Garamond', serif",
-            color: '#F7E7CE'
-          }}>
-            Terms of Service
-          </h1>
-          <p style={{ fontSize: '16px', color: '#8A7560' }}>
-            Effective Date: {new Date().toLocaleDateString()}
-          </p>
-        </div>
-
-        {/* Introduction */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Introduction
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            Welcome to Munshi (munshi.pk). These Terms of Service govern your use of our 
-            WhatsApp AI-powered SaaS platform. By accessing or using our service, you agree to these terms.
-          </p>
-        </div>
-
-        {/* Services */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Services
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            Munshi provides automated WhatsApp customer support through AI-powered chatbots for Pakistani businesses. 
-            Our services include message automation, customer inquiry handling, and business intelligence analytics.
-          </p>
-        </div>
-
-        {/* User Responsibilities */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            User Responsibilities
-          </h2>
-          <ul style={{ 
-            paddingLeft: '20px',
-            lineHeight: '1.6',
-            fontSize: '16px'
-          }}>
-            <li style={{ marginBottom: '8px' }}>Provide accurate business information</li>
-            <li style={{ marginBottom: '8px' }}>Maintain active WhatsApp Business account</li>
-            <li style={{ marginBottom: '8px' }}>Ensure lawful use of the service</li>
-            <li style={{ marginBottom: '8px' }}>Monitor bot responses for accuracy</li>
-            <li style={{ marginBottom: '8px' }}>Report technical issues promptly</li>
+  const sections = [
+    {
+      title: 'Agreement to Terms',
+      content: (
+        <p>
+          By accessing or using Munshi AI ("Service") at munshi.pk, you agree to be bound by these Terms of Service.
+          If you do not agree, do not use the Service. These terms apply to all users, including businesses and individuals.
+        </p>
+      )
+    },
+    {
+      title: 'Description of Service',
+      content: (
+        <p>
+          Munshi AI provides an AI-powered WhatsApp automation platform that allows businesses to train a chatbot
+          on their knowledge base and automatically respond to customer messages on WhatsApp. The Service includes
+          website scraping, PDF training, analytics, conversation management, and billing features.
+        </p>
+      )
+    },
+    {
+      title: 'Eligibility & Account',
+      content: (
+        <ul>
+          <li>You must be at least 18 years old to use this Service</li>
+          <li>You must provide accurate and complete information when creating an account</li>
+          <li>You are responsible for maintaining the security of your account credentials</li>
+          <li>You are responsible for all activity that occurs under your account</li>
+          <li>One account per business — multiple accounts for the same business are prohibited</li>
+        </ul>
+      )
+    },
+    {
+      title: 'Acceptable Use',
+      content: (
+        <>
+          <p>You agree not to use the Service to:</p>
+          <ul>
+            <li>Send spam, unsolicited messages, or bulk marketing without recipient consent</li>
+            <li>Violate Meta's WhatsApp Business Policy or Terms of Service</li>
+            <li>Engage in illegal, fraudulent, or deceptive activities</li>
+            <li>Infringe on intellectual property rights of others</li>
+            <li>Transmit malware, viruses, or harmful code</li>
+            <li>Harass, abuse, or harm any person</li>
+            <li>Attempt to reverse-engineer, hack, or disrupt the platform</li>
           </ul>
-        </div>
-
-        {/* Payment Terms */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Payment Terms
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            Munshi operates on a subscription basis with the following pricing:
-          </p>
-          <ul style={{ 
-            paddingLeft: '20px',
-            lineHeight: '1.6',
-            fontSize: '16px'
-          }}>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Basic Plan:</strong> PKR 2,999/month
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Professional Plan:</strong> PKR 4,999/month
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Enterprise Plan:</strong> PKR 9,999/month
-            </li>
+          <p>Violation of acceptable use may result in immediate account suspension without refund.</p>
+        </>
+      )
+    },
+    {
+      title: 'Subscription & Pricing',
+      content: (
+        <>
+          <p>Munshi AI operates on a monthly subscription basis:</p>
+          <ul>
+            <li><strong>Starter:</strong> Free — 50 messages/month</li>
+            <li><strong>Growth:</strong> PKR 7,000 / $25 per month — 5,000 messages/month</li>
+            <li><strong>Pro:</strong> PKR 30,000 / $99 per month — 50,000 messages/month</li>
           </ul>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            All payments are processed in Pakistani Rupees (PKR) and are non-refundable except as specified in our Refund Policy.
+          <p>Prices are subject to change with 30 days' notice. Subscriptions auto-renew monthly unless cancelled.
+            Message limits reset at the start of each billing cycle. Unused messages do not carry over.</p>
+        </>
+      )
+    },
+    {
+      title: 'Payment',
+      content: (
+        <>
+          <p>Payments are accepted via:</p>
+          <ul>
+            <li><strong>Pakistan:</strong> JazzCash, EasyPaisa, Bank Transfer (via Safepay)</li>
+            <li><strong>International:</strong> Credit/Debit cards, Apple Pay, Google Pay (via Dodo Payments)</li>
+          </ul>
+          <p>All payments are final unless eligible for a refund under our Refund Policy.
+            Failed payments will result in service suspension until resolved.</p>
+        </>
+      )
+    },
+    {
+      title: 'Service Availability',
+      content: (
+        <p>
+          We strive for 99.9% uptime but cannot guarantee uninterrupted service.
+          Scheduled maintenance will be communicated in advance where possible.
+          Service interruptions caused by Meta's WhatsApp API, internet providers,
+          or other third-party services are outside our control and do not automatically
+          qualify for refunds.
+        </p>
+      )
+    },
+    {
+      title: 'Intellectual Property',
+      content: (
+        <>
+          <p>
+            All platform code, design, branding, and features are owned by Munshi AI.
+            You retain ownership of your business data, training content, and conversation history.
           </p>
-        </div>
-
-        {/* Service Availability */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Service Availability
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            While we strive for 99.9% uptime, we cannot guarantee uninterrupted service. 
-            WhatsApp API availability, internet connectivity, and other factors beyond our control may affect service delivery.
+          <p>
+            By uploading training data to the platform, you grant us a limited license to process
+            that content solely to provide the Service. We do not claim ownership of your content.
           </p>
-        </div>
-
-        {/* Limitation of Liability */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Limitation of Liability
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            Munshi is not liable for lost profits, business interruption, or any indirect damages 
-            arising from your use of our service. Our total liability shall not exceed the amount 
-            paid by you in the preceding three months.
-          </p>
-        </div>
-
-        {/* Termination */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Termination
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            Either party may terminate this agreement with 30 days' written notice. Upon termination, 
-            you will lose access to the service and all data will be permanently deleted after 30 days.
-          </p>
-        </div>
-
-        {/* Contact */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Contact Us
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            If you have questions about these Terms of Service, please contact us:
-          </p>
-          <div style={{ 
-            backgroundColor: '#0D2420',
-            border: '1px solid #2A4A42',
-            borderRadius: '8px',
-            padding: '20px',
-            textAlign: 'center'
-          }}>
-            <p style={{ 
-              fontSize: '18px',
-              fontWeight: '600',
-              marginBottom: '8px',
-              color: '#D4A853'
-            }}>
-              support@munshi.pk
-            </p>
-            <p style={{ fontSize: '14px', color: '#8A7560' }}>
-              Munshi Team<br />
-              munshi.pk
-            </p>
+        </>
+      )
+    },
+    {
+      title: 'Limitation of Liability',
+      content: (
+        <p>
+          To the maximum extent permitted by law, Munshi AI is not liable for indirect, incidental,
+          special, or consequential damages, including lost profits or business interruption,
+          arising from your use of the Service. Our total cumulative liability shall not exceed
+          the total amount you paid us in the three months preceding the claim.
+        </p>
+      )
+    },
+    {
+      title: 'Termination',
+      content: (
+        <>
+          <p>You may cancel your subscription at any time from the Billing page. Cancellation takes effect at the end of the current billing period.</p>
+          <p>We reserve the right to suspend or terminate accounts that violate these Terms, with or without notice depending on the severity of the violation.</p>
+          <p>Upon termination, your data will be retained for 30 days before permanent deletion, giving you time to export any necessary information.</p>
+        </>
+      )
+    },
+    {
+      title: 'Governing Law',
+      content: (
+        <p>
+          These Terms are governed by the laws of the Islamic Republic of Pakistan.
+          Any disputes shall be resolved through good-faith negotiation first,
+          and if unresolved, through the courts of Karachi, Pakistan.
+        </p>
+      )
+    },
+    {
+      title: 'Contact Us',
+      content: (
+        <>
+          <p>For questions about these Terms, contact us:</p>
+          <div className="contact-card">
+            <div className="contact-email">support@munshi.pk</div>
+            <div className="contact-sub">Munshi AI — munshi.pk · We respond within 2 business days.</div>
           </div>
-        </div>
+        </>
+      )
+    }
+  ]
 
-        {/* Footer */}
-        <div style={{ 
-          textAlign: 'center',
-          paddingTop: '32px',
-          borderTop: '1px solid #2A4A42',
-          marginTop: '32px'
-        }}>
-          <p style={{ fontSize: '14px', color: '#8A7560' }}>
-            © {new Date().getFullYear()} Munshi. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </div>
+  return (
+    <PolicyLayout
+      title="Terms of Service"
+      subtitle="Please read these terms carefully before using Munshi AI."
+      effectiveDate="January 1, 2025"
+      badge="Legal"
+      sections={sections}
+    />
   )
 }

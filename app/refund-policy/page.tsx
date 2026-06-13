@@ -1,273 +1,120 @@
-import React from 'react'
+import PolicyLayout from '@/components/PolicyLayout'
+
+export const metadata = {
+  title: 'Refund Policy | Munshi AI',
+  description: 'Munshi AI refund and cancellation policy.',
+}
 
 export default function RefundPolicy() {
-  return (
-    <div style={{ 
-      backgroundColor: '#102C26',
-      minHeight: '100vh',
-      color: '#F7E7CE',
-      fontFamily: "'DM Sans', sans-serif",
-      padding: '20px'
-    }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <h1 style={{ 
-            fontSize: '32px', 
-            fontWeight: '700',
-            marginBottom: '16px',
-            fontFamily: "'Cormorant Garamond', serif",
-            color: '#F7E7CE'
-          }}>
-            Refund Policy
-          </h1>
-          <p style={{ fontSize: '16px', color: '#8A7560' }}>
-            Effective Date: {new Date().toLocaleDateString()}
-          </p>
-        </div>
-
-        {/* Introduction */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Introduction
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            At Munshi (munshi.pk), we want you to be completely satisfied with our WhatsApp AI SaaS platform. 
-            This Refund Policy outlines the conditions under which we offer refunds for our subscription services.
-          </p>
-        </div>
-
-        {/* Refund Eligibility */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Refund Eligibility
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            You may be eligible for a refund under the following circumstances:
-          </p>
-          <ul style={{ 
-            paddingLeft: '20px',
-            lineHeight: '1.6',
-            fontSize: '16px'
-          }}>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Service Downtime:</strong> If our service experiences more than 24 hours of 
-              consecutive downtime in a month
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Technical Issues:</strong> If critical features are non-functional for more than 7 days 
-              and we cannot resolve them within 48 hours of your report
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Billing Errors:</strong> If you are charged incorrectly due to our system error
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Account Cancellation:</strong> Within 7 days of initial subscription
-            </li>
+  const sections = [
+    {
+      title: 'Overview',
+      content: (
+        <p>
+          At Munshi AI, we want you to be satisfied with our service. This Refund Policy outlines
+          the conditions under which refunds are granted. We offer a free tier so you can evaluate
+          the platform before committing to a paid plan — we encourage you to test thoroughly before upgrading.
+        </p>
+      )
+    },
+    {
+      title: 'Refund Eligibility',
+      content: (
+        <>
+          <p>You may request a refund under the following circumstances:</p>
+          <ul>
+            <li><strong>7-Day New Subscriber Guarantee:</strong> If you are unsatisfied within 7 days of your first paid subscription, you are eligible for a full refund — no questions asked.</li>
+            <li><strong>Service Downtime:</strong> If our platform experiences more than 24 consecutive hours of downtime in a billing month, you are eligible for a prorated credit or refund for that period.</li>
+            <li><strong>Critical Feature Failure:</strong> If a core feature (WhatsApp bot replies, training, dashboard) is non-functional for more than 7 consecutive days despite our best efforts to resolve it, you are eligible for a refund for that billing period.</li>
+            <li><strong>Billing Error:</strong> If you were charged an incorrect amount due to a system error on our end, you will receive a full refund of the overcharged amount.</li>
+            <li><strong>Duplicate Charge:</strong> If you were charged twice for the same subscription period.</li>
           </ul>
-        </div>
-
-        {/* Non-Refundable Items */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Non-Refundable Items
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            The following are not eligible for refunds:
-          </p>
-          <ul style={{ 
-            paddingLeft: '20px',
-            lineHeight: '1.6',
-            fontSize: '16px'
-          }}>
-            <li style={{ marginBottom: '8px' }}>Partial month usage (no prorated refunds)</li>
-            <li style={{ marginBottom: '8px' }}>WhatsApp API or third-party service issues</li>
-            <li style={{ marginBottom: '8px' }}>User error or misuse of service</li>
-            <li style={{ marginBottom: '8px' }}>Internet connectivity issues on your end</li>
-            <li style={{ marginBottom: '8px' }}>After 7 days of subscription activation</li>
+        </>
+      )
+    },
+    {
+      title: 'Non-Refundable Situations',
+      content: (
+        <>
+          <p>Refunds will not be issued in the following cases:</p>
+          <ul>
+            <li>Requests made after 7 days of subscription activation (except for service failure cases above)</li>
+            <li>Partial month usage — we do not offer prorated refunds for unused days mid-cycle</li>
+            <li>WhatsApp API outages or restrictions imposed by Meta</li>
+            <li>Service issues caused by your own internet connectivity or device</li>
+            <li>Failure to use the service — simply not logging in does not qualify</li>
+            <li>Violations of our Terms of Service that led to account suspension</li>
+            <li>Free plan — the Starter plan is free and not subject to refund requests</li>
           </ul>
-        </div>
-
-        {/* Refund Process */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Refund Process
-          </h2>
-          <ol style={{ 
-            paddingLeft: '20px',
-            lineHeight: '1.6',
-            fontSize: '16px'
-          }}>
-            <li style={{ marginBottom: '8px' }}>
-              Contact us at <strong style={{ color: '#D4A853' }}>support@munshi.pk</strong> with your refund request
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              Provide your account details and reason for refund
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              Our team will review your request within 5 business days
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              Approved refunds are processed within 7-10 business days
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              Refunds are issued in Pakistani Rupees (PKR) via original payment method
-            </li>
+        </>
+      )
+    },
+    {
+      title: 'How to Request a Refund',
+      content: (
+        <>
+          <ol>
+            <li>Email us at <strong>support@munshi.pk</strong> with subject line: "Refund Request — [Your Email]"</li>
+            <li>Include your registered email address and reason for the refund request</li>
+            <li>Our team will review your request within 3 business days</li>
+            <li>If approved, refunds are processed within 5–10 business days depending on your payment method</li>
           </ol>
-        </div>
-
-        {/* PKR Pricing Reference */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Pricing Reference (PKR)
-          </h2>
-          <div style={{ 
-            backgroundColor: '#0D2420',
-            border: '1px solid #2A4A42',
-            borderRadius: '8px',
-            padding: '20px',
-            marginBottom: '16px'
-          }}>
-            <ul style={{ 
-              paddingLeft: '20px',
-              lineHeight: '1.6',
-              fontSize: '16px'
-            }}>
-              <li style={{ marginBottom: '8px' }}>
-                <strong style={{ color: '#D4A853' }}>Basic Plan:</strong> PKR 2,999/month
-              </li>
-              <li style={{ marginBottom: '8px' }}>
-                <strong style={{ color: '#D4A853' }}>Professional Plan:</strong> PKR 4,999/month
-              </li>
-              <li style={{ marginBottom: '8px' }}>
-                <strong style={{ color: '#D4A853' }}>Enterprise Plan:</strong> PKR 9,999/month
-              </li>
-            </ul>
+        </>
+      )
+    },
+    {
+      title: 'Refund Methods & Timelines',
+      content: (
+        <ul>
+          <li><strong>JazzCash / EasyPaisa:</strong> 2–3 business days to original mobile account</li>
+          <li><strong>Bank Transfer (Pakistan):</strong> 3–5 business days</li>
+          <li><strong>International Cards:</strong> 5–10 business days depending on your bank</li>
+          <li><strong>Dodo Payments (international):</strong> 5–7 business days</li>
+        </ul>
+      )
+    },
+    {
+      title: 'Plan Pricing Reference',
+      content: (
+        <ul>
+          <li><strong>Starter:</strong> Free — PKR 0 / $0 per month</li>
+          <li><strong>Growth:</strong> PKR 7,000 / ~$25 per month</li>
+          <li><strong>Pro:</strong> PKR 30,000 / ~$99 per month</li>
+        </ul>
+      )
+    },
+    {
+      title: 'Cancellation',
+      content: (
+        <p>
+          You can cancel your subscription at any time from the Billing section of your dashboard.
+          Cancellation stops future charges — your service remains active until the end of the
+          current billing period. Cancellation alone does not trigger a refund unless you are
+          within the 7-day window or another eligibility condition applies.
+        </p>
+      )
+    },
+    {
+      title: 'Contact Us',
+      content: (
+        <>
+          <p>For refund requests or billing questions, reach out to our support team:</p>
+          <div className="contact-card">
+            <div className="contact-email">support@munshi.pk</div>
+            <div className="contact-sub">Munshi AI — munshi.pk · We respond within 2 business days.</div>
           </div>
-        </div>
+        </>
+      )
+    }
+  ]
 
-        {/* Refund Method */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Refund Method
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            Refunds are processed using the same method as original payment:
-          </p>
-          <ul style={{ 
-            paddingLeft: '20px',
-            lineHeight: '1.6',
-            fontSize: '16px'
-          }}>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Credit Card:</strong> Refund to original card (7-10 business days)
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>JazzCash/EasyPaisa:</strong> Refund to mobile account (3-5 business days)
-            </li>
-            <li style={{ marginBottom: '8px' }}>
-              <strong style={{ color: '#D4A853' }}>Bank Transfer:</strong> Direct bank refund (5-7 business days)
-            </li>
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#D4A853'
-          }}>
-            Contact Us
-          </h2>
-          <p style={{ 
-            lineHeight: '1.6',
-            marginBottom: '16px',
-            fontSize: '16px'
-          }}>
-            For refund requests or questions about this policy, please contact us:
-          </p>
-          <div style={{ 
-            backgroundColor: '#0D2420',
-            border: '1px solid #2A4A42',
-            borderRadius: '8px',
-            padding: '20px',
-            textAlign: 'center'
-          }}>
-            <p style={{ 
-              fontSize: '18px',
-              fontWeight: '600',
-              marginBottom: '8px',
-              color: '#D4A853'
-            }}>
-              support@munshi.pk
-            </p>
-            <p style={{ fontSize: '14px', color: '#8A7560' }}>
-              Munshi Team<br />
-              munshi.pk
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ 
-          textAlign: 'center',
-          paddingTop: '32px',
-          borderTop: '1px solid #2A4A42',
-          marginTop: '32px'
-        }}>
-          <p style={{ fontSize: '14px', color: '#8A7560' }}>
-            © {new Date().getFullYear()} Munshi. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </div>
+  return (
+    <PolicyLayout
+      title="Refund Policy"
+      subtitle="Our commitment to fair and transparent billing."
+      effectiveDate="January 1, 2025"
+      badge="Legal"
+      sections={sections}
+    />
   )
 }
