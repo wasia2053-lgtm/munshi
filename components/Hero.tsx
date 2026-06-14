@@ -66,67 +66,10 @@ export default function Hero() {
           transform: translate(-50%, -50%);
           mix-blend-mode: screen;
         }
-        .navbar {
-          position: relative;
-          z-index: 20;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 24px 40px;
-          max-width: 1280px;
-          margin: 0 auto;
-        }
-        @media (max-width: 768px) { .navbar { padding: 20px 20px; } }
-        .nav-brand {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          text-decoration: none;
-        }
-        .nav-icon {
-          width: 32px; height: 32px;
-          background: #4ae176;
-          border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 700; color: #000;
-        }
-        .nav-name {
-          font-size: 18px; font-weight: 700;
-          letter-spacing: -0.03em; color: #fff;
-        }
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .nav-login {
-          font-size: 14px;
-          color: #e3e2e2;
-          background: transparent;
-          border: none;
-          padding: 10px 20px;
-          cursor: pointer;
-          transition: color 0.2s;
-          text-decoration: none;
-        }
-        .nav-login:hover { color: #4ae176; }
-        .nav-cta {
-          background: #ffffff;
-          color: #000;
-          font-size: 14px;
-          font-weight: 700;
-          padding: 10px 24px;
-          border-radius: 9999px;
-          border: none;
-          cursor: pointer;
-          text-decoration: none;
-          transition: all 0.3s;
-        }
-        .nav-cta:hover { background: #4ae176; transform: scale(1.03); }
         .hero-main {
           position: relative;
           z-index: 10;
-          padding-top: 80px;
+          padding-top: 140px;
           padding-bottom: 60px;
           max-width: 1280px;
           margin: 0 auto;
@@ -366,18 +309,6 @@ export default function Hero() {
             <div className="hero-root">
                 <div className="mesh-gradient" />
                 <div ref={spotlightRef} className="spotlight" />
-
-                {/* Navbar */}
-                <nav className="navbar">
-                    <Link href="/" className="nav-brand">
-                        <div className="nav-icon">M</div>
-                        <span className="nav-name">Munshi AI</span>
-                    </Link>
-                    <div className="nav-links">
-                        <Link href="/auth/login" className="nav-login">Login</Link>
-                        <Link href="/auth/signup" className="nav-cta">Start Free</Link>
-                    </div>
-                </nav>
 
                 {/* Hero Main */}
                 <div className="hero-main">
