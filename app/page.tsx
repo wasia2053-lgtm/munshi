@@ -8,17 +8,21 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
-  <>
-    <Hero />
-    <PainSection />
 
-    {/* baki existing landing page */}
-  </>
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const typingRef = useRef<HTMLSpanElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <>
+      <Hero />
+      <PainSection />
+
+      {/* baki existing landing page */}
+    </>
+  )
+
 
   // Custom cursor
   useEffect(() => {
