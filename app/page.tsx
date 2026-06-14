@@ -1,10 +1,19 @@
 'use client';
+import Hero from '@/components/Hero'
+import PainSection from '@/components/PainSection'
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
+  <>
+    <Hero />
+    <PainSection />
+
+    {/* baki existing landing page */}
+  </>
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
