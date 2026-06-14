@@ -14,14 +14,7 @@ export default function Home() {
   const ringRef = useRef<HTMLDivElement>(null);
   const typingRef = useRef<HTMLSpanElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  return (
-    <>
-      <Hero />
-      <PainSection />
 
-      {/* baki existing landing page */}
-    </>
-  )
 
 
   // Custom cursor
@@ -163,6 +156,12 @@ export default function Home() {
 
   return (
     <>
+
+      <Hero />
+      <PainSection />
+
+      {/* baki existing landing page */}
+
       <title>MUNSHI</title>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
