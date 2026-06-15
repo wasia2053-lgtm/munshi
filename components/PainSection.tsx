@@ -3,89 +3,79 @@
 import React, { useEffect, useRef } from 'react'
 
 const painPoints = [
-    {
-        icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M22 16.92V19.92C22 20.47 21.55 20.92 21 20.92C9.4 20.92 0 11.52 0 -0.0800018C0 -0.630002 0.45 -1.08 1 -1.08H4C4.55 -1.08 5 -0.630002 5 -0.0800018C5 1.42 5.25 2.86 5.72 4.2C5.86 4.62 5.76 5.09 5.45 5.4L3.9 6.95C5.07 9.81 7.19 11.93 10.05 13.1L11.6 11.55C11.91 11.24 12.38 11.14 12.8 11.28C14.14 11.75 15.58 12 17.08 12C17.63 12 18.08 12.45 18.08 13V16C18.08 16.55 17.63 17 17.08 17" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" transform="translate(2.5, 3.5)" />
-                <path d="M2 2L22 22" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
-            </svg>
-        ),
-        title: 'Missed WhatsApp Messages',
-        body: "Customers don't wait. If you reply late, they message someone else."
-    },
-    {
-        icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        ),
-        title: 'Leads Arrive After Hours',
-        body: 'Your business sleeps. Potential customers don\u2019t.'
-    },
-    {
-        icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="#4ae176" strokeWidth="1.5" />
-                <path d="M12 7V12L15 14" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        ),
-        title: 'Slow Replies Kill Conversions',
-        body: 'The first business to respond usually wins.'
-    },
-    {
-        icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="3" width="16" height="18" rx="2" stroke="#4ae176" strokeWidth="1.5" />
-                <path d="M8 7H16M8 11H16M8 15H12" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-        ),
-        title: 'Important Leads Get Lost',
-        body: 'Customer details disappear inside endless chat history.'
-    },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M22 16.92V19.92C22 20.47 21.55 20.92 21 20.92C9.4 20.92 0 11.52 0 -0.0800018C0 -0.630002 0.45 -1.08 1 -1.08H4C4.55 -1.08 5 -0.630002 5 -0.0800018C5 1.42 5.25 2.86 5.72 4.2C5.86 4.62 5.76 5.09 5.45 5.4L3.9 6.95C5.07 9.81 7.19 11.93 10.05 13.1L11.6 11.55C11.91 11.24 12.38 11.14 12.8 11.28C14.14 11.75 15.58 12 17.08 12C17.63 12 18.08 12.45 18.08 13V16C18.08 16.55 17.63 17 17.08 17" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" transform="translate(2.5, 3.5)" />
+        <path d="M2 2L22 22" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+      </svg>
+    ),
+    title: 'Missed WhatsApp Messages',
+    body: "Customers don't wait. If you reply late, they message someone else."
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    title: 'Leads Arrive After Hours',
+    body: 'Your business sleeps. Potential customers don\u2019t.'
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="#4ae176" strokeWidth="1.5" />
+        <path d="M12 7V12L15 14" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    title: 'Slow Replies Kill Conversions',
+    body: 'The first business to respond usually wins.'
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="3" width="16" height="18" rx="2" stroke="#4ae176" strokeWidth="1.5" />
+        <path d="M8 7H16M8 11H16M8 15H12" stroke="#4ae176" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+    title: 'Important Leads Get Lost',
+    body: 'Customer details disappear inside endless chat history.'
+  },
 ]
 
 export default function PainSection() {
-    const sectionRef = useRef<HTMLDivElement>(null)
-    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
-    const closingRef = useRef<HTMLDivElement>(null)
-    const transitionRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const closingRef = useRef<HTMLDivElement>(null)
+  const transitionRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('in-view')
-                    }
-                })
-            },
-            { threshold: 0.15 }
-        )
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view')
+          }
+        })
+      },
+      { threshold: 0.15 }
+    )
 
-        cardRefs.current.forEach(el => el && observer.observe(el))
-        if (closingRef.current) observer.observe(closingRef.current)
-        if (transitionRef.current) observer.observe(transitionRef.current)
+    cardRefs.current.forEach(el => el && observer.observe(el))
+    if (closingRef.current) observer.observe(closingRef.current)
+    if (transitionRef.current) observer.observe(transitionRef.current)
 
-        return () => observer.disconnect()
-    }, [])
+    return () => observer.disconnect()
+  }, [])
 
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
         .pain-root {
           font-family: 'Geist', sans-serif;
-          background: #000000;
           position: relative;
-          overflow: hidden;
           color: #e3e2e2;
-        }
-        .pain-mesh {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          background:
-            radial-gradient(circle at 80% 20%, rgba(74,225,118,0.05) 0%, transparent 45%),
-            radial-gradient(circle at 20% 80%, rgba(255,255,255,0.02) 0%, transparent 45%);
         }
         .pain-section {
           position: relative;
@@ -137,9 +127,10 @@ export default function PainSection() {
           .pain-grid { grid-template-columns: 1fr; }
         }
         .pain-card {
-          background: rgba(255,255,255,0.02);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.03);
+          backdrop-filter: blur(24px);
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.3);
           border-radius: 16px;
           padding: 28px 24px;
           opacity: 0;
@@ -248,51 +239,50 @@ export default function PainSection() {
         }
       `}</style>
 
-            <div className="pain-root" ref={sectionRef}>
-                <div className="pain-mesh" />
+      <div className="pain-root" ref={sectionRef}>
 
-                {/* Pain Section */}
-                <div className="pain-section">
-                    <div className="pain-header">
-                        <div className="pain-eyebrow">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="#ffb4ab" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            The Problem
-                        </div>
-                        <h2 className="pain-title">You're Losing Customers Every Day</h2>
-                    </div>
-
-                    <div className="pain-grid">
-                        {painPoints.map((point, i) => (
-                            <div
-                                key={i}
-                                ref={el => { cardRefs.current[i] = el }}
-                                className="pain-card"
-                            >
-                                <div className="pain-icon-wrap">{point.icon}</div>
-                                <h3 className="pain-card-title">{point.title}</h3>
-                                <p className="pain-card-body">{point.body}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="pain-closing" ref={closingRef}>
-                        <p className="pain-closing-text">
-                            Every missed message is <span className="highlight">revenue walking straight to your competitors.</span>
-                        </p>
-                    </div>
-                </div>
-
-                {/* Micro Transition */}
-                <div className="transition-section" ref={transitionRef}>
-                    <div className="transition-eyebrow">The good news?</div>
-                    <p className="transition-text">
-                        You don't need a bigger team, more working hours, or another employee.
-                        <br /><br />
-                        You need a system that <span className="accent">never misses a customer.</span>
-                    </p>
-                    <div className="transition-divider" />
-                </div>
+        {/* Pain Section */}
+        <div className="pain-section">
+          <div className="pain-header">
+            <div className="pain-eyebrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="#ffb4ab" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              The Problem
             </div>
-        </>
-    )
+            <h2 className="pain-title">You're Losing Customers Every Day</h2>
+          </div>
+
+          <div className="pain-grid">
+            {painPoints.map((point, i) => (
+              <div
+                key={i}
+                ref={el => { cardRefs.current[i] = el }}
+                className="pain-card"
+              >
+                <div className="pain-icon-wrap">{point.icon}</div>
+                <h3 className="pain-card-title">{point.title}</h3>
+                <p className="pain-card-body">{point.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="pain-closing" ref={closingRef}>
+            <p className="pain-closing-text">
+              Every missed message is <span className="highlight">revenue walking straight to your competitors.</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Micro Transition */}
+        <div className="transition-section" ref={transitionRef}>
+          <div className="transition-eyebrow">The good news?</div>
+          <p className="transition-text">
+            You don't need a bigger team, more working hours, or another employee.
+            <br /><br />
+            You need a system that <span className="accent">never misses a customer.</span>
+          </p>
+          <div className="transition-divider" />
+        </div>
+      </div>
+    </>
+  )
 }
