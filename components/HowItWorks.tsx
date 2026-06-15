@@ -191,6 +191,7 @@ export default function HowItWorks() {
           border-radius: 16px;
           padding: 32px 28px;
           position: relative;
+          overflow: hidden;
           opacity: 0;
           transform: translateY(24px);
           transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -208,12 +209,49 @@ export default function HowItWorks() {
           box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 32px rgba(74,225,118,0.08);
         }
         .step-num {
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.2em;
-          color: rgba(74,225,118,0.4);
-          margin-bottom: 20px;
-          font-family: 'Geist Mono', monospace;
+          font-size: 64px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          color: transparent;
+          -webkit-text-stroke: 1px rgba(74,225,118,0.18);
+          position: absolute;
+          top: 8px;
+          right: 16px;
+          line-height: 1;
+          font-family: 'Geist', sans-serif;
+          z-index: 0;
+          transition: -webkit-text-stroke 0.35s ease, color 0.35s ease;
+          pointer-events: none;
+        }
+        .step-card:hover .step-num {
+          -webkit-text-stroke: 1px rgba(74,225,118,0.4);
+        }
+        .step-card-content {
+          position: relative;
+          z-index: 1;
+        }
+        /* Progress line connecting steps */
+        .steps-progress-line {
+          position: absolute;
+          top: 50%;
+          left: 6%;
+          right: 6%;
+          height: 1px;
+          background: rgba(255,255,255,0.06);
+          z-index: -1;
+        }
+        .steps-progress-fill {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          width: 0%;
+          background: linear-gradient(90deg, #4ae176, transparent);
+          transition: width 1.5s ease 0.3s;
+        }
+        .steps-progress-fill.in-view { width: 100%; }
+        @media (max-width: 900px) {
+          .steps-progress-line { display: none; }
         }
         .step-icon-wrap {
           width: 52px; height: 52px;
