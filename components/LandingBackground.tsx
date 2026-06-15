@@ -1,4 +1,4 @@
-import { FloatingParticles } from "./floating-particles"
+import { FloatingParticles } from "./ui/floating-particles"
 
 export default function LandingBackground({ children }: { children: React.ReactNode }) {
     return (
