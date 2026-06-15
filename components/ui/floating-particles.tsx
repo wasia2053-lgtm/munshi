@@ -21,7 +21,7 @@ export function FloatingParticles({
     particleColor2 = "#e3e2e2",
     cameraDistance = 1000,
     rotationSpeed = 0.04,
-    particleSize = 9,
+    particleSize = 14,
     antigravityForce = 18,
     activationRate = 20,
     className = "",
@@ -153,7 +153,7 @@ export function FloatingParticles({
             color: particleColor2,
             size: particleSize,
             transparent: true,
-            opacity: 0.08,
+            opacity: 0.18,
             map: texture,
             depthTest: false,
             blending: THREE.AdditiveBlending,
@@ -191,7 +191,7 @@ export function FloatingParticles({
         const points2 = new THREE.Points(pointsGeometry2, pointsMaterial2)
 
         scene.add(points)
-        scene.add(points2)
+        // points2 (secondary white particle layer) intentionally not added to scene
 
         let lastTimeActivate = Date.now()
         const antigravity = new THREE.Vector3(0, antigravityForce, 0)

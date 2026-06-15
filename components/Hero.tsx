@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { StarButton } from './ui/star-button'
 
 export default function Hero() {
   const spotlightRef = useRef<HTMLDivElement>(null)
@@ -74,8 +75,11 @@ export default function Hero() {
           .hero-main {
             grid-template-columns: 1fr;
             min-height: auto;
-            padding-top: 40px;
+            padding-top: 110px;
           }
+        }
+        @media (max-width: 480px) {
+          .hero-main { padding-top: 120px; }
         }
         @media (max-width: 768px) {
           .hero-main { padding-left: 20px; padding-right: 20px; gap: 40px; }
@@ -316,12 +320,12 @@ export default function Hero() {
             </p>
 
             <div className="hero-actions">
-              <Link href="/auth/signup" className="btn-primary">
+              <StarButton href="/auth/signup">
                 Start Free
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </Link>
+              </StarButton>
               <a href="#how-it-works" className="btn-secondary">See How It Works</a>
             </div>
 
