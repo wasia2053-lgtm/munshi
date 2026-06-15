@@ -172,27 +172,23 @@ export default function Hero() {
         .hero-trust {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
+          flex-wrap: wrap;
           padding-top: 24px;
         }
-        .trust-avatars {
-          display: flex;
+        .trust-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 14px;
+          border-radius: 9999px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          font-size: 13px;
+          color: rgba(196,199,200,0.75);
+          white-space: nowrap;
         }
-        .trust-avatar {
-          width: 40px; height: 40px;
-          border-radius: 50%;
-          border: 2px solid #000;
-          margin-left: -10px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 700;
-          color: #000;
-        }
-        .trust-avatar:first-child { margin-left: 0; }
-        .trust-text {
-          font-size: 14px;
-          color: rgba(196,199,200,0.6);
-        }
-        .trust-text strong { color: #fff; }
+        .trust-badge svg { color: #4ae176; flex-shrink: 0; }
         /* Right side - floating glass cards */
         .hero-right {
           position: relative;
@@ -334,12 +330,17 @@ export default function Hero() {
             </div>
 
             <div className="hero-trust">
-              <div className="trust-avatars">
-                <div className="trust-avatar" style={{ background: '#4ae176' }}>CS</div>
-                <div className="trust-avatar" style={{ background: '#e3e2e2' }}>+</div>
+              <div className="trust-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                No credit card required
               </div>
-              <div className="trust-text">
-                Trusted by businesses across <strong>Pakistan, UK & UAE</strong>
+              <div className="trust-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Setup in 5 minutes
+              </div>
+              <div className="trust-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Cancel anytime
               </div>
             </div>
           </div>

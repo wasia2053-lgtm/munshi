@@ -132,10 +132,14 @@ export default function PainSection() {
           border: 1px solid rgba(255,255,255,0.08);
           box-shadow: 0 8px 32px rgba(0,0,0,0.3);
           border-radius: 16px;
-          padding: 28px 24px;
+          padding: 36px 24px;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           opacity: 0;
           transform: translateY(24px);
-          transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.3s ease;
+          transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         .pain-card.in-view {
           opacity: 1;
@@ -146,29 +150,40 @@ export default function PainSection() {
         .pain-card:nth-child(3) { transition-delay: 0.2s; }
         .pain-card:nth-child(4) { transition-delay: 0.3s; }
         .pain-card:hover {
-          border-color: rgba(74,225,118,0.25);
-          transform: translateY(-4px);
+          border-color: rgba(74,225,118,0.3);
+          transform: translateY(-6px);
+          box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 32px rgba(74,225,118,0.08);
         }
         .pain-icon-wrap {
-          width: 48px; height: 48px;
-          border-radius: 12px;
+          width: 56px; height: 56px;
+          border-radius: 14px;
           background: rgba(74,225,118,0.08);
-          border: 1px solid rgba(74,225,118,0.15);
+          border: 1px solid rgba(74,225,118,0.18);
           display: flex; align-items: center; justify-content: center;
-          margin-bottom: 20px;
+          margin-bottom: 22px;
+          transition: all 0.35s ease;
+          position: relative;
+        }
+        .pain-card:hover .pain-icon-wrap {
+          background: rgba(74,225,118,0.14);
+          border-color: rgba(74,225,118,0.35);
+          box-shadow: 0 0 24px rgba(74,225,118,0.2);
+          transform: scale(1.08);
         }
         .pain-card-title {
-          font-size: 17px;
+          font-size: 18px;
           font-weight: 700;
           color: #fff;
           letter-spacing: -0.02em;
-          margin: 0 0 10px;
+          margin: 0 0 12px;
+          line-height: 1.3;
         }
         .pain-card-body {
           font-size: 14px;
-          line-height: 1.6;
+          line-height: 1.65;
           color: rgba(196,199,200,0.6);
           margin: 0;
+          max-width: 220px;
         }
         .pain-closing {
           text-align: center;
