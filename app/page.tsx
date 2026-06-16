@@ -4,6 +4,8 @@ import Hero from '@/components/Hero'
 import PainSection from '@/components/PainSection'
 import HowItWorks from '@/components/HowItWorks'
 import Features from '@/components/Features'
+import Comparison from '@/components/Comparison'
+
 
 
 export default function Home() {
@@ -14,6 +16,7 @@ export default function Home() {
       <PainSection />
       <HowItWorks />
       <Features />
+      <Comparison />
     </LandingBackground>
 
   )
