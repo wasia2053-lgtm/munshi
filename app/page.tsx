@@ -3,6 +3,8 @@ import LandingBackground from '@/components/LandingBackground'
 import Hero from '@/components/Hero'
 import PainSection from '@/components/PainSection'
 import HowItWorks from '@/components/HowItWorks'
+import Features from '@/components/Features'
+
 
 export default function Home() {
   return (
@@ -11,6 +13,8 @@ export default function Home() {
       <Hero />
       <PainSection />
       <HowItWorks />
+      <Features />
     </LandingBackground>
+
   )
 }
