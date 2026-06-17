@@ -5,7 +5,7 @@ import PainSection from '@/components/PainSection'
 import HowItWorks from '@/components/HowItWorks'
 import Features from '@/components/Features'
 import Comparison from '@/components/Comparison'
-import WhoIsItFor from '@/components/WhoIsItFor'
+import WhoIsItFor from '@/components/Whoisitfor'
 import Pricing from '@/components/Pricing'
 
 
