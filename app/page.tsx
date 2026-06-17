@@ -6,6 +6,8 @@ import HowItWorks from '@/components/HowItWorks'
 import Features from '@/components/Features'
 import Comparison from '@/components/Comparison'
 import WhoIsItFor from '@/components/WhoIsItFor'
+import Pricing from '@/components/Pricing'
+
 
 
 
@@ -19,6 +21,7 @@ export default function Home() {
       <Features />
       <Comparison />
       <WhoIsItFor />
+      <Pricing />
     </LandingBackground>
 
   )
