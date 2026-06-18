@@ -3,106 +3,106 @@
 import React, { useEffect, useRef, useState } from 'react'
 
 const rows = [
-    {
-        feature: 'Monthly Cost',
-        human: 'PKR 40,000–80,000+',
-        munshi: 'From PKR 0',
-        humanIcon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="currentColor" opacity="0.4" /></svg>
-        ),
-        munshiBetter: true,
-    },
-    {
-        feature: 'Availability',
-        human: 'Office hours only',
-        munshi: '24 / 7 / 365',
-        munshiIcon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M12 7V12L15 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-        ),
-        munshiBetter: true,
-    },
-    {
-        feature: 'Response Speed',
-        human: '5–30 minutes',
-        munshi: 'Under 3 seconds',
-        munshiBetter: true,
-    },
-    {
-        feature: 'Languages',
-        human: '1–2 max',
-        munshi: 'English, Arabic, Roman Urdu',
-        munshiBetter: true,
-    },
-    {
-        feature: 'Simultaneous Chats',
-        human: '1 at a time',
-        munshi: 'Unlimited',
-        munshiBetter: true,
-    },
-    {
-        feature: 'Setup Time',
-        human: 'Weeks of hiring',
-        munshi: '5 minutes',
-        munshiBetter: true,
-    },
-    {
-        feature: 'Knowledge Updates',
-        human: 'Retrain constantly',
-        munshi: 'Update website once',
-        munshiBetter: true,
-    },
-    {
-        feature: 'Consistency',
-        human: 'Depends on mood',
-        munshi: 'Always on-brand',
-        munshiBetter: true,
-    },
-    {
-        feature: 'Human Touch',
-        human: 'Full empathy',
-        munshi: 'Handoff available (Pro)',
-        munshiBetter: false,
-        neutral: true,
-    },
+  {
+    feature: 'Monthly Cost',
+    human: 'PKR 40,000–80,000+',
+    munshi: 'From PKR 0',
+    humanIcon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="currentColor" opacity="0.4" /></svg>
+    ),
+    munshiBetter: true,
+  },
+  {
+    feature: 'Availability',
+    human: 'Office hours only',
+    munshi: '24 / 7 / 365',
+    munshiIcon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M12 7V12L15 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+    ),
+    munshiBetter: true,
+  },
+  {
+    feature: 'Response Speed',
+    human: '5–30 minutes',
+    munshi: 'Under 3 seconds',
+    munshiBetter: true,
+  },
+  {
+    feature: 'Languages',
+    human: '1–2 max',
+    munshi: 'English, Arabic, Roman Urdu',
+    munshiBetter: true,
+  },
+  {
+    feature: 'Simultaneous Chats',
+    human: '1 at a time',
+    munshi: 'Unlimited',
+    munshiBetter: true,
+  },
+  {
+    feature: 'Setup Time',
+    human: 'Weeks of hiring',
+    munshi: '5 minutes',
+    munshiBetter: true,
+  },
+  {
+    feature: 'Knowledge Updates',
+    human: 'Retrain constantly',
+    munshi: 'Update website once',
+    munshiBetter: true,
+  },
+  {
+    feature: 'Consistency',
+    human: 'Depends on mood',
+    munshi: 'Always on-brand',
+    munshiBetter: true,
+  },
+  {
+    feature: 'Human Touch',
+    human: 'Full empathy',
+    munshi: 'Handoff available (Pro)',
+    munshiBetter: false,
+    neutral: true,
+  },
 ]
 
 export default function Comparison() {
-    const sectionRef = useRef<HTMLDivElement>(null)
-    const headerRef = useRef<HTMLDivElement>(null)
-    const tableRef = useRef<HTMLDivElement>(null)
-    const [visibleRows, setVisibleRows] = useState(0)
-    const started = useRef(false)
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
+  const [visibleRows, setVisibleRows] = useState(0)
+  const started = useRef(false)
 
-    useEffect(() => {
-        const obs = new IntersectionObserver(
-            entries => entries.forEach(e => {
-                if (e.isIntersecting) e.target.classList.add('in-view')
-            }),
-            { threshold: 0.1 }
-        )
-        if (headerRef.current) obs.observe(headerRef.current)
-        return () => obs.disconnect()
-    }, [])
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('in-view')
+      }),
+      { threshold: 0.1 }
+    )
+    if (headerRef.current) obs.observe(headerRef.current)
+    return () => obs.disconnect()
+  }, [])
 
-    useEffect(() => {
-        const obs = new IntersectionObserver(
-            entries => entries.forEach(e => {
-                if (e.isIntersecting && !started.current) {
-                    started.current = true
-                    rows.forEach((_, i) => {
-                        setTimeout(() => setVisibleRows(p => p + 1), i * 80)
-                    })
-                }
-            }),
-            { threshold: 0.15 }
-        )
-        if (tableRef.current) obs.observe(tableRef.current)
-        return () => obs.disconnect()
-    }, [])
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting && !started.current) {
+          started.current = true
+          rows.forEach((_, i) => {
+            setTimeout(() => setVisibleRows(p => p + 1), i * 80)
+          })
+        }
+      }),
+      { threshold: 0.15 }
+    )
+    if (tableRef.current) obs.observe(tableRef.current)
+    return () => obs.disconnect()
+  }, [])
 
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
         .cmp-root {
           font-family: 'Geist', sans-serif;
           position: relative;
@@ -164,6 +164,11 @@ export default function Comparison() {
           box-shadow: 0 20px 60px rgba(0,0,0,0.4);
           border-radius: 20px;
           overflow: hidden;
+          overflow-x: auto;
+        }
+
+        .cmp-table-inner {
+          min-width: 520px;
         }
 
         /* Col headers */
@@ -357,100 +362,101 @@ export default function Comparison() {
         }
       `}</style>
 
-            <div className="cmp-root">
-                <div className="cmp-section">
+      <div className="cmp-root">
+        <div className="cmp-section">
 
-                    {/* Header */}
-                    <div className="cmp-header" ref={headerRef}>
-                        <div className="cmp-eyebrow">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                <path d="M17 21V19C17 17.9 16.1 17 15 17H9C7.9 17 7 17.9 7 19V21M12 11C13.7 11 15 9.7 15 8C15 6.3 13.7 5 12 5C10.3 5 9 6.3 9 8C9 9.7 10.3 11 12 11Z" stroke="#ffb4ab" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                            The Real Comparison
-                        </div>
-                        <h2 className="cmp-title">Why Not Just Hire Someone?</h2>
-                        <p className="cmp-sub">A human agent vs Munshi AI — the honest breakdown.</p>
-                    </div>
-
-                    {/* Table */}
-                    <div className="cmp-table-wrap" ref={tableRef}>
-
-                        {/* Column headers */}
-                        <div className="cmp-col-headers">
-                            <div className="cmp-col-head feature-col">Feature</div>
-                            <div className="cmp-col-head human-col">
-                                <div className="human-avatar">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                        <path d="M20 21V19C20 17.9 19.1 17 18 17H6C4.9 17 4 17.9 4 19V21M12 11C13.7 11 15 9.7 15 8C15 6.3 13.7 5 12 5C10.3 5 9 6.3 9 8C9 9.7 10.3 11 12 11Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                    </svg>
-                                </div>
-                                Human Agent
-                            </div>
-                            <div className="cmp-col-head munshi-col">
-                                <div className="munshi-avatar">M</div>
-                                Munshi AI
-                                <span className="munshi-winner-badge">WINS</span>
-                            </div>
-                        </div>
-
-                        {/* Rows */}
-                        {rows.map((row, i) => (
-                            <div
-                                key={i}
-                                className={`cmp-row ${i < visibleRows ? 'row-visible' : ''}`}
-                                style={{ transitionDelay: `${i * 0.04}s` }}
-                            >
-                                {/* Feature */}
-                                <div className="cmp-cell feat-cell">
-                                    {row.feature}
-                                </div>
-
-                                {/* Human */}
-                                <div className="cmp-cell human-cell">
-                                    <div className="cross-icon">
-                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
-                                            <path d="M18 6L6 18M6 6L18 18" stroke="#ffb4ab" strokeWidth="2.5" strokeLinecap="round" />
-                                        </svg>
-                                    </div>
-                                    {row.human}
-                                </div>
-
-                                {/* Munshi */}
-                                <div className={`cmp-cell munshi-cell ${row.neutral ? 'neutral-cell' : ''}`}>
-                                    {row.neutral ? (
-                                        <div className="neutral-icon">
-                                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
-                                                <path d="M5 12H19" stroke="rgba(196,199,200,0.6)" strokeWidth="2.5" strokeLinecap="round" />
-                                            </svg>
-                                        </div>
-                                    ) : (
-                                        <div className="check-icon">
-                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
-                                                <path d="M20 6L9 17L4 12" stroke="#4ae176" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                    {row.munshi}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Bottom CTA */}
-                    <div className="cmp-bottom">
-                        <p className="cmp-cta-text">
-                            Same result. <span>A fraction of the cost.</span>
-                        </p>
-                        <a href="/auth/signup" className="cmp-cta-btn">
-                            Try Free — No Card Needed
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </a>
-                    </div>
-
-                </div>
+          {/* Header */}
+          <div className="cmp-header" ref={headerRef}>
+            <div className="cmp-eyebrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M17 21V19C17 17.9 16.1 17 15 17H9C7.9 17 7 17.9 7 19V21M12 11C13.7 11 15 9.7 15 8C15 6.3 13.7 5 12 5C10.3 5 9 6.3 9 8C9 9.7 10.3 11 12 11Z" stroke="#ffb4ab" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              The Real Comparison
             </div>
-        </>
-    )
+            <h2 className="cmp-title">Why Not Just Hire Someone?</h2>
+            <p className="cmp-sub">A human agent vs Munshi AI — the honest breakdown.</p>
+          </div>
+
+          {/* Table */}
+          <div className="cmp-table-wrap" ref={tableRef}>
+            <div className="cmp-table-inner">
+              {/* Column headers */}
+              <div className="cmp-col-headers">
+                <div className="cmp-col-head feature-col">Feature</div>
+                <div className="cmp-col-head human-col">
+                  <div className="human-avatar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21V19C20 17.9 19.1 17 18 17H6C4.9 17 4 17.9 4 19V21M12 11C13.7 11 15 9.7 15 8C15 6.3 13.7 5 12 5C10.3 5 9 6.3 9 8C9 9.7 10.3 11 12 11Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  Human Agent
+                </div>
+                <div className="cmp-col-head munshi-col">
+                  <div className="munshi-avatar">M</div>
+                  Munshi AI
+                  <span className="munshi-winner-badge">WINS</span>
+                </div>
+              </div>
+
+              {/* Rows */}
+              {rows.map((row, i) => (
+                <div
+                  key={i}
+                  className={`cmp-row ${i < visibleRows ? 'row-visible' : ''}`}
+                  style={{ transitionDelay: `${i * 0.04}s` }}
+                >
+                  {/* Feature */}
+                  <div className="cmp-cell feat-cell">
+                    {row.feature}
+                  </div>
+
+                  {/* Human */}
+                  <div className="cmp-cell human-cell">
+                    <div className="cross-icon">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="#ffb4ab" strokeWidth="2.5" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    {row.human}
+                  </div>
+
+                  {/* Munshi */}
+                  <div className={`cmp-cell munshi-cell ${row.neutral ? 'neutral-cell' : ''}`}>
+                    {row.neutral ? (
+                      <div className="neutral-icon">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
+                          <path d="M5 12H19" stroke="rgba(196,199,200,0.6)" strokeWidth="2.5" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="check-icon">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 6L9 17L4 12" stroke="#4ae176" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    )}
+                    {row.munshi}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="cmp-bottom">
+          <p className="cmp-cta-text">
+            Same result. <span>A fraction of the cost.</span>
+          </p>
+          <a href="/auth/signup" className="cmp-cta-btn">
+            Try Free — No Card Needed
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </div>
+
+      </div>
+    </>
+  )
 }
