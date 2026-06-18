@@ -56,14 +56,24 @@ export default function FAQ() {
         {faqs.map((faq, i) => (
           <div
             key={i}
+            role="button"
+            tabIndex={0}
+            aria-expanded={open === i}
             onClick={() => setOpen(open === i ? null : i)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setOpen(open === i ? null : i);
+              }
+            }}
             style={{
               background: open === i ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
               border: `1px solid ${open === i ? 'rgba(74,225,118,0.25)' : 'rgba(255,255,255,0.07)'}`,
               borderRadius: '12px',
               padding: '20px 24px',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              outline: 'none'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
