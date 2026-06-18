@@ -7,6 +7,11 @@ import Features from '@/components/Features'
 import Comparison from '@/components/Comparison'
 import WhoIsItFor from '@/components/WhoIsItFor'
 import Pricing from '@/components/Pricing'
+import ROICalculator from '@/components/ROICalculator'
+import FAQ from '@/components/FAQ'
+import FinalCTA from '@/components/FinalCTA'
+import Footer from '@/components/Footer'
+
 
 
 
@@ -22,6 +27,10 @@ export default function Home() {
       <Comparison />
       <WhoIsItFor />
       <Pricing />
+      <ROICalculator />
+      <FAQ />
+      <FinalCTA />
+      <Footer />
     </LandingBackground>
 
   )
