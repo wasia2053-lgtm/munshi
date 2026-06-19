@@ -53,16 +53,16 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <header className="h-20 flex items-center justify-between px-8 border-b border-white/5 sticky top-0 bg-background/50 backdrop-blur-md z-30">
-        <h1 className="font-headline-md text-2xl font-bold text-primary">Dashboard</h1>
+      <header className="h-20 flex items-center justify-between px-8 border-b border-white/5 sticky top-0 bg-[#121314]/50 backdrop-blur-md z-30">
+        <h1 className="font-headline-md text-2xl font-bold text-white">Dashboard</h1>
         <div className="flex items-center gap-3">
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
             stats?.whatsappStatus === 'connected'
-              ? 'bg-secondary/10 border-secondary/20'
+              ? 'bg-[#4ae176]/10 border-[#4ae176]/20'
               : 'bg-white/5 border-white/10'
           }`}>
-            <div className={`w-2 h-2 rounded-full ${stats?.whatsappStatus === 'connected' ? 'bg-secondary animate-pulse' : 'bg-white/30'}`} />
-            <span className={`text-[11px] font-bold uppercase tracking-wider ${stats?.whatsappStatus === 'connected' ? 'text-secondary' : 'text-white/40'}`}>
+            <div className={`w-2 h-2 rounded-full ${stats?.whatsappStatus === 'connected' ? 'bg-[#4ae176] animate-pulse' : 'bg-white/30'}`} />
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${stats?.whatsappStatus === 'connected' ? 'text-[#4ae176]' : 'text-white/40'}`}>
               {stats?.whatsappStatus === 'connected' ? 'WhatsApp Connected' : 'WhatsApp Disconnected'}
             </span>
           </div>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
                 badge={stats!.messagesChangePercent !== null
                   ? `${stats!.messagesChangePercent >= 0 ? '+' : ''}${stats!.messagesChangePercent}%`
                   : 'New'}
-                badgeColor={stats!.messagesChangePercent === null || stats!.messagesChangePercent >= 0 ? 'text-secondary' : 'text-red-400'}
+                badgeColor={stats!.messagesChangePercent === null || stats!.messagesChangePercent >= 0 ? 'text-[#4ae176]' : 'text-red-400'}
               />
               <StatCard
                 icon="group"
@@ -99,19 +99,19 @@ export default function DashboardPage() {
                 label="Avg Response Time"
                 value={formatResponseTime(stats!.avgResponseSeconds)}
                 badge={stats!.avgResponseSeconds !== null ? 'Live' : 'No data'}
-                badgeColor="text-secondary"
+                badgeColor="text-[#4ae176]"
               />
-              <div className="glass-panel p-6 rounded-2xl bg-secondary/5 border-secondary/20 relative overflow-hidden">
+              <div className="glass-panel p-6 rounded-2xl bg-[#4ae176]/5 border-[#4ae176]/20 relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">
-                  <span className="material-symbols-outlined text-secondary">hub</span>
+                  <span className="material-symbols-outlined text-[#4ae176]">hub</span>
                   <div className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    stats!.whatsappStatus === 'connected' ? 'bg-secondary text-background' : 'bg-white/10 text-white/50'
+                    stats!.whatsappStatus === 'connected' ? 'bg-[#4ae176] text-[#121314]' : 'bg-white/10 text-white/50'
                   }`}>
                     {stats!.whatsappStatus === 'connected' ? 'LIVE' : 'OFFLINE'}
                   </div>
                 </div>
-                <div className="font-label-caps text-xs text-secondary/80 mb-1 uppercase tracking-wide">WhatsApp Node</div>
-                <div className="text-xl text-primary font-bold capitalize">{stats!.whatsappStatus}</div>
+                <div className="font-label-caps text-xs text-[#4ae176]/80 mb-1 uppercase tracking-wide">WhatsApp Node</div>
+                <div className="text-xl text-white font-bold capitalize">{stats!.whatsappStatus}</div>
               </div>
             </>
           )}
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           {/* Volume Chart */}
           <div className="lg:col-span-2 glass-panel p-8 rounded-3xl min-h-[400px] flex flex-col">
             <div className="mb-8">
-              <h3 className="text-xl text-primary font-bold">Volume Insight</h3>
+              <h3 className="text-xl text-white font-bold">Volume Insight</h3>
               <p className="text-sm text-white/50">Message distribution across last 7 days</p>
             </div>
             {loading ? (
@@ -133,10 +133,10 @@ export default function DashboardPage() {
                     <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
                       <div className="w-full relative flex items-end" style={{ height: '280px' }}>
                         <div
-                          className={`w-full rounded-t-lg transition-all ${d.count === maxCount && d.count > 0 ? 'bg-secondary' : 'bg-white/10 group-hover:bg-secondary/40'}`}
+                          className={`w-full rounded-t-lg transition-all ${d.count === maxCount && d.count > 0 ? 'bg-[#4ae176]' : 'bg-white/10 group-hover:bg-[#4ae176]/40'}`}
                           style={{ height: `${Math.max((d.count / maxCount) * 100, 2)}%` }}
                         >
-                          <div className="text-center -mt-6 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="text-center -mt-6 text-[10px] font-bold text-[#4ae176] opacity-0 group-hover:opacity-100 transition-opacity">
                             {d.count}
                           </div>
                         </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
 
           {/* Recent Conversations */}
           <div className="glass-panel p-8 rounded-3xl flex flex-col">
-            <h3 className="text-lg text-primary font-bold mb-6">Recent Conversations</h3>
+            <h3 className="text-lg text-white font-bold mb-6">Recent Conversations</h3>
             {loading ? (
               <SkeletonLine />
             ) : stats!.recentConversations.length === 0 ? (
@@ -166,12 +166,12 @@ export default function DashboardPage() {
               <div className="space-y-6 flex-1 overflow-y-auto">
                 {stats!.recentConversations.map(c => (
                   <a key={c.id} href={`/dashboard/conversations?id=${c.id}`} className="flex gap-4 group cursor-pointer">
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex-shrink-0 flex items-center justify-center border border-white/5 group-hover:border-secondary/30">
-                      <span className="material-symbols-outlined text-secondary text-lg">person</span>
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex-shrink-0 flex items-center justify-center border border-white/5 group-hover:border-[#4ae176]/30">
+                      <span className="material-symbols-outlined text-[#4ae176] text-lg">person</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between mb-0.5">
-                        <span className="text-sm font-bold text-primary truncate">{c.name}</span>
+                        <span className="text-sm font-bold text-white truncate">{c.name}</span>
                         <span className="text-[10px] text-white/40 flex-shrink-0 ml-2">{formatTimeAgo(c.time)}</span>
                       </div>
                       <p className="text-xs text-white/50 truncate">{c.lastMessage}</p>
@@ -196,11 +196,11 @@ function StatCard({ icon, label, value, badge, badgeColor }: {
   return (
     <div className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
       <div className="flex justify-between items-start mb-4">
-        <span className="material-symbols-outlined text-secondary opacity-80">{icon}</span>
+        <span className="material-symbols-outlined text-[#4ae176] opacity-80">{icon}</span>
         <span className={`text-xs font-bold ${badgeColor}`}>{badge}</span>
       </div>
       <div className="text-xs text-white/50 mb-1 uppercase tracking-wide">{label}</div>
-      <div className="text-3xl text-primary font-bold tracking-tight">{value}</div>
+      <div className="text-3xl text-white font-bold tracking-tight">{value}</div>
     </div>
   )
 }
