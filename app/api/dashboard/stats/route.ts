@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase-server'
 
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
@@ -25,7 +25,7 @@ export async function GET() {
     .eq('business_id', business_id)
     .order('last_message_time', { ascending: false });
 
-  const convIds = (conversations || []).map(c => c.id);
+  const convIds = (conversations || []).map((c: any) => c.id);
 
   // 3. Get all messages for these conversations (last 30 days for stats)
   const thirtyDaysAgo = new Date();
@@ -45,12 +45,12 @@ export async function GET() {
   // 4. Total messages this month
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const totalMessagesThisMonth = messages.filter(m => new Date(m.timestamp) >= startOfMonth).length;
+  const totalMessagesThisMonth = messages.filter((m: any) => new Date(m.timestamp) >= startOfMonth).length;
 
   // 5. % change vs last month
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const endOfLastMonth = new Date(startOfMonth.getTime() - 1);
-  const lastMonthMessages = messages.filter(m => {
+  const lastMonthMessages = messages.filter((m: any) => {
     const t = new Date(m.timestamp);
     return t >= startOfLastMonth && t <= endOfLastMonth;
   }).length;
@@ -61,8 +61,8 @@ export async function GET() {
   // 6. Active leads this month (distinct customer phones with activity this month)
   const activeLeadsThisMonth = new Set(
     (conversations || [])
-      .filter(c => c.last_message_time && new Date(c.last_message_time) >= startOfMonth)
-      .map(c => c.customer_phone)
+      .filter((c: any) => c.last_message_time && new Date(c.last_message_time) >= startOfMonth)
+      .map((c: any) => c.customer_phone)
   ).size;
 
   // 7. Response time: avg gap between customer message and next bot reply
@@ -93,7 +93,7 @@ export async function GET() {
     d.setHours(0, 0, 0, 0);
     const dayEnd = new Date(d);
     dayEnd.setHours(23, 59, 59, 999);
-    const count = messages.filter(m => {
+    const count = messages.filter((m: any) => {
       const t = new Date(m.timestamp);
       return t >= d && t <= dayEnd;
     }).length;
@@ -104,7 +104,7 @@ export async function GET() {
   }
 
   // 9. Recent conversations (latest 4)
-  const recentConversations = (conversations || []).slice(0, 4).map(c => ({
+  const recentConversations = (conversations || []).slice(0, 4).map((c: any) => ({
     id: c.id,
     name: c.customer_phone,
     lastMessage: c.last_message || '',
