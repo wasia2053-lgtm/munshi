@@ -13,7 +13,15 @@ const navItems = [
   { label: 'Settings', icon: 'settings', href: '/dashboard/settings' },
 ]
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({
+  children,
+  title,
+  subtitle
+}: {
+  children: React.ReactNode
+  title?: string
+  subtitle?: string
+}) {
   return <DashboardLayoutInner>{children}</DashboardLayoutInner>
 }
 
@@ -84,8 +92,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 md:ml-[280px] min-h-screen relative pb-20 md:pb-0">
-        {children}
-      </main>
+  {title && (
+    <div className="px-8 pt-8 pb-2">
+      <h1 className="text-2xl font-bold text-white">{title}</h1>
+      {subtitle && <p className="text-sm text-white/50 mt-1">{subtitle}</p>}
+    </div>
+  )}
+  {children}
+</main>
     </div>
   )
 }
