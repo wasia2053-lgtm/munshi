@@ -13,7 +13,11 @@ const navItems = [
   { label: 'Settings', icon: 'settings', href: '/dashboard/settings' },
 ]
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return <DashboardLayoutInner>{children}</DashboardLayoutInner>
+}
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   return (
@@ -37,11 +41,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-4 py-3 px-4 rounded-xl transition-all duration-300 ${
-                  active
+                className={`flex items-center gap-4 py-3 px-4 rounded-xl transition-all duration-300 ${active
                     ? 'text-[#4ae176] font-bold bg-white/[0.03] border border-white/10 backdrop-blur-xl'
                     : 'text-[#c4c7c8] hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                 <span className="text-sm">{item.label}</span>
@@ -86,3 +89,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 }
+export default DashboardLayout
