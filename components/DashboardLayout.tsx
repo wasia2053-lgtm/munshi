@@ -22,10 +22,10 @@ export function DashboardLayout({
   title?: string
   subtitle?: string
 }) {
-  return <DashboardLayoutInner>{children}</DashboardLayoutInner>
+  return <DashboardLayoutInner title={title} subtitle={subtitle}>{children}</DashboardLayoutInner>
 }
 
-function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
+function DashboardLayoutInner({ children, title, subtitle }: { children: React.ReactNode; title?: string; subtitle?: string }) {
   const pathname = usePathname()
 
   return (
