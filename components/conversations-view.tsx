@@ -84,7 +84,7 @@ export function ConversationsView() {
         const newStatus = !detail.conversation.is_resolved
         try {
             const res = await fetch(`/api/conversations/${detail.conversation.id}/resolve`, {
-                method: 'POST',
+                method: 'PATCH',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ is_resolved: newStatus })
