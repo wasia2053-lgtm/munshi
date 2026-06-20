@@ -1,34 +1,32 @@
-import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase-server'
 
 export async function GET() {
-  try {
-    const cookieStore = await cookies()
-    const authClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => cookieStore.getAll() } }
-    )
-    const { data: { user } } = await authClient.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-    // Admin client for business operations
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('whatsapp_number, whatsapp_status, whatsapp_phone_id')
-      .eq('id', user.id)
-      .single()
-
-    return NextResponse.json(business || {})
-  } catch (error) {
-    console.error('WhatsApp status error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const business_id = user.id;
+
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('whatsapp_status')
+    .eq('id', business_id)
+    .single();
+
+  const { data: pendingRequest } = await supabase
+    .from('whatsapp_connection_requests')
+    .select('id, phone_number, status, created_at')
+    .eq('business_id', business_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  return NextResponse.json({
+    whatsappStatus: business?.whatsapp_status || 'disconnected',
+    pendingRequest: pendingRequest || null,
+  });
 }
