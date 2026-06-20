@@ -16,6 +16,7 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
+import type { RangeOption } from "@/components/dashboard";
 
 type DayRow = {
 	day: string;
@@ -48,22 +49,33 @@ function ColumnHoverCursor(props: React.ComponentProps<typeof Rectangle>) {
 	);
 }
 
+function rangeLabel(range: RangeOption) {
+	if (range === "all") return "all time";
+	if (range === "7") return "last 7 days";
+	if (range === "30") return "last 30 days";
+	if (range === "60") return "last 60 days";
+	if (range === "180") return "last 6 months";
+	return "last 1 year";
+}
+
 export function CsatResponsesChart({
+	range,
 	className,
 	...props
-}: ComponentProps<typeof Card>) {
+}: { range: RangeOption } & ComponentProps<typeof Card>) {
 	const [chartData, setChartData] = useState<DayRow[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		fetch('/api/dashboard/message-activity', { credentials: 'include' })
+		setLoading(true);
+		fetch(`/api/dashboard/message-activity?days=${range}`, { credentials: 'include' })
 			.then(res => res.json())
 			.then(data => {
 				setChartData(data.rows || []);
 				setLoading(false);
 			})
 			.catch(() => setLoading(false));
-	}, []);
+	}, [range]);
 
 	return (
 		<Card
@@ -73,7 +85,7 @@ export function CsatResponsesChart({
 			<CardHeader>
 				<CardTitle>Message Activity</CardTitle>
 				<CardDescription>
-					Bot vs customer messages per day, last 90 days.
+					Bot vs customer messages per day, {rangeLabel(range)}.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

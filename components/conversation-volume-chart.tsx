@@ -20,16 +20,8 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/delta";
-
-type PeriodOption = "7" | "30" | "60" | "180" | "365" | "all";
+import type { RangeOption } from "@/components/dashboard";
 
 type VolumeRow = {
 	date: string;
@@ -44,26 +36,26 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ConversationVolumeChart({
+	range,
 	className,
 	...props
-}: ComponentProps<typeof Card>) {
+}: { range: RangeOption } & ComponentProps<typeof Card>) {
 	const chartUid = useId().replace(/:/g, "");
 	const idAreaGradient = `conversation-volume-area-grad-${chartUid}`;
 
-	const [periodDays, setPeriodDays] = useState<PeriodOption>("30");
 	const [chartRows, setChartRows] = useState<VolumeRow[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		setLoading(true);
-		fetch(`/api/dashboard/volume?days=${periodDays}`, { credentials: 'include' })
+		fetch(`/api/dashboard/volume?days=${range}`, { credentials: 'include' })
 			.then(res => res.json())
 			.then(data => {
 				setChartRows(data.rows || []);
 				setLoading(false);
 			})
 			.catch(() => setLoading(false));
-	}, [periodDays]);
+	}, [range]);
 
 	const growthPctNum = (() => {
 		const first = chartRows[0];
@@ -76,7 +68,7 @@ export function ConversationVolumeChart({
 		return ((b - a) / a) * 100;
 	})();
 
-	const periodNum = periodDays === "all" ? 999 : Number(periodDays);
+	const periodNum = range === "all" ? 999 : Number(range);
 	let xAxisMinTickGap: number | undefined;
 	if (periodNum <= 7) {
 		xAxisMinTickGap = undefined;
@@ -109,28 +101,6 @@ export function ConversationVolumeChart({
 						Active conversations per day for the selected window.
 					</CardDescription>
 				</div>
-				<Select
-					onValueChange={(v) => {
-						setPeriodDays(v as PeriodOption);
-					}}
-					value={periodDays}
-				>
-					<SelectTrigger
-						aria-label="Conversation volume time range"
-						className="w-full min-w-36 sm:w-fit"
-						size="sm"
-					>
-						<SelectValue placeholder="Range" />
-					</SelectTrigger>
-					<SelectContent align="end">
-						<SelectItem value="7">Last 7 days</SelectItem>
-						<SelectItem value="30">Last 30 days</SelectItem>
-						<SelectItem value="60">Last 60 days</SelectItem>
-						<SelectItem value="180">Last 6 months</SelectItem>
-						<SelectItem value="365">Last 1 year</SelectItem>
-						<SelectItem value="all">All time</SelectItem>
-					</SelectContent>
-				</Select>
 			</CardHeader>
 			<CardContent>
 				{loading ? (

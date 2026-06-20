@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
 
-export async function GET() {
+function getRangeDays(range: string): number {
+    if (range === 'all') return 1825;
+    return Number(range) || 30;
+}
+
+export async function GET(request: Request) {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -9,6 +14,9 @@ export async function GET() {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const range = searchParams.get('days') || '30';
+    const days = getRangeDays(range);
     const business_id = user.id;
 
     const { data: conversations } = await supabase
@@ -18,9 +26,9 @@ export async function GET() {
 
     const convIds = (conversations || []).map((c: any) => c.id);
 
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    ninetyDaysAgo.setHours(0, 0, 0, 0);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
 
     let messages: any[] = [];
     if (convIds.length > 0) {
@@ -28,7 +36,7 @@ export async function GET() {
             .from('messages')
             .select('conversation_id, sender, timestamp')
             .in('conversation_id', convIds)
-            .gte('timestamp', ninetyDaysAgo.toISOString())
+            .gte('timestamp', startDate.toISOString())
             .order('timestamp', { ascending: true });
         messages = msgData || [];
     }
@@ -40,10 +48,14 @@ export async function GET() {
     }
 
     const byDay: Record<string, number[]> = {};
-    for (let i = 89; i >= 0; i--) {
+    const useShortFormat = days > 14;
+
+    for (let i = days - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const label = useShortFormat
+            ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : d.toLocaleDateString('en-US', { weekday: 'short' });
         byDay[label] = [];
     }
 
@@ -53,7 +65,10 @@ export async function GET() {
             if (msgs[i].sender === 'customer' && msgs[i + 1].sender === 'bot') {
                 const gap = (new Date(msgs[i + 1].timestamp).getTime() - new Date(msgs[i].timestamp).getTime()) / 1000;
                 if (gap >= 0 && gap < 300) {
-                    const label = new Date(msgs[i].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const d = new Date(msgs[i].timestamp);
+                    const label = useShortFormat
+                        ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : d.toLocaleDateString('en-US', { weekday: 'short' });
                     if (byDay[label]) byDay[label].push(gap / 60);
                 }
             }

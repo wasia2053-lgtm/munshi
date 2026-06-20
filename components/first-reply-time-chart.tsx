@@ -17,6 +17,7 @@ import {
 	ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/delta";
+import type { RangeOption } from "@/components/dashboard";
 
 type ReplyRow = {
 	day: string;
@@ -30,22 +31,33 @@ const chartConfig = {
 	},
 } satisfies ChartConfig;
 
+function rangeLabel(range: RangeOption) {
+	if (range === "all") return "all time";
+	if (range === "7") return "last 7 days";
+	if (range === "30") return "last 30 days";
+	if (range === "60") return "last 60 days";
+	if (range === "180") return "last 6 months";
+	return "last 1 year";
+}
+
 export function FirstReplyTimeChart({
+	range,
 	className,
 	...props
-}: ComponentProps<typeof Card>) {
+}: { range: RangeOption } & ComponentProps<typeof Card>) {
 	const [chartRows, setChartRows] = useState<ReplyRow[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		fetch('/api/dashboard/reply-time', { credentials: 'include' })
+		setLoading(true);
+		fetch(`/api/dashboard/reply-time?days=${range}`, { credentials: 'include' })
 			.then(res => res.json())
 			.then(data => {
 				setChartRows(data.rows || []);
 				setLoading(false);
 			})
 			.catch(() => setLoading(false));
-	}, []);
+	}, [range]);
 
 	const firstMinutes = chartRows[0]?.minutes ?? 0;
 	const lastMinutes = chartRows.at(-1)?.minutes ?? firstMinutes;
@@ -68,7 +80,7 @@ export function FirstReplyTimeChart({
 					)}
 				</div>
 				<CardDescription>
-					Minutes to first bot reply, last 90 days.
+					Minutes to first bot reply, {rangeLabel(range)}.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
