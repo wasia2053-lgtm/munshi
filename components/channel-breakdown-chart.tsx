@@ -105,6 +105,9 @@ export function ChannelBreakdownChart({
 								outerRadius="88%"
 								stroke="var(--card)"
 								strokeWidth={4}
+								isAnimationActive={true}
+								animationDuration={1000}
+								animationEasing="ease-out"
 							>
 								<LabelList
 									className="fill-background font-medium"

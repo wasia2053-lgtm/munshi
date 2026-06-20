@@ -18,9 +18,9 @@ export async function GET() {
 
     const convIds = (conversations || []).map((c: any) => c.id);
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    ninetyDaysAgo.setHours(0, 0, 0, 0);
 
     let messages: any[] = [];
     if (convIds.length > 0) {
@@ -28,24 +28,22 @@ export async function GET() {
             .from('messages')
             .select('conversation_id, sender, timestamp')
             .in('conversation_id', convIds)
-            .gte('timestamp', sevenDaysAgo.toISOString())
+            .gte('timestamp', ninetyDaysAgo.toISOString())
             .order('timestamp', { ascending: true });
         messages = msgData || [];
     }
 
-    // Group by conversation
     const byConv: Record<string, any[]> = {};
     for (const m of messages) {
         if (!byConv[m.conversation_id]) byConv[m.conversation_id] = [];
         byConv[m.conversation_id].push(m);
     }
 
-    // Calculate response times bucketed by day
     const byDay: Record<string, number[]> = {};
-    for (let i = 6; i >= 0; i--) {
+    for (let i = 89; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         byDay[label] = [];
     }
 
@@ -55,8 +53,8 @@ export async function GET() {
             if (msgs[i].sender === 'customer' && msgs[i + 1].sender === 'bot') {
                 const gap = (new Date(msgs[i + 1].timestamp).getTime() - new Date(msgs[i].timestamp).getTime()) / 1000;
                 if (gap >= 0 && gap < 300) {
-                    const label = new Date(msgs[i].timestamp).toLocaleDateString('en-US', { weekday: 'short' });
-                    if (byDay[label]) byDay[label].push(gap / 60); // convert to minutes
+                    const label = new Date(msgs[i].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    if (byDay[label]) byDay[label].push(gap / 60);
                 }
             }
         }

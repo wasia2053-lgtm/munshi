@@ -73,7 +73,7 @@ export function CsatResponsesChart({
 			<CardHeader>
 				<CardTitle>Message Activity</CardTitle>
 				<CardDescription>
-					Bot vs customer messages per day, last 10 days.
+					Bot vs customer messages per day, last 90 days.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -85,8 +85,8 @@ export function CsatResponsesChart({
 							<XAxis
 								axisLine={false}
 								dataKey="day"
-								interval={0}
-								minTickGap={8}
+								interval="preserveStartEnd"
+								minTickGap={20}
 								tickFormatter={(value) => String(value)}
 								tickLine={false}
 								tickMargin={10}
@@ -106,6 +106,8 @@ export function CsatResponsesChart({
 								overflow="visible"
 								radius={[0, 0, BAR_RADIUS, BAR_RADIUS]}
 								stackId="activity"
+								isAnimationActive={true}
+								animationDuration={800}
 							/>
 							<Bar
 								barSize={8}
@@ -114,6 +116,8 @@ export function CsatResponsesChart({
 								overflow="visible"
 								radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]}
 								stackId="activity"
+								isAnimationActive={true}
+								animationDuration={800}
 							/>
 						</BarChart>
 					</ChartContainer>

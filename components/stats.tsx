@@ -68,8 +68,8 @@ export function DashboardStats() {
 		{
 			label: "Total Messages",
 			value: data.totalMessagesThisMonth.toLocaleString(),
-			delta: data.messagesChangePercent,
-			footnote: "this month",
+			delta: null,
+			footnote: "all time",
 			lowerIsBetter: false,
 		},
 		{

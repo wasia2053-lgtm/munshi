@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useState, type ComponentProps } from "react";
-import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import {
 	Card,
 	CardContent,
@@ -68,7 +68,7 @@ export function FirstReplyTimeChart({
 					)}
 				</div>
 				<CardDescription>
-					Minutes to first bot reply, last 7 days.
+					Minutes to first bot reply, last 90 days.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -85,8 +85,8 @@ export function FirstReplyTimeChart({
 							<XAxis
 								axisLine={false}
 								dataKey="day"
-								interval={0}
-								tickFormatter={(value) => String(value).slice(0, 3)}
+								interval="preserveStartEnd"
+								minTickGap={20}
 								tickLine={false}
 								tickMargin={8}
 							/>
@@ -97,25 +97,14 @@ export function FirstReplyTimeChart({
 							<Line
 								activeDot={{ r: 6 }}
 								dataKey="minutes"
-								dot={{ fill: "var(--color-minutes)" }}
+								dot={false}
 								stroke="var(--color-minutes)"
 								strokeWidth={2}
 								type="natural"
-							>
-								<LabelList
-									className="fill-foreground"
-									dataKey="minutes"
-									fontSize={12}
-									formatter={(label: any) => {
-										const n = Number(label);
-										return Number.isFinite(n) && n > 0
-											? `${n.toFixed(1)}m`
-											: "";
-									}}
-									offset={12}
-									position="top"
-								/>
-							</Line>
+								isAnimationActive={true}
+								animationDuration={800}
+								animationEasing="ease-out"
+							/>
 						</LineChart>
 					</ChartContainer>
 				)}

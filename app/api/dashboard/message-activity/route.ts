@@ -18,9 +18,9 @@ export async function GET() {
 
     const convIds = (conversations || []).map((c: any) => c.id);
 
-    const tenDaysAgo = new Date();
-    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-    tenDaysAgo.setHours(0, 0, 0, 0);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    ninetyDaysAgo.setHours(0, 0, 0, 0);
 
     let messages: any[] = [];
     if (convIds.length > 0) {
@@ -28,13 +28,13 @@ export async function GET() {
             .from('messages')
             .select('sender, timestamp')
             .in('conversation_id', convIds)
-            .gte('timestamp', tenDaysAgo.toISOString());
+            .gte('timestamp', ninetyDaysAgo.toISOString());
         messages = msgData || [];
     }
 
     const byDay: Record<string, { bot: number; customer: number }> = {};
 
-    for (let i = 9; i >= 0; i--) {
+    for (let i = 89; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

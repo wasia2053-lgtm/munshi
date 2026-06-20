@@ -203,6 +203,9 @@ export function ConversationVolumeChart({
 								stroke="var(--color-conversations)"
 								strokeWidth={2}
 								type="natural"
+								isAnimationActive={true}
+								animationDuration={800}
+								animationEasing="ease-out"
 							/>
 						</AreaChart>
 					</ChartContainer>
