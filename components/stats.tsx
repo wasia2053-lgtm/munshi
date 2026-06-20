@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/delta";
 import { useEffect, useState } from "react";
+import type { RangeOption } from "@/components/dashboard";
 
 type Stat = {
 	label: string;
@@ -18,9 +19,8 @@ type Stat = {
 };
 
 interface DashboardStatsData {
-	totalMessagesThisMonth: number
-	messagesChangePercent: number | null
-	activeLeadsThisMonth: number
+	totalMessages: number
+	activeLeads: number
 	avgResponseSeconds: number | null
 	whatsappStatus: string
 }
@@ -31,19 +31,29 @@ function formatResponseTime(seconds: number | null) {
 	return `${(seconds / 60).toFixed(1)}m`
 }
 
-export function DashboardStats() {
+function rangeLabel(range: RangeOption) {
+	if (range === "all") return "all time";
+	if (range === "7") return "last 7 days";
+	if (range === "30") return "last 30 days";
+	if (range === "60") return "last 60 days";
+	if (range === "180") return "last 6 months";
+	return "last 1 year";
+}
+
+export function DashboardStats({ range }: { range: RangeOption }) {
 	const [data, setData] = useState<DashboardStatsData | null>(null)
 	const [loading, setLoading] = useState(true)
 
 	useEffect(() => {
-		fetch('/api/dashboard/stats', { credentials: 'include' })
+		setLoading(true)
+		fetch(`/api/dashboard/stats?range=${range}`, { credentials: 'include' })
 			.then(res => res.json())
 			.then(json => {
 				setData(json)
 				setLoading(false)
 			})
 			.catch(() => setLoading(false))
-	}, [])
+	}, [range])
 
 	if (loading || !data) {
 		return (
@@ -64,26 +74,28 @@ export function DashboardStats() {
 		)
 	}
 
+	const label = rangeLabel(range);
+
 	const stats: readonly Stat[] = [
 		{
 			label: "Total Messages",
-			value: data.totalMessagesThisMonth.toLocaleString(),
+			value: data.totalMessages.toLocaleString(),
 			delta: null,
-			footnote: "all time",
+			footnote: label,
 			lowerIsBetter: false,
 		},
 		{
 			label: "Active Leads",
-			value: data.activeLeadsThisMonth.toLocaleString(),
+			value: data.activeLeads.toLocaleString(),
 			delta: null,
-			footnote: "this month",
+			footnote: label,
 			lowerIsBetter: false,
 		},
 		{
 			label: "Avg Response Time",
 			value: formatResponseTime(data.avgResponseSeconds),
 			delta: null,
-			footnote: "last 30 days",
+			footnote: label,
 			lowerIsBetter: true,
 		},
 		{
@@ -106,17 +118,7 @@ export function DashboardStats() {
 					</CardHeader>
 					<CardContent className="flex flex-col gap-2">
 						<p className="font-semibold text-2xl tabular-nums">{s.value}</p>
-						{s.delta !== null ? (
-							<div className="flex items-center gap-1 text-xs">
-								<Delta value={s.delta}>
-									<DeltaIcon />
-									<DeltaValue />
-								</Delta>
-								<span className="text-muted-foreground">{s.footnote}</span>
-							</div>
-						) : (
-							<span className="text-muted-foreground text-xs">{s.footnote}</span>
-						)}
+						<span className="text-muted-foreground text-xs">{s.footnote}</span>
 					</CardContent>
 				</Card>
 			))}

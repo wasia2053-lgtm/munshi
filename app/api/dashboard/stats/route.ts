@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
 
-export async function GET() {
+function getStartDate(range: string): Date | null {
+  if (range === 'all') return null;
+  const days = Number(range) || 30;
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export async function GET(request: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -9,6 +18,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const range = searchParams.get('range') || '30';
   const business_id = user.id;
 
   const [businessRes, subRes, settingsRes] = await Promise.all([
@@ -24,46 +35,33 @@ export async function GET() {
     .order('last_message_time', { ascending: false });
 
   const convIds = (conversations || []).map((c: any) => c.id);
-
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startDate = getStartDate(range);
 
   let messages: any[] = [];
   if (convIds.length > 0) {
-    const { data: msgData } = await supabase
+    let query = supabase
       .from('messages')
       .select('id, conversation_id, sender, content, timestamp')
       .in('conversation_id', convIds)
-      .gte('timestamp', thirtyDaysAgo.toISOString())
       .order('timestamp', { ascending: true });
+
+    if (startDate) {
+      query = query.gte('timestamp', startDate.toISOString());
+    }
+
+    const { data: msgData } = await query;
     messages = msgData || [];
   }
 
-  // All-time total message count
-  let allTimeMessageCount = 0;
-  if (convIds.length > 0) {
-    const { count } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .in('conversation_id', convIds);
-    allTimeMessageCount = count || 0;
-  }
+  const totalMessages = messages.length;
 
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const totalMessagesThisMonth = allTimeMessageCount;
-
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(startOfMonth.getTime() - 1);
-  const lastMonthMessages = messages.filter((m: any) => {
-    const t = new Date(m.timestamp);
-    return t >= startOfLastMonth && t <= endOfLastMonth;
-  }).length;
-  const messagesChangePercent = null;
-
-  const activeLeadsThisMonth = new Set(
+  const activeLeads = new Set(
     (conversations || [])
-      .filter((c: any) => c.last_message_time && new Date(c.last_message_time) >= startOfMonth)
+      .filter((c: any) => {
+        if (!c.last_message_time) return false;
+        if (!startDate) return true;
+        return new Date(c.last_message_time) >= startDate;
+      })
       .map((c: any) => c.customer_phone)
   ).size;
 
@@ -86,23 +84,6 @@ export async function GET() {
     ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
     : null;
 
-  const last7Days: { day: string; count: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    d.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(d);
-    dayEnd.setHours(23, 59, 59, 999);
-    const count = messages.filter((m: any) => {
-      const t = new Date(m.timestamp);
-      return t >= d && t <= dayEnd;
-    }).length;
-    last7Days.push({
-      day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-      count,
-    });
-  }
-
   const recentConversations = (conversations || []).slice(0, 4).map((c: any) => ({
     id: c.id,
     name: c.customer_phone,
@@ -116,11 +97,9 @@ export async function GET() {
     plan: subRes.data?.plan || 'free',
     messagesUsed: subRes.data?.messages_used || 0,
     messagesLimit: subRes.data?.messages_limit || 50,
-    totalMessagesThisMonth,
-    messagesChangePercent,
-    activeLeadsThisMonth,
+    totalMessages,
+    activeLeads,
     avgResponseSeconds,
-    volumeLast7Days: last7Days,
     recentConversations,
   });
 }
