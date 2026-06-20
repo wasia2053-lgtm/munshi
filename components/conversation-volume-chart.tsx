@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/delta";
 
-type PeriodDays = 7 | 30 | 60;
+type PeriodOption = "7" | "30" | "60" | "180" | "365" | "all";
 
 type VolumeRow = {
 	date: string;
@@ -50,7 +50,7 @@ export function ConversationVolumeChart({
 	const chartUid = useId().replace(/:/g, "");
 	const idAreaGradient = `conversation-volume-area-grad-${chartUid}`;
 
-	const [periodDays, setPeriodDays] = useState<PeriodDays>(30);
+	const [periodDays, setPeriodDays] = useState<PeriodOption>("30");
 	const [chartRows, setChartRows] = useState<VolumeRow[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -76,10 +76,11 @@ export function ConversationVolumeChart({
 		return ((b - a) / a) * 100;
 	})();
 
+	const periodNum = periodDays === "all" ? 999 : Number(periodDays);
 	let xAxisMinTickGap: number | undefined;
-	if (periodDays <= 7) {
+	if (periodNum <= 7) {
 		xAxisMinTickGap = undefined;
-	} else if (periodDays >= 60) {
+	} else if (periodNum >= 60) {
 		xAxisMinTickGap = 20;
 	} else {
 		xAxisMinTickGap = 28;
@@ -110,10 +111,9 @@ export function ConversationVolumeChart({
 				</div>
 				<Select
 					onValueChange={(v) => {
-						const n = Number(v);
-						setPeriodDays(n as PeriodDays);
+						setPeriodDays(v as PeriodOption);
 					}}
-					value={String(periodDays)}
+					value={periodDays}
 				>
 					<SelectTrigger
 						aria-label="Conversation volume time range"
@@ -126,6 +126,9 @@ export function ConversationVolumeChart({
 						<SelectItem value="7">Last 7 days</SelectItem>
 						<SelectItem value="30">Last 30 days</SelectItem>
 						<SelectItem value="60">Last 60 days</SelectItem>
+						<SelectItem value="180">Last 6 months</SelectItem>
+						<SelectItem value="365">Last 1 year</SelectItem>
+						<SelectItem value="all">All time</SelectItem>
 					</SelectContent>
 				</Select>
 			</CardHeader>
@@ -162,10 +165,10 @@ export function ConversationVolumeChart({
 							<XAxis
 								axisLine={false}
 								dataKey="date"
-								interval={periodDays <= 7 ? 0 : "preserveStartEnd"}
+								interval={periodNum <= 7 ? 0 : "preserveStartEnd"}
 								minTickGap={xAxisMinTickGap}
 								tickFormatter={(value) =>
-									formatChartAxisTick(String(value), periodDays)
+									formatChartAxisTick(String(value), periodNum)
 								}
 								tickLine={false}
 								tickMargin={8}
