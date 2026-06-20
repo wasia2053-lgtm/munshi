@@ -89,6 +89,8 @@ export function ConversationsView() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ is_resolved: newStatus })
             })
+            const result = await res.json()
+            console.log('Resolve API response:', res.status, result)
             if (res.ok) {
                 setDetail({
                     ...detail,
@@ -97,7 +99,12 @@ export function ConversationsView() {
                 setConversations(prev => prev.map(c =>
                     c.id === detail.conversation.id ? { ...c, is_resolved: newStatus } : c
                 ))
+            } else {
+                alert(`Failed to update: ${result.error || 'Unknown error'} (Status: ${res.status})`)
             }
+        } catch (err) {
+            console.error('Resolve request failed:', err)
+            alert('Network error while updating conversation status')
         } finally {
             setResolving(false)
         }
