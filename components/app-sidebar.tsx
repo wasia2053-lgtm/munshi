@@ -1,4 +1,3 @@
-import { LogoIcon } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
 	Sidebar,
@@ -13,16 +12,18 @@ import {
 import { NavGroup } from "@/components/nav-group";
 import { footerNavLinks, navGroups } from "@/components/app-shared";
 import { LatestChange } from "@/components/latest-change";
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 
 export function AppSidebar() {
 	return (
 		<Sidebar collapsible="icon" variant="inset">
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
-					<a href="#link">
-						<LogoIcon />
-						<span className="font-medium">Efferd</span>
+					<a href="/dashboard">
+						<div className="flex size-7 items-center justify-center rounded-md bg-[#4ae176] text-[#121314] font-bold text-sm">
+							M
+						</div>
+						<span className="font-medium">Munshi</span>
 					</a>
 				</SidebarMenuButton>
 			</SidebarHeader>
@@ -30,23 +31,15 @@ export function AppSidebar() {
 				<SidebarGroup>
 					<SidebarMenuItem className="flex items-center gap-2">
 						<SidebarMenuButton
-							className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-							tooltip="Quick Create"
+							asChild
+							className="min-w-8 bg-[#4ae176] text-[#121314] duration-200 ease-linear hover:bg-[#4ae176]/90 hover:text-[#121314] active:bg-[#4ae176]/90 active:text-[#121314]"
+							tooltip="Connect WhatsApp"
 						>
-							<PlusIcon
-							/>
-							<span>New Conversation</span>
+							<a href="/dashboard/whatsapp">
+								<PlusIcon />
+								<span>Connect WhatsApp</span>
+							</a>
 						</SidebarMenuButton>
-						<Button
-							aria-label="Search conversations"
-							className="size-8 group-data-[collapsible=icon]:opacity-0"
-							size="icon"
-							variant="outline"
-						>
-							<SearchIcon
-							/>
-							<span className="sr-only">Search conversations</span>
-						</Button>
 					</SidebarMenuItem>
 				</SidebarGroup>
 				{navGroups.map((group, index) => (
@@ -54,7 +47,6 @@ export function AppSidebar() {
 				))}
 			</SidebarContent>
 			<SidebarFooter>
-				<LatestChange />
 				<SidebarMenu className="mt-2">
 					{footerNavLinks.map((item) => (
 						<SidebarMenuItem key={item.title}>
