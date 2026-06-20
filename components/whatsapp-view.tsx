@@ -345,6 +345,8 @@ export function WhatsAppView() {
                         </CardContent>
                     </Card>
                 </div>
-        </>
+            </>
+            )}
+        </div>
     )
 }
