@@ -12,8 +12,6 @@ import {
 import { NavGroup } from "@/components/nav-group";
 import { footerNavLinks, navGroups } from "@/components/app-shared";
 import { LatestChange } from "@/components/latest-change";
-import { PlusIcon } from "lucide-react";
-
 export function AppSidebar() {
 	return (
 		<Sidebar collapsible="icon" variant="inset">
@@ -28,20 +26,6 @@ export function AppSidebar() {
 				</SidebarMenuButton>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenuItem className="flex items-center gap-2">
-						<SidebarMenuButton
-							asChild
-							className="min-w-8 bg-[#4ae176] text-[#121314] duration-200 ease-linear hover:bg-[#4ae176]/90 hover:text-[#121314] active:bg-[#4ae176]/90 active:text-[#121314]"
-							tooltip="Connect WhatsApp"
-						>
-							<a href="/dashboard/whatsapp">
-								<PlusIcon />
-								<span>Connect WhatsApp</span>
-							</a>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarGroup>
 				{navGroups.map((group, index) => (
 					<NavGroup key={`sidebar-group-${index}`} {...group} />
 				))}
