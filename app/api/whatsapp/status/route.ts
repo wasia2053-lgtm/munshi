@@ -17,6 +17,13 @@ export async function GET() {
     .eq('id', business_id)
     .single();
 
+  const { data: waNumber } = await supabase
+    .from('whatsapp_numbers')
+    .select('phone_number, display_name')
+    .eq('business_id', business_id)
+    .eq('is_primary', true)
+    .single();
+
   const { data: pendingRequest } = await supabase
     .from('whatsapp_connection_requests')
     .select('id, phone_number, status, created_at')
@@ -27,6 +34,8 @@ export async function GET() {
 
   return NextResponse.json({
     whatsappStatus: business?.whatsapp_status || 'disconnected',
+    phoneNumber: waNumber?.phone_number || null,
+    displayName: waNumber?.display_name || null,
     pendingRequest: pendingRequest || null,
   });
 }

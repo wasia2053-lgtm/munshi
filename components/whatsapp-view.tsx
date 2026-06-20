@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils"
 
 type StatusData = {
     whatsappStatus: string
+    phoneNumber: string | null
+    displayName: string | null
     pendingRequest: {
         id: string
         phone_number: string
@@ -38,7 +40,7 @@ const selfServeSteps = [
     },
     {
         title: "Add WhatsApp to your Business Manager",
-        desc: "In Business Settings, find \"WhatsApp Accounts\" and click \"Add\". Follow Meta's setup wizard.",
+        desc: "In Business Settings, find WhatsApp Accounts and click Add. Follow Meta's setup wizard.",
     },
     {
         title: "Verify your business phone number",
@@ -48,21 +50,25 @@ const selfServeSteps = [
         title: "Generate a permanent access token",
         desc: "Under System Users, create a token with whatsapp_business_messaging permission.",
     },
-    {
-        title: "Send us your credentials",
-        desc: "Once you have your Phone Number ID and Access Token, share them with our team via the form below — we'll plug them in and activate your bot.",
-    },
 ]
 
 export function WhatsAppView() {
     const [data, setData] = useState<StatusData | null>(null)
     const [loading, setLoading] = useState(true)
-    const [showForm, setShowForm] = useState(false)
+
+    const [showRequestForm, setShowRequestForm] = useState(false)
     const [phoneNumber, setPhoneNumber] = useState("")
     const [businessName, setBusinessName] = useState("")
     const [notes, setNotes] = useState("")
-    const [submitting, setSubmitting] = useState(false)
-    const [submitted, setSubmitted] = useState(false)
+    const [submittingRequest, setSubmittingRequest] = useState(false)
+    const [requestSubmitted, setRequestSubmitted] = useState(false)
+
+    const [showCredsForm, setShowCredsForm] = useState(false)
+    const [phoneNumberId, setPhoneNumberId] = useState("")
+    const [accessToken, setAccessToken] = useState("")
+    const [credsPhoneNumber, setCredsPhoneNumber] = useState("")
+    const [submittingCreds, setSubmittingCreds] = useState(false)
+    const [credsSubmitted, setCredsSubmitted] = useState(false)
 
     useEffect(() => {
         fetch('/api/whatsapp/status', { credentials: 'include' })
@@ -74,9 +80,9 @@ export function WhatsAppView() {
             .catch(() => setLoading(false))
     }, [])
 
-    async function handleSubmit() {
+    async function handleRequestSubmit() {
         if (!phoneNumber.trim()) return
-        setSubmitting(true)
+        setSubmittingRequest(true)
         try {
             const res = await fetch('/api/whatsapp/connect-request', {
                 method: 'POST',
@@ -85,11 +91,30 @@ export function WhatsAppView() {
                 body: JSON.stringify({ phone_number: phoneNumber, business_name: businessName, notes }),
             })
             if (res.ok) {
-                setSubmitted(true)
-                setShowForm(false)
+                setRequestSubmitted(true)
+                setShowRequestForm(false)
             }
         } finally {
-            setSubmitting(false)
+            setSubmittingRequest(false)
+        }
+    }
+
+    async function handleCredsSubmit() {
+        if (!phoneNumberId.trim() || !accessToken.trim()) return
+        setSubmittingCreds(true)
+        try {
+            const res = await fetch('/api/whatsapp/submit-credentials', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone_number_id: phoneNumberId, access_token: accessToken, phone_number: credsPhoneNumber }),
+            })
+            if (res.ok) {
+                setCredsSubmitted(true)
+                setShowCredsForm(false)
+            }
+        } finally {
+            setSubmittingCreds(false)
         }
     }
 
@@ -105,33 +130,32 @@ export function WhatsAppView() {
     const isConnected = data?.whatsappStatus === 'connected'
 
     return (
-        <div className="space-y-6 max-w-3xl">
+        <div className="space-y-6 max-w-4xl">
             <div>
-                <h2 className="text-lg font-semibold">WhatsApp Connection</h2>
-                <p className="text-sm text-muted-foreground">Link your WhatsApp Business number to go live</p>
+                <h2 className="text-xl font-semibold">WhatsApp Connection</h2>
+                <p className="text-sm text-muted-foreground mt-1">Link your WhatsApp Business number to go live</p>
             </div>
 
-            {/* Status card */}
             <Card className="shadow-none dark:ring-0">
                 <CardContent className="pt-6 flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <div className={cn(
-                            "size-12 rounded-full flex items-center justify-center",
+                            "size-14 rounded-full flex items-center justify-center",
                             isConnected ? "bg-[var(--chart-1)]/15 text-[var(--chart-1)]" : "bg-muted text-muted-foreground"
                         )}>
-                            {isConnected ? <CheckCircle2Icon className="size-6" /> : <XCircleIcon className="size-6" />}
+                            {isConnected ? <CheckCircle2Icon className="size-7" /> : <XCircleIcon className="size-7" />}
                         </div>
                         <div>
-                            <p className="font-semibold text-sm">
+                            <p className="font-semibold text-base">
                                 {isConnected ? "WhatsApp Connected" : "Not Connected Yet"}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mt-0.5">
                                 {isConnected ? "Your bot is live and replying to messages" : "Connect your number to activate your bot"}
                             </p>
                         </div>
                     </div>
                     {isConnected && (
-                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--chart-1)]/10 text-[var(--chart-1)] text-xs font-medium">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--chart-1)]/10 text-[var(--chart-1)] text-sm font-medium">
                             <span className="size-1.5 rounded-full bg-[var(--chart-1)] animate-pulse" />
                             Live
                         </span>
@@ -139,41 +163,60 @@ export function WhatsAppView() {
                 </CardContent>
             </Card>
 
+            {isConnected && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Card className="shadow-none dark:ring-0">
+                        <CardContent className="pt-6">
+                            <p className="text-sm text-muted-foreground mb-1.5">Connected Number</p>
+                            <p className="text-xl font-semibold tabular-nums">
+                                {data?.phoneNumber || "Not available"}
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-none dark:ring-0">
+                        <CardContent className="pt-6">
+                            <p className="text-sm text-muted-foreground mb-1.5">Display Name</p>
+                            <p className="text-xl font-semibold">
+                                {data?.displayName || "Munshi Bot"}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
             {!isConnected && (
                 <>
-                    {/* Coming soon banner */}
-                    <div className="flex items-center gap-3 p-4 bg-[var(--chart-1)]/5 border border-[var(--chart-1)]/15 rounded-xl">
-                        <ClockIcon className="size-5 text-[var(--chart-1)] shrink-0" />
+                    <div className="flex items-center gap-4 p-5 bg-[var(--chart-1)]/5 border border-[var(--chart-1)]/15 rounded-xl">
+                        <ClockIcon className="size-6 text-[var(--chart-1)] shrink-0" />
                         <div>
-                            <p className="text-sm font-medium">One-click connect is on its way</p>
-                            <p className="text-xs text-muted-foreground">
-                                We're finalizing Meta's official onboarding so you can connect instantly. Until then, two options below.
+                            <p className="text-sm font-semibold">One-click connect is on its way</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                                We are finalizing Meta's official onboarding so you can connect instantly. Until then, use one of the options below.
                             </p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Option A: We do it for you */}
                         <Card className="shadow-none dark:ring-0 border-[var(--chart-1)]/20">
-                            <CardHeader>
-                                <div className="size-10 rounded-lg bg-[var(--chart-1)]/10 text-[var(--chart-1)] flex items-center justify-center mb-2">
+                            <CardHeader className="pb-4">
+                                <div className="size-11 rounded-lg bg-[var(--chart-1)]/10 text-[var(--chart-1)] flex items-center justify-center mb-3">
                                     <UsersIcon className="size-5" />
                                 </div>
-                                <CardTitle className="text-base">Let us connect it for you</CardTitle>
-                                <CardDescription>
-                                    Tell us your WhatsApp Business number. Our team will reach out and complete the setup within 24 hours — no technical work needed on your end.
+                                <CardTitle className="text-lg">Let us connect it for you</CardTitle>
+                                <CardDescription className="text-sm leading-relaxed mt-1.5">
+                                    Share your WhatsApp Business number. Our team handles the entire Meta setup and activates your bot within 24 hours, zero technical work on your end.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {submitted || data?.pendingRequest ? (
-                                    <div className="flex items-center gap-2 p-3 bg-[var(--chart-1)]/5 rounded-lg text-sm">
-                                        <CheckCircle2Icon className="size-4 text-[var(--chart-1)]" />
+                                {requestSubmitted || data?.pendingRequest ? (
+                                    <div className="flex items-center gap-2.5 p-4 bg-[var(--chart-1)]/5 rounded-lg text-sm">
+                                        <CheckCircle2Icon className="size-4 text-[var(--chart-1)] shrink-0" />
                                         <span>
-                                            Request submitted for <strong>{data?.pendingRequest?.phone_number || phoneNumber}</strong>. We'll be in touch soon.
+                                            Request submitted for <strong>{data?.pendingRequest?.phone_number || phoneNumber}</strong>. We will be in touch soon.
                                         </span>
                                     </div>
-                                ) : !showForm ? (
-                                    <Button onClick={() => setShowForm(true)} className="w-full">
+                                ) : !showRequestForm ? (
+                                    <Button onClick={() => setShowRequestForm(true)} className="w-full" size="lg">
                                         Request Connection
                                     </Button>
                                 ) : (
@@ -183,24 +226,24 @@ export function WhatsAppView() {
                                             value={phoneNumber}
                                             onChange={e => setPhoneNumber(e.target.value)}
                                             placeholder="WhatsApp Business number"
-                                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
+                                            className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
                                         />
                                         <input
                                             type="text"
                                             value={businessName}
                                             onChange={e => setBusinessName(e.target.value)}
                                             placeholder="Business name"
-                                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
+                                            className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
                                         />
                                         <textarea
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
-                                            placeholder="Anything else we should know? (optional)"
+                                            placeholder="Anything else we should know (optional)"
                                             rows={2}
-                                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] resize-none"
+                                            className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] resize-none"
                                         />
-                                        <Button onClick={handleSubmit} disabled={submitting || !phoneNumber.trim()} className="w-full">
-                                            {submitting ? <Loader2Icon className="size-4 animate-spin mr-2" /> : <SendIcon className="size-4 mr-2" />}
+                                        <Button onClick={handleRequestSubmit} disabled={submittingRequest || !phoneNumber.trim()} className="w-full" size="lg">
+                                            {submittingRequest ? <Loader2Icon className="size-4 animate-spin mr-2" /> : <SendIcon className="size-4 mr-2" />}
                                             Submit Request
                                         </Button>
                                     </div>
@@ -208,27 +251,26 @@ export function WhatsAppView() {
                             </CardContent>
                         </Card>
 
-                        {/* Option B: Self-serve guide */}
                         <Card className="shadow-none dark:ring-0">
-                            <CardHeader>
-                                <div className="size-10 rounded-lg bg-muted text-muted-foreground flex items-center justify-center mb-2">
+                            <CardHeader className="pb-4">
+                                <div className="size-11 rounded-lg bg-muted text-muted-foreground flex items-center justify-center mb-3">
                                     <KeyRoundIcon className="size-5" />
                                 </div>
-                                <CardTitle className="text-base">Connect it yourself</CardTitle>
-                                <CardDescription>
-                                    If you're comfortable with Meta's dashboard, follow these steps to set it up on your own.
+                                <CardTitle className="text-lg">Connect it yourself</CardTitle>
+                                <CardDescription className="text-sm leading-relaxed mt-1.5">
+                                    Comfortable with Meta's dashboard? Follow these steps, then send us your credentials to activate.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <ol className="space-y-3">
+                            <CardContent className="space-y-4">
+                                <ol className="space-y-3.5">
                                     {selfServeSteps.map((step, i) => (
                                         <li key={i} className="flex gap-3">
-                                            <span className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                                            <span className="size-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                                                 {i + 1}
                                             </span>
                                             <div>
-                                                <p className="text-xs font-medium">{step.title}</p>
-                                                <p className="text-[11px] text-muted-foreground mt-0.5">{step.desc}</p>
+                                                <p className="text-sm font-medium leading-snug">{step.title}</p>
+                                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{step.desc}</p>
                                             </div>
                                         </li>
                                     ))}
@@ -238,15 +280,71 @@ export function WhatsAppView() {
                                     href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 text-xs text-[var(--chart-1)] mt-4 hover:underline"
+                                    className="flex items-center gap-1.5 text-sm text-[var(--chart-1)] hover:underline"
                                 >
-                                    Meta's official guide <ExternalLinkIcon className="size-3" />
+                                    Meta's official guide <ExternalLinkIcon className="size-3.5" />
                                 </a>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </>
-            )}
-        </div>
+
+                            <div className="pt-2 border-t border-border">
+                                {credsSubmitted ? (
+                                    <div className="flex items-center gap-2.5 p-4 bg-[var(--chart-1)]/5 rounded-lg text-sm mt-4">
+                                        <CheckCircle2Icon className="size-4 text-[var(--chart-1)] shrink-0" />
+                                        <span>Credentials submitted, we will review and activate your bot soon.</span>
+                                    </div>
+                                ) : !showCredsForm ? (
+                                    <Button onClick={() => setShowCredsForm(true)} variant="outline" className="w-full mt-4" size="lg">
+                                        I have my credentials
+                                    </Button>
+                                ) : (
+                                    <div className="space-y-3 mt-4">
+                                        <div>
+                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Phone Number ID</label>
+                                            <input
+                                                type="text"
+                                                value={phoneNumberId}
+                                                onChange={e => setPhoneNumberId(e.target.value)}
+                                                placeholder="e.g. 1019865717885435"
+                                                className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] font-mono"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Access Token</label>
+                                            <input
+                                                type="password"
+                                                value={accessToken}
+                                                onChange={e => setAccessToken(e.target.value)}
+                                                placeholder="Paste your permanent access token"
+                                                className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] font-mono"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">WhatsApp Number (optional)</label>
+                                            <input
+                                                type="tel"
+                                                value={credsPhoneNumber}
+                                                onChange={e => setCredsPhoneNumber(e.target.value)}
+                                                placeholder="+92 300 1234567"
+                                                className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Your credentials are stored securely and only used to activate your bot.
+                                        </p>
+                                        <Button
+                                            onClick={handleCredsSubmit}
+                                            disabled={submittingCreds || !phoneNumberId.trim() || !accessToken.trim()}
+                                            className="w-full"
+                                            size="lg"
+                                        >
+                                            {submittingCreds ? <Loader2Icon className="size-4 animate-spin mr-2" /> : <SendIcon className="size-4 mr-2" />}
+                                            Submit Credentials
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+        </>
     )
 }
