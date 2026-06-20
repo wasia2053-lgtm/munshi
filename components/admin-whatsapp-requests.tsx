@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { PhoneIcon, KeyIcon, ShieldAlertIcon } from "lucide-react"
 
 type ConnectRequest = {
@@ -64,7 +64,7 @@ export function AdminWhatsAppRequests() {
         return (
             <div className="flex flex-col items-center justify-center h-screen gap-3">
                 <ShieldAlertIcon className="size-10 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">You don't have access to this page</p>
+                <p className="text-sm text-muted-foreground">You do not have access to this page</p>
             </div>
         )
     }
@@ -73,7 +73,7 @@ export function AdminWhatsAppRequests() {
         <div className="p-8 max-w-4xl mx-auto space-y-8">
             <div>
                 <h1 className="text-xl font-semibold">WhatsApp Connection Requests</h1>
-                <p className="text-sm text-muted-foreground mt-1">Internal admin view — pending customer requests</p>
+                <p className="text-sm text-muted-foreground mt-1">Internal admin view, pending customer requests</p>
             </div>
 
             <div>
@@ -91,7 +91,7 @@ export function AdminWhatsAppRequests() {
                                         <p className="font-medium text-sm">{r.organization_name}</p>
                                         <p className="text-sm text-muted-foreground mt-0.5">{r.phone_number}</p>
                                         {r.business_name && <p className="text-xs text-muted-foreground">Business: {r.business_name}</p>}
-                                        {r.notes && <p className="text-xs text-muted-foreground mt-1 italic">"{r.notes}"</p>}
+                                        {r.notes && <p className="text-xs text-muted-foreground mt-1 italic">{r.notes}</p>}
                                         <p className="text-[11px] text-muted-foreground mt-2">{new Date(r.created_at).toLocaleString()}</p>
                                     </div>
                                     <Badge variant={r.status === 'pending' ? 'outline' : 'secondary'}>{r.status}</Badge>

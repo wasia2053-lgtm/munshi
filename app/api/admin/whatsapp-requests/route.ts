@@ -13,7 +13,7 @@ export async function GET() {
 
     const { data: connectRequests } = await supabase
         .from('whatsapp_connection_requests')
-        .select('*, businesses:business_id(id)')
+        .select('*')
         .order('created_at', { ascending: false });
 
     const { data: credentialSubmissions } = await supabase
@@ -21,7 +21,6 @@ export async function GET() {
         .select('*')
         .order('created_at', { ascending: false });
 
-    // Get business names via business_settings for context
     const businessIds = [
         ...(connectRequests || []).map((r: any) => r.business_id),
         ...(credentialSubmissions || []).map((r: any) => r.business_id),
