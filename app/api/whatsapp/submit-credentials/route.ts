@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
     const supabase = await createServerClient();
@@ -39,6 +42,19 @@ export async function POST(request: Request) {
         message: 'Your credentials have been submitted for review. We will activate your bot shortly.',
         is_read: false,
     });
+
+    try {
+        await resend.emails.send({
+            from: 'Munshi Alerts <onboarding@resend.dev>',
+            to: 'wasia2053@gmail.com',
+            subject: 'New WhatsApp Credentials Submitted',
+            html: `<p>New credentials submitted for review.</p>
+             <p><strong>Phone Number ID:</strong> ${phone_number_id}</p>
+             <p>Check the admin panel: munshi-theta.vercel.app/admin/requests</p>`
+        })
+    } catch (emailError) {
+        console.error('Email alert failed:', emailError)
+    }
 
     return NextResponse.json({ success: true });
 }

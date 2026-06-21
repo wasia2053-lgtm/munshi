@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
     const supabase = await createServerClient();
@@ -32,7 +35,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to submit request' }, { status: 500 });
     }
 
-    // Notify via notifications table so it shows in admin/owner's awareness
     await supabase.from('notifications').insert({
         business_id,
         type: 'whatsapp_connect_request',
@@ -40,6 +42,21 @@ export async function POST(request: Request) {
         message: `Connection request submitted for ${phone_number}. Our team will reach out within 24 hours.`,
         is_read: false,
     });
+
+    try {
+        await resend.emails.send({
+            from: 'Munshi Alerts <onboarding@resend.dev>',
+            to: 'wasia2053@gmail.com',
+            subject: 'New WhatsApp Connection Request',
+            html: `<p>A new connection request was submitted.</p>
+             <p><strong>Phone:</strong> ${phone_number}</p>
+             <p><strong>Business:</strong> ${business_name || 'N/A'}</p>
+             <p><strong>Notes:</strong> ${notes || 'N/A'}</p>
+             <p>Check the admin panel: munshi-theta.vercel.app/admin/requests</p>`
+        })
+    } catch (emailError) {
+        console.error('Email alert failed:', emailError)
+    }
 
     return NextResponse.json({ success: true });
 }
