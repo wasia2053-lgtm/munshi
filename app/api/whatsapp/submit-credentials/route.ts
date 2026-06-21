@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     try {
         await resend.emails.send({
             from: 'Munshi Alerts <onboarding@resend.dev>',
-            to: 'wasia2053@gmail.com',
+            to: 'shahmeershaikh900@gmail.com',
             subject: 'New WhatsApp Credentials Submitted',
             html: `<p>New credentials submitted for review.</p>
              <p><strong>Phone Number ID:</strong> ${phone_number_id}</p>
