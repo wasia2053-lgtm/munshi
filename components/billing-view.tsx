@@ -117,6 +117,11 @@ export function BillingView() {
     const usagePercent = data ? Math.min(100, Math.round((data.messagesUsed / data.messagesLimit) * 100)) : 0
     const currentPlan = plans.find(p => p.key === data?.plan) || plans[0]
 
+    const handleUpgrade = (planName: string) => {
+        const message = encodeURIComponent(`Hi, I want to upgrade my Munshi plan to ${planName}`);
+        window.open(`https://wa.me/923282847607?text=${message}`, '_blank');
+    };
+
     const formatPrice = (plan: typeof plans[0]) => {
         if (plan.priceUSD === null) return "Custom"
         if (plan.priceUSD === 0) return "Free"
@@ -270,19 +275,20 @@ export function BillingView() {
                                     ))}
                                 </ul>
 
-                                <button
-                                    disabled
-                                    className={cn(
-                                        "w-full py-2.5 rounded-xl text-xs font-semibold transition-all",
-                                        isCurrent
-                                            ? "bg-[var(--chart-1)]/15 text-[var(--chart-1)] cursor-default"
-                                            : plan.key === "enterprise"
-                                                ? "border border-border text-muted-foreground cursor-not-allowed opacity-60"
-                                                : "border border-border text-muted-foreground cursor-not-allowed opacity-60"
-                                    )}
-                                >
-                                    {isCurrent ? "Active" : plan.key === "enterprise" ? "Contact Sales" : "Coming Soon"}
-                                </button>
+                                {(isCurrent || plan.key !== "free") && (
+                                    <button
+                                        disabled={isCurrent}
+                                        onClick={!isCurrent ? () => handleUpgrade(plan.name) : undefined}
+                                        className={cn(
+                                            "w-full py-2.5 rounded-xl text-xs font-semibold transition-all",
+                                            isCurrent
+                                                ? "bg-[var(--chart-1)]/15 text-[var(--chart-1)] cursor-default"
+                                                : "bg-[var(--chart-1)] text-primary-foreground hover:bg-[var(--chart-1)]/90 shadow-sm"
+                                        )}
+                                    >
+                                        {isCurrent ? "Current Plan" : "Contact us to Upgrade"}
+                                    </button>
+                                )}
                             </div>
                         )
                     })}
