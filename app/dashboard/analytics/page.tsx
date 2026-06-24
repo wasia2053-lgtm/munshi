@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Inbox } from 'lucide-react'
@@ -106,7 +107,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export default function AnalyticsPage() {
-  const [filter, setFilter] = useState('7D')
+  const searchParams = useSearchParams()
+  const [filter, setFilter] = useState<string>(searchParams.get('filter') || '7D')
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exported, setExported] = useState(false)
@@ -117,18 +119,21 @@ export default function AnalyticsPage() {
   const [maxHeatmapCount, setMaxHeatmapCount] = useState(0);
   const [languageData, setLanguageData] = useState<any[]>([]);
   const [hoveredLang, setHoveredLang] = useState<string | null>(null);
+  const [totalMessages, setTotalMessages] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/analytics?range=${filter}`)
+    fetch(`/api/analytics?filter=${filter}`)
       .then((res) => res.json())
       .then((data) => {
-        setResolutionData(data.resolutionTrend || []);
+        console.log('Analytics API Data:', data)
+        setResolutionData(data.msgData || []);
         setSparklineData(data.sparklines || []);
         setHeatmapData(data.heatmap || []);
         const maxCount = data.heatmap?.reduce((m: number, d: any) => Math.max(m, d.count), 0) ?? 0;
         setMaxHeatmapCount(maxCount);
         setLanguageData(data.languages || []);
+        setTotalMessages(data.stats?.totalMessages || 0);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -147,7 +152,7 @@ export default function AnalyticsPage() {
 
   return (
     <AppShell>
-      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif' }}>
+      <div style={{ flex: 1, padding: '24px', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
@@ -157,7 +162,7 @@ export default function AnalyticsPage() {
           </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <div style={{ display: 'flex', backgroundColor: '#1a1b1c', borderRadius: '8px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              {['7D', '30D', '3M', 'All'].map(f => (
+              {['7D', '30D', '3M', 'ALL'].map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -223,7 +228,7 @@ export default function AnalyticsPage() {
                 <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
               </div>
             </motion.div>
-          ) : resolutionData.length === 0 ? (
+          ) : (!loading && totalMessages === 0) ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

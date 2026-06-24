@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       .from('conversations')
       .select('*', { count: 'exact', head: true })
       .eq('business_id', user.id)
-
+    console.log('Analytics API - business_id:', user.id, 'filter:', filter, 'days:', days);
     if (convError) {
       console.error('Conversations count error:', convError)
       return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
@@ -141,6 +141,7 @@ export async function GET(request: Request) {
       }))
     }
 
+    console.log('Analytics API - totalConversations:', totalConversations, 'totalMessages:', totalMessages, 'botMessages:', botMessages, 'customerMessages:', customerMessages, 'trainingCount:', trainingCount);
     return NextResponse.json({
       stats: {
         totalMessages: totalMessages || 0,
