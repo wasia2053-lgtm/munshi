@@ -1,14 +1,13 @@
 "use client"
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Suspense } from 'react'
-import { Inbox } from 'lucide-react'
-import { DownloadIcon } from 'lucide-react'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
-
-// No mock data – real data will be fetched from /api/analytics
+import { Inbox, Download } from 'lucide-react'
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+  PieChart, Pie, Cell, LineChart, Line,
+} from 'recharts'
 
 type StatCardProps = {
   title: string
@@ -20,7 +19,7 @@ type StatCardProps = {
   index: number
 }
 
-const AnimatedCount = ({ value, duration = 0.8 }: { value: number; duration?: number }) => {
+function AnimatedCount({ value, duration = 0.8 }: { value: number; duration?: number }) {
   const [count, setCount] = useState(0)
   const prefersReducedMotion = useReducedMotion()
 
@@ -33,9 +32,13 @@ const AnimatedCount = ({ value, duration = 0.8 }: { value: number; duration?: nu
     const step = (timestamp: number) => {
       if (!start) start = timestamp
       const progress = Math.min((timestamp - start) / (duration * 1000), 1)
-      const easeOut = 1 - Math.pow(1 - progress, 4)
-      setCount(Math.floor(easeOut * value))
-      if (progress < 1) requestAnimationFrame(step)
+      const eased = 1 - Math.pow(1 - progress, 4)
+      if (progress < 1) {
+        setCount(Math.floor(eased * value))
+        requestAnimationFrame(step)
+      } else {
+        setCount(value)
+      }
     }
     requestAnimationFrame(step)
   }, [value, duration, prefersReducedMotion])
@@ -43,21 +46,20 @@ const AnimatedCount = ({ value, duration = 0.8 }: { value: number; duration?: nu
   return <span>{count}</span>
 }
 
-const StatCard = ({ title, value, suffix = '', prefix = '', delta, sparklineData, index }: StatCardProps) => {
+function StatCard({ title, value, suffix = '', prefix = '', delta, sparklineData, index }: StatCardProps) {
   const prefersReducedMotion = useReducedMotion()
   const isPositive = delta >= 0
   return (
     <motion.div
       initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.08, ease: "easeOut" }}
-      whileHover={{ scale: 1.02, borderColor: '#4ae176' }}
+      transition={{ duration: 0.3, delay: index * 0.08, ease: 'easeOut' }}
+      whileHover={{ scale: 1.02 }}
       style={{
         backgroundColor: '#1a1b1c',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '16px',
         padding: '20px',
-        transition: 'border-color 0.2s',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
@@ -69,7 +71,7 @@ const StatCard = ({ title, value, suffix = '', prefix = '', delta, sparklineData
           borderRadius: '999px',
           fontSize: '11px',
           fontWeight: 600,
-          fontFamily: 'Geist, sans-serif'
+          fontFamily: 'Geist, sans-serif',
         }}>
           {isPositive ? '▲' : '▼'} {Math.abs(delta)}%
         </div>
@@ -81,7 +83,7 @@ const StatCard = ({ title, value, suffix = '', prefix = '', delta, sparklineData
         <div style={{ width: '60px', height: '30px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sparklineData}>
-              <Line type="monotone" dataKey="value" stroke={isPositive ? "#4ae176" : "#ef4444"} strokeWidth={2} dot={false} isAnimationActive={!prefersReducedMotion} />
+              <Line type="monotone" dataKey="value" stroke={isPositive ? '#4ae176' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={!prefersReducedMotion} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -90,10 +92,10 @@ const StatCard = ({ title, value, suffix = '', prefix = '', delta, sparklineData
   )
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+function CustomTooltip({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     return (
-      <div style={{ backgroundColor: '#1a1b1c', border: '1px solid #4ae176', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '13px', fontFamily: 'Geist, sans-serif', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 100 }}>
+      <div style={{ backgroundColor: '#1a1b1c', border: '1px solid #4ae176', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '13px', fontFamily: 'Geist, sans-serif', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
         <div style={{ marginBottom: '8px', color: '#888', fontWeight: 500 }}>{label}</div>
         {payload.map((p: any, i: number) => (
           <div key={i} style={{ color: p.color, fontWeight: 600, marginBottom: '4px', display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
@@ -110,60 +112,83 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 function AnalyticsContent() {
   const searchParams = useSearchParams()
   const [filter, setFilter] = useState<string>(searchParams.get('filter') || '7D')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exported, setExported] = useState(false)
   const prefersReducedMotion = useReducedMotion()
-  const [resolutionData, setResolutionData] = useState<any[]>([]);
-  const [sparklineData, setSparklineData] = useState<any[]>([]);
-  const [heatmapData, setHeatmapData] = useState<any[]>([]);
-  const [maxHeatmapCount, setMaxHeatmapCount] = useState(0);
-  const [languageData, setLanguageData] = useState<any[]>([]);
-  const [hoveredLang, setHoveredLang] = useState<string | null>(null);
-  const [totalMessages, setTotalMessages] = useState(0);
+
+  const [stats, setStats] = useState({
+    totalMessages: 0, totalConversations: 0, trainingCount: 0,
+    resolutionRate: 0, avgMessagesPerConv: 0, peakHour: 0, repeatCustomersPct: 0,
+  })
+  const [deltas, setDeltas] = useState({ resolutionRate: 0, avgMessagesPerConv: 0, peakHour: 0, repeatCustomersPct: 0 })
+  const [resolutionData, setResolutionData] = useState<any[]>([])
+  const [sparklines, setSparklines] = useState<any>({ resolutionRate: [], avgMessages: [], peakHour: [], repeatCustomers: [] })
+  const [heatmapData, setHeatmapData] = useState<any[]>([])
+  const [maxHeatmapCount, setMaxHeatmapCount] = useState(0)
+  const [languageData, setLanguageData] = useState<any[]>([])
+  const [hoveredLang, setHoveredLang] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true);
+    setLoading(true)
     fetch(`/api/analytics?filter=${filter}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log('Analytics API Data:', data)
-        setResolutionData(data.msgData || []);
-        setSparklineData(data.sparklines || []);
-        setHeatmapData(data.heatmap || []);
-        const maxCount = data.heatmap?.reduce((m: number, d: any) => Math.max(m, d.count), 0) ?? 0;
-        setMaxHeatmapCount(maxCount);
-        setLanguageData(data.languages || []);
-        setTotalMessages(data.stats?.totalMessages || 0);
-        setLoading(false);
+        setStats(data.stats || stats)
+        setDeltas(data.deltas || deltas)
+        setResolutionData(data.msgData || [])
+        setSparklines(data.sparklines || { resolutionRate: [], avgMessages: [], peakHour: [], repeatCustomers: [] })
+        setHeatmapData(data.heatmap || [])
+        const maxCount = (data.heatmap || []).reduce((m: number, d: any) => Math.max(m, d.count), 0)
+        setMaxHeatmapCount(maxCount)
+        setLanguageData(data.languages || [])
+        setLoading(false)
       })
-      .catch(() => setLoading(false));
-  }, [filter]);
+      .catch((err) => {
+        console.error('Analytics fetch error:', err)
+        setLoading(false)
+      })
+  }, [filter])
 
   const handleExport = () => {
     setExporting(true)
+    const rows = [['Date', 'Resolved', 'Unresolved']]
+    resolutionData.forEach((d) => rows.push([d.date, String(d.resolved), String(d.unresolved)]))
+    const csvContent = rows.map((r) => r.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const today = new Date().toISOString().split('T')[0]
+    a.href = url
+    a.download = `munshi-analytics-${filter}-${today}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
     setTimeout(() => {
       setExporting(false)
       setExported(true)
       setTimeout(() => setExported(false), 2000)
-    }, 1000)
+    }, 500)
   }
 
-  const chartAnimationProps = prefersReducedMotion ? { isAnimationActive: false } : { animationDuration: 1000, animationEasing: 'ease-out' as const }
+  const chartAnimationProps = prefersReducedMotion
+    ? { isAnimationActive: false }
+    : { animationDuration: 1000, animationEasing: 'ease-out' as const }
+
+  const languageTotal = languageData.reduce((a, b) => a + b.value, 0)
 
   return (
     <AppShell>
-      <div style={{ flex: 1, padding: '24px', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif' }}>
-
-        {/* Header */}
+      <div style={{ width: '100%', fontFamily: 'Geist, sans-serif' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 600 }}>Analytics</h1>
-            <p style={{ color: '#888', fontSize: '14px', marginTop: '4px' }}>Measure your conversational performance</p>
+            <p style={{ color: '#888', fontSize: '14px', marginTop: '4px' }}>Every conversation, decoded.</p>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', backgroundColor: '#1a1b1c', borderRadius: '8px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              {['7D', '30D', '3M', 'ALL'].map(f => (
+              {['7D', '30D', '3M', 'ALL'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -176,7 +201,6 @@ function AnalyticsContent() {
                     cursor: 'pointer',
                     fontSize: '13px',
                     fontWeight: 500,
-                    transition: 'all 0.2s'
                   }}
                 >
                   {f}
@@ -192,16 +216,15 @@ function AnalyticsContent() {
                 backgroundColor: exported ? '#4ae176' : '#1a1b1c',
                 border: exported ? '1px solid #4ae176' : '1px solid rgba(255,255,255,0.06)',
                 color: exported ? '#121314' : '#fff',
-                cursor: 'pointer', fontSize: '13px', fontWeight: 500,
-                transition: 'all 0.2s', height: '36px'
+                cursor: 'pointer', fontSize: '13px', fontWeight: 500, height: '36px',
               }}
             >
               {exporting ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ width: 14, height: 14, border: '2px solid #888', borderTopColor: '#fff', borderRadius: '50%' }} />
+                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} style={{ width: 14, height: 14, border: '2px solid #888', borderTopColor: '#fff', borderRadius: '50%' }} />
               ) : exported ? (
                 <span>✓ Exported</span>
               ) : (
-                <><DownloadIcon size={14} /> Export CSV</>
+                <><Download size={14} /> Export CSV</>
               )}
             </button>
           </div>
@@ -209,32 +232,20 @@ function AnalyticsContent() {
 
         <AnimatePresence mode="wait">
           {loading ? (
-            <motion.div
-              key="loading"
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ display: 'grid', gap: '24px' }}
-            >
-              {/* Skeleton Loaders */}
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'grid', gap: '24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                {[1, 2, 3, 4].map(i => (
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} style={{ height: '116px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
-                    <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
+                    <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
                   </div>
                 ))}
               </div>
               <div style={{ height: '400px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
-                <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
+                <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
               </div>
             </motion.div>
-          ) : (!loading && totalMessages === 0) ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}
-            >
+          ) : stats.totalMessages === 0 ? (
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(74, 225, 118, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', color: '#4ae176' }}>
                 <Inbox size={32} />
               </div>
@@ -242,28 +253,15 @@ function AnalyticsContent() {
               <p style={{ color: '#888', fontSize: '14px' }}>There is no analytics data for the selected period.</p>
             </motion.div>
           ) : (
-            <motion.div
-              key="content"
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Stat Cards */}
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <StatCard title="Resolution Rate" value={86} suffix="%" delta={4.2} sparklineData={sparklineData} index={0} />
-                <StatCard title="Avg Messages / Conv" value={6} delta={-1.5} sparklineData={sparklineData} index={1} />
-                <StatCard title="Peak Hour" value={14} suffix=":00" delta={0} sparklineData={sparklineData} index={2} />
-                <StatCard title="Repeat Customers" value={24} suffix="%" delta={2.1} sparklineData={sparklineData} index={3} />
+                <StatCard title="Resolution Rate" value={stats.resolutionRate} suffix="%" delta={deltas.resolutionRate} sparklineData={sparklines.resolutionRate} index={0} />
+                <StatCard title="Avg Messages / Conv" value={stats.avgMessagesPerConv} delta={deltas.avgMessagesPerConv} sparklineData={sparklines.avgMessages} index={1} />
+                <StatCard title="Peak Hour" value={stats.peakHour} suffix=":00" delta={deltas.peakHour} sparklineData={sparklines.peakHour} index={2} />
+                <StatCard title="Repeat Customers" value={stats.repeatCustomersPct} suffix="%" delta={deltas.repeatCustomersPct} sparklineData={sparklines.repeatCustomers} index={3} />
               </div>
 
-              {/* Resolution Trend Chart */}
-              <motion.div
-                initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
                 <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Resolution Trend</h3>
                 <div style={{ height: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -277,22 +275,16 @@ function AnalyticsContent() {
                       <XAxis dataKey="date" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
                       <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                      <Area type="monotone" dataKey="resolved" stroke="#4ae176" fill="url(#colorResolved)" strokeWidth={2} {...chartAnimationProps} activeDot={{ r: 6, fill: '#4ae176', stroke: '#121314', strokeWidth: 2, style: { filter: 'drop-shadow(0 0 8px #4ae176)' } }} name="Resolved" />
-                      <Area type="monotone" dataKey="unresolved" stroke="#ef4444" fill="transparent" strokeWidth={2} {...chartAnimationProps} activeDot={{ r: 6, fill: '#ef4444', stroke: '#121314', strokeWidth: 2 }} name="Unresolved" />
+                      <Area type="monotone" dataKey="resolved" stroke="#4ae176" fill="url(#colorResolved)" strokeWidth={2} {...chartAnimationProps} name="Resolved" />
+                      <Area type="monotone" dataKey="unresolved" stroke="#ef4444" fill="transparent" strokeWidth={2} {...chartAnimationProps} name="Unresolved" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </motion.div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-                {/* Peak Hours Heatmap */}
-                <motion.div
-                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                  style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}
-                >
-                  <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Peak Hours (Avg over 7D)</h3>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}>
+                  <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Peak Hours (by day)</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowX: 'auto' }}>
                     {Array.from({ length: 7 }, (_, dayIndex) => (
                       <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '32px' }}>
@@ -300,25 +292,23 @@ function AnalyticsContent() {
                           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
                         </div>
                         {Array.from({ length: 24 }, (_, hour) => {
-                          const cellData = heatmapData.find(d => d.day === dayIndex && d.hour === hour)
+                          const cellData = heatmapData.find((d) => d.day === dayIndex && d.hour === hour)
                           const count = cellData ? cellData.count : 0
                           const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
-                          const index = dayIndex * 24 + hour
-
+                          const idx = dayIndex * 24 + hour
                           return (
                             <motion.div
                               key={hour}
-                              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                              initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: index * 0.004, duration: 0.3 }}
+                              transition={{ delay: idx * 0.004, duration: 0.3 }}
                               whileHover={{ scale: 1.1, zIndex: 10 }}
                               title={`${count} messages at ${hour}:00`}
                               style={{
                                 flex: 1,
-                                backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.1, opacity)})` : 'rgba(255,255,255,0.03)',
+                                backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.15, opacity)})` : 'rgba(255,255,255,0.03)',
                                 borderRadius: '4px',
                                 cursor: 'crosshair',
-                                border: '1px solid transparent',
                               }}
                             />
                           )
@@ -335,78 +325,43 @@ function AnalyticsContent() {
                   </div>
                 </motion.div>
 
-                {/* Language Distribution */}
-                <motion.div
-                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                  style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}
-                >
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}>
                   <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Language Distribution</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '40px', flexWrap: 'wrap' }}>
-                    <div style={{ width: '240px', height: '240px', position: 'relative' }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={languageData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={70}
-                            outerRadius={100}
-                            paddingAngle={5}
-                            dataKey="value"
-                            stroke="none"
-                            {...chartAnimationProps}
-                          >
-                            {languageData.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={entry.color}
-                                style={{
-                                  filter: hoveredLang === entry.name ? `drop-shadow(0 0 8px ${entry.color})` : 'none',
-                                  transition: 'filter 0.3s'
-                                }}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                          <AnimatedCount value={languageData.reduce((a, b) => a + b.value, 0)} />
+                  {languageData.length === 0 ? (
+                    <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '40px 0' }}>No bot replies yet for this period.</div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '40px', flexWrap: 'wrap' }}>
+                      <div style={{ width: '220px', height: '220px', position: 'relative' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={languageData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" stroke="none" {...chartAnimationProps}>
+                              {languageData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: hoveredLang === entry.name ? `drop-shadow(0 0 8px ${entry.color})` : 'none' }} />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                            <AnimatedCount value={languageTotal} />
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#888' }}>Total</div>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#888' }}>Total</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {languageData.map((lang: { name: string; value: number; color: string }) => (
+                          <div key={lang.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onMouseEnter={() => setHoveredLang(lang.name)} onMouseLeave={() => setHoveredLang(null)}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: lang.color, transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)' }} />
+                            <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px' }}>{lang.name}</span>
+                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
+                              {languageTotal > 0 ? Math.round((lang.value / languageTotal) * 100) : 0}%
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {languageData.map((lang: { name: string; value: number; color: string }) => (
-                        <div
-                          key={lang.name}
-                          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredLang(lang.name)}
-                          onMouseLeave={() => setHoveredLang(null)}
-                        >
-                          <div
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '50%',
-                              backgroundColor: lang.color,
-                              transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)',
-                              boxShadow: hoveredLang === lang.name ? `0 0 8px ${lang.color}` : 'none',
-                              transition: 'all 0.2s',
-                            }}
-                          />
-                          <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px', transition: 'color 0.2s' }}>{lang.name}</span>
-                          <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
-                            {Math.round((lang.value / languageData.reduce((a, b) => a + b.value, 0)) * 100)}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </motion.div>
               </div>
             </motion.div>
@@ -416,18 +371,19 @@ function AnalyticsContent() {
     </AppShell>
   )
 }
+
+function AnalyticsLoading() {
+  return (
+    <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+      <div style={{ color: '#888', fontSize: '14px' }}>Loading analytics...</div>
+    </div>
+  )
+}
+
 export default function AnalyticsPage() {
   return (
     <Suspense fallback={<AnalyticsLoading />}>
       <AnalyticsContent />
     </Suspense>
-  );
-}
-
-function AnalyticsLoading() {
-  return (
-    <div style={{ flex: 1, padding: '24px', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="animate-pulse text-sm text-muted-foreground" style={{ color: '#888' }}>Loading analytics...</div>
-    </div>
-  );
+  )
 }
