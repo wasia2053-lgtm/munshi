@@ -1,3 +1,4 @@
+"use client"
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
@@ -115,7 +116,7 @@ export default function AnalyticsPage() {
   const [heatmapData, setHeatmapData] = useState<any[]>([]);
   const [maxHeatmapCount, setMaxHeatmapCount] = useState(0);
   const [languageData, setLanguageData] = useState<any[]>([]);
-const [hoveredLang, setHoveredLang] = useState<string | null>(null);
+  const [hoveredLang, setHoveredLang] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -147,7 +148,7 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
   return (
     <AppShell>
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -212,7 +213,7 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
             >
               {/* Skeleton Loaders */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                {[1,2,3,4].map(i => (
+                {[1, 2, 3, 4].map(i => (
                   <div key={i} style={{ height: '116px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
                     <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
                   </div>
@@ -263,8 +264,8 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
                     <AreaChart data={resolutionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4ae176" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#4ae176" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#4ae176" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#4ae176" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="date" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
@@ -297,7 +298,7 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
                           const count = cellData ? cellData.count : 0
                           const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
                           const index = dayIndex * 24 + hour
-                          
+
                           return (
                             <motion.div
                               key={hour}
@@ -319,11 +320,11 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: '4px', marginTop: '8px', paddingLeft: '44px' }}>
-                       {Array.from({ length: 24 }, (_, hour) => (
-                         <div key={hour} style={{ flex: 1, color: '#888', fontSize: '9px', textAlign: 'center' }}>
-                           {hour % 3 === 0 ? hour : ''}
-                         </div>
-                       ))}
+                      {Array.from({ length: 24 }, (_, hour) => (
+                        <div key={hour} style={{ flex: 1, color: '#888', fontSize: '9px', textAlign: 'center' }}>
+                          {hour % 3 === 0 ? hour : ''}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </motion.div>
@@ -352,9 +353,9 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
                             {...chartAnimationProps}
                           >
                             {languageData.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.color} 
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.color}
                                 style={{
                                   filter: hoveredLang === entry.name ? `drop-shadow(0 0 8px ${entry.color})` : 'none',
                                   transition: 'filter 0.3s'
@@ -372,33 +373,33 @@ const [hoveredLang, setHoveredLang] = useState<string | null>(null);
                         <div style={{ fontSize: '12px', color: '#888' }}>Total</div>
                       </div>
                     </div>
-                    
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-  {languageData.map((lang: { name: string; value: number; color: string }) => (
-    <div
-      key={lang.name}
-      style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-      onMouseEnter={() => setHoveredLang(lang.name)}
-      onMouseLeave={() => setHoveredLang(null)}
-    >
-      <div
-        style={{
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          backgroundColor: lang.color,
-          transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)',
-          boxShadow: hoveredLang === lang.name ? `0 0 8px ${lang.color}` : 'none',
-          transition: 'all 0.2s',
-        }}
-      />
-      <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px', transition: 'color 0.2s' }}>{lang.name}</span>
-      <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
-        {Math.round((lang.value / languageData.reduce((a, b) => a + b.value, 0)) * 100)}%
-      </span>
-    </div>
-  ))}
-</div>
+                      {languageData.map((lang: { name: string; value: number; color: string }) => (
+                        <div
+                          key={lang.name}
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                          onMouseEnter={() => setHoveredLang(lang.name)}
+                          onMouseLeave={() => setHoveredLang(null)}
+                        >
+                          <div
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              backgroundColor: lang.color,
+                              transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)',
+                              boxShadow: hoveredLang === lang.name ? `0 0 8px ${lang.color}` : 'none',
+                              transition: 'all 0.2s',
+                            }}
+                          />
+                          <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px', transition: 'color 0.2s' }}>{lang.name}</span>
+                          <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
+                            {Math.round((lang.value / languageData.reduce((a, b) => a + b.value, 0)) * 100)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               </div>
