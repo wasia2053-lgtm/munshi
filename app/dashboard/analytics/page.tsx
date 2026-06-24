@@ -51,60 +51,41 @@ function StatCard({ title, value, suffix = '', prefix = '', delta, sparklineData
   const isPositive = delta >= 0
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.3 }}
+      transition={{ duration: 0.3, delay: index * 0.08, ease: 'easeOut' }}
+      whileHover={{ scale: 1.02 }}
       style={{
         backgroundColor: '#1a1b1c',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '16px',
-        padding: '24px',
-        minWidth: 0,
-        maxWidth: '100%',
-        overflow: 'hidden',
+        padding: '20px',
       }}
     >
-      <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>
-        Peak Hours (by day)
-      </h3>
-
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
-        <div style={{ minWidth: '472px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {Array.from({ length: 7 }, (_, dayIndex) => (
-            <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '24px' }}>
-              <div style={{ width: '40px', flexShrink: 0, color: '#888', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
-              </div>
-              {Array.from({ length: 24 }, (_, hour) => {
-                const cellData = heatmapData.find((d) => d.day === dayIndex && d.hour === hour)
-                const count = cellData ? cellData.count : 0
-                const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
-                return (
-                  <div
-                    key={hour}
-                    title={`${count} messages at ${hour}:00`}
-                    style={{
-                      width: '18px',
-                      minWidth: '18px',
-                      flexShrink: 0,
-                      height: '100%',
-                      backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.15, opacity)})` : 'rgba(255,255,255,0.03)',
-                      borderRadius: '4px',
-                      cursor: 'crosshair',
-                    }}
-                  />
-                )
-              })}
-            </div>
-          ))}
-          <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-            <div style={{ width: '40px', flexShrink: 0 }} />
-            {Array.from({ length: 24 }, (_, hour) => (
-              <div key={hour} style={{ width: '18px', minWidth: '18px', flexShrink: 0, color: '#888', fontSize: '9px', textAlign: 'center' }}>
-                {hour % 3 === 0 ? hour : ''}
-              </div>
-            ))}
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+        <h3 style={{ color: '#888', fontSize: '13px', fontWeight: 500, fontFamily: 'Geist, sans-serif' }}>{title}</h3>
+        <div style={{
+          backgroundColor: isPositive ? 'rgba(74, 225, 118, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          color: isPositive ? '#4ae176' : '#ef4444',
+          padding: '2px 8px',
+          borderRadius: '999px',
+          fontSize: '11px',
+          fontWeight: 600,
+          fontFamily: 'Geist, sans-serif',
+        }}>
+          {isPositive ? '▲' : '▼'} {Math.abs(delta)}%
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: '32px', fontWeight: 600, color: '#fff', fontFamily: 'Geist, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
+          {prefix}<AnimatedCount value={value} />{suffix}
+        </div>
+        <div style={{ width: '60px', height: '30px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sparklineData}>
+              <Line type="monotone" dataKey="value" stroke={isPositive ? '#4ae176' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={!prefersReducedMotion} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </motion.div>
@@ -200,6 +181,7 @@ function AnalyticsContent() {
   return (
     <AppShell>
       <div style={{ width: '100%', fontFamily: 'Geist, sans-serif' }}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 600 }}>Analytics</h1>
@@ -273,6 +255,7 @@ function AnalyticsContent() {
             </motion.div>
           ) : (
             <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {/* Stat Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <StatCard title="Resolution Rate" value={stats.resolutionRate} suffix="%" delta={deltas.resolutionRate} sparklineData={sparklines.resolutionRate} index={0} />
                 <StatCard title="Avg Messages / Conv" value={stats.avgMessagesPerConv} delta={deltas.avgMessagesPerConv} sparklineData={sparklines.avgMessages} index={1} />
@@ -280,7 +263,13 @@ function AnalyticsContent() {
                 <StatCard title="Repeat Customers" value={stats.repeatCustomersPct} suffix="%" delta={deltas.repeatCustomersPct} sparklineData={sparklines.repeatCustomers} index={3} />
               </div>
 
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
+              {/* Resolution Trend */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}
+              >
                 <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Resolution Trend</h3>
                 <div style={{ height: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -301,8 +290,16 @@ function AnalyticsContent() {
                 </div>
               </motion.div>
 
+              {/* Peak Hours + Language Distribution side-by-side */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', minWidth: 0 }}>
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', overflow: 'hidden', maxWidth: '100%', minWidth: 0 }}>
+
+                {/* Peak Hours Heatmap */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', overflow: 'hidden', maxWidth: '100%', minWidth: 0 }}
+                >
                   <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Peak Hours (by day)</h3>
                   {/* Scroll container — only this scrolls horizontally, not the page */}
                   <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -314,7 +311,7 @@ function AnalyticsContent() {
                               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
                             </div>
                             {Array.from({ length: 24 }, (_, hour) => {
-                              const cellData = heatmapData.find((d) => d.day === dayIndex && d.hour === hour)
+                              const cellData = heatmapData.find((d: any) => d.day === dayIndex && d.hour === hour)
                               const count = cellData ? cellData.count : 0
                               const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
                               const idx = dayIndex * 24 + hour
@@ -353,7 +350,13 @@ function AnalyticsContent() {
                   </div>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', minWidth: 0 }}>
+                {/* Language Distribution */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', minWidth: 0 }}
+                >
                   <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Language Distribution</h3>
                   {languageData.length === 0 ? (
                     <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '40px 0' }}>No bot replies yet for this period.</div>
@@ -391,7 +394,8 @@ function AnalyticsContent() {
                     </div>
                   )}
                 </motion.div>
-              </div>
+
+              </div>{/* end Peak Hours + Language grid */}
             </motion.div>
           )}
         </AnimatePresence>
