@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { DashboardLayout } from '@/components/DashboardLayout'
-import Link from 'next/link'
+import { AppShell } from '@/components/app-shell'
+import { motion } from 'framer-motion'
+import { Camera, LogOut, Crown } from 'lucide-react'
 import Toast from '@/components/Toast'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,37 +11,29 @@ export default function AccountPage() {
   const [orgName, setOrgName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
-  
-  // Toast State
-  const [toast, setToast] = useState<{message:string, type:'success'|'error'|'info'} | null>(null)
   const [saving, setSaving] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [showError, setShowError] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    // First load from localStorage
     const cached = localStorage.getItem('munshi_profile')
     if (cached) {
       const p = JSON.parse(cached)
       setOrgName(p.name || '')
       setAvatarUrl(p.avatar_url || null)
     }
-    
-    // Then fetch from /api/account/get to get fresh data
+
     fetch('/api/account/get', { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         setProfile(data)
         setOrgName(data.name || '')
         setAvatarUrl(data.avatar_url || null)
-        
-        // Update localStorage with fresh data
-        localStorage.setItem('munshi_profile', JSON.stringify({
-          name: data.name || '',
-          avatar_url: data.avatar_url || null
-        }))
+        localStorage.setItem(
+          'munshi_profile',
+          JSON.stringify({ name: data.name || '', avatar_url: data.avatar_url || null })
+        )
       })
   }, [])
 
@@ -54,25 +47,14 @@ export default function AccountPage() {
     const data = await res.json()
     if (data.avatar_url) {
       setAvatarUrl(data.avatar_url)
-      
-      // Update account with new avatar URL
       await fetch('/api/account/update', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatar_url: data.avatar_url })
+        body: JSON.stringify({ avatar_url: data.avatar_url }),
       })
-      
-      // Save to localStorage immediately
-      localStorage.setItem('munshi_profile', JSON.stringify({
-        name: orgName,
-        avatar_url: data.avatar_url
-      }))
-      
-      // Set avatar URL in localStorage
+      localStorage.setItem('munshi_profile', JSON.stringify({ name: orgName, avatar_url: data.avatar_url }))
       localStorage.setItem('avatarUrl', data.avatar_url)
-      
-      // Dispatch events
       window.dispatchEvent(new Event('avatarUpdated'))
       window.dispatchEvent(new Event('munshi_profile_updated'))
       window.dispatchEvent(new CustomEvent('account-updated'))
@@ -86,108 +68,141 @@ export default function AccountPage() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: orgName })
+      body: JSON.stringify({ name: orgName }),
     })
     setSaving(false)
     if (res.ok) {
-      // Save to localStorage immediately
-      localStorage.setItem('munshi_profile', JSON.stringify({
-        name: orgName,
-        avatar_url: avatarUrl
-      }))
-      
+      localStorage.setItem('munshi_profile', JSON.stringify({ name: orgName, avatar_url: avatarUrl }))
       window.dispatchEvent(new Event('munshi_profile_updated'))
-      
       setToast({ message: 'Account save ho gayi! ✅', type: 'success' })
-      setTimeout(() => setToast(null), 3000)
     } else {
       setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
-      setTimeout(() => setToast(null), 3000)
     }
+    setTimeout(() => setToast(null), 3000)
   }
 
-const handleLogout = async () => {
-  const supabase = createClient()
-  await supabase.auth.signOut()
-  window.location.href = '/login'
-}
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
-  const messagesPercent = profile ? (profile.messages_used / profile.messages_limit) * 100 : 0
+  const handleUpgradeContact = () => {
+    const plan = profile?.plan || 'Growth'
+    const msg = encodeURIComponent(`Hi, I want to upgrade my Munshi plan to ${plan}.`)
+    window.open(`https://wa.me/923282847607?text=${msg}`, '_blank')
+  }
+
+  const messagesUsed = profile?.messages_used || 0
+  const messagesLimit = profile?.messages_limit || 50
+  const messagesPercent = Math.min((messagesUsed / messagesLimit) * 100, 100)
+  const planName = profile?.plan ? profile.plan.toUpperCase() : 'FREE'
 
   return (
-    <DashboardLayout>
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '32px 24px' }}>
-        <h1 style={{ color: '#F7E7CE', fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px' }}>
-          Account
-        </h1>
-        <p style={{ color: '#8A7560', fontSize: '0.875rem', marginBottom: '32px' }}>
-          Manage your profile and subscription
-        </p>
+    <AppShell>
+      <div style={{ width: '100%', fontFamily: 'Geist, sans-serif', maxWidth: '720px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 600 }}>Account</h1>
+          <p style={{ color: '#888', fontSize: '14px', marginTop: '4px' }}>Manage your profile and subscription</p>
+        </div>
 
         {/* Profile Card */}
-        <div style={{
-          backgroundColor: '#0D2420',
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '24px',
-          border: '1px solid rgba(212,168,83,0.15)'
-        }}>
-          <h2 style={{ color: '#D4A853', fontSize: '1rem', fontWeight: '600', marginBottom: '24px' }}>
-            Profile
-          </h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0 }}
+          style={{
+            backgroundColor: '#1a1b1c',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '24px',
+          }}
+        >
+          <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>Profile</h3>
 
-          {/* Avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
             <div
               onClick={() => fileRef.current?.click()}
               style={{
-                width: '80px', height: '80px', borderRadius: '50%',
-                backgroundColor: '#102C26', border: '2px solid #D4A853',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', overflow: 'hidden', position: 'relative'
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                border: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                position: 'relative',
+                flexShrink: 0,
               }}
             >
               {avatarUrl && avatarUrl !== 'NULL' && avatarUrl !== 'null' ? (
-                <img src={avatarUrl} style={{width:80,height:80,borderRadius:'50%',objectFit:'cover'}} />
+                <img src={avatarUrl} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover' }} />
               ) : (
-                <div style={{width:80,height:80,borderRadius:'50%',backgroundColor:'#D4A853',
-                  display:'flex',alignItems:'center',justifyContent:'center',
-                  fontSize:'32px',fontWeight:'bold',color:'#102C26'}}>
-                  {orgName?.charAt(0)?.toUpperCase() || 'W'}
+                <div
+                  style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(74, 225, 118, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '26px',
+                    fontWeight: 700,
+                    color: '#4ae176',
+                  }}
+                >
+                  {orgName?.charAt(0)?.toUpperCase() || 'M'}
                 </div>
               )}
-              <div style={{
-                position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: 0, transition: 'opacity 0.2s'
-              }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
               >
-                <span style={{ color: 'white', fontSize: '0.7rem' }}>Change</span>
+                <Camera size={18} color="#fff" />
               </div>
             </div>
             <div>
-              <p style={{ color: '#F7E7CE', fontSize: '0.875rem', marginBottom: '4px' }}>
+              <p style={{ color: '#fff', fontSize: '14px', marginBottom: '4px' }}>
                 {uploading ? 'Uploading...' : 'Click photo to change'}
               </p>
-              <p style={{ color: '#8A7560', fontSize: '0.75rem' }}>JPG, PNG — max 2MB</p>
+              <p style={{ color: '#888', fontSize: '12px' }}>JPG, PNG — max 2MB</p>
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
           </div>
 
-          {/* Name */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ color: '#8A7560', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ color: '#888', fontSize: '13px', display: 'block', marginBottom: '8px' }}>
               Organization Name
             </label>
             <input
               value={orgName}
-              onChange={e => setOrgName(e.target.value)}
+              onChange={(e) => setOrgName(e.target.value)}
               style={{
-                width: '100%', padding: '12px 16px', borderRadius: '10px',
-                backgroundColor: '#102C26', border: '1px solid rgba(212,168,83,0.2)',
-                color: '#F7E7CE', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box'
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                backgroundColor: '#121314',
+                border: '1px solid rgba(255,255,255,0.06)',
+                color: '#fff',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                fontFamily: 'Geist, sans-serif',
               }}
             />
           </div>
@@ -196,96 +211,158 @@ const handleLogout = async () => {
             onClick={handleSave}
             disabled={saving}
             style={{
-              backgroundColor: '#D4A853', color: '#102C26', border: 'none',
-              borderRadius: '10px', padding: '12px 28px', fontWeight: '700',
-              cursor: 'pointer', fontSize: '0.9rem'
+              backgroundColor: '#4ae176',
+              color: '#121314',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 24px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontFamily: 'Geist, sans-serif',
             }}
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
-        </div>
+        </motion.div>
 
-        {/* Plan Card */}
-        <div style={{
-          backgroundColor: '#0D2420', borderRadius: '16px', padding: '32px',
-          marginBottom: '24px', border: '1px solid rgba(212,168,83,0.15)'
-        }}>
+        {/* Plan & Usage Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.08 }}
+          style={{
+            backgroundColor: '#1a1b1c',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '24px',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ color: '#D4A853', fontSize: '1rem', fontWeight: '600', marginBottom: '24px' }}>Plan & Usage</h2>
-            <span style={{
-              backgroundColor: 'rgba(212,168,83,0.15)', color: '#D4A853',
-              padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600'
-            }}>
-              FREE PLAN
+            <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Plan & Usage</h3>
+            <span
+              style={{
+                backgroundColor: 'rgba(74, 225, 118, 0.1)',
+                color: '#4ae176',
+                padding: '4px 12px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 600,
+              }}
+            >
+              {planName} PLAN
             </span>
           </div>
 
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ marginBottom: '4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ color: '#8A7560', fontSize: '0.875rem' }}>Messages this month</span>
-              <span style={{ color: '#D4A853', fontSize: '0.875rem', fontWeight: '600' }}>
-                {profile?.messages_used || 0} / {profile?.messages_limit || 50}
+              <span style={{ color: '#888', fontSize: '13px' }}>Messages this month</span>
+              <span style={{ color: '#fff', fontSize: '13px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                {messagesUsed} / {messagesLimit}
               </span>
             </div>
-            <div style={{ backgroundColor: '#102C26', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
-              <div style={{
-                backgroundColor: '#D4A853', height: '100%', borderRadius: '4px',
-                width: `${Math.min(messagesPercent, 100)}%`, transition: 'width 0.3s'
-              }} />
+            <div style={{ backgroundColor: '#121314', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${messagesPercent}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                style={{ backgroundColor: '#4ae176', height: '100%', borderRadius: '4px' }}
+              />
             </div>
-            <p style={{ color: '#8A7560', fontSize: '0.75rem', marginTop: '6px' }}>
-                {(profile?.messages_limit || 50) - (profile?.messages_used || 0)} messages remaining
+            <p style={{ color: '#888', fontSize: '12px', marginTop: '6px' }}>
+              {Math.max(messagesLimit - messagesUsed, 0)} messages remaining
             </p>
           </div>
 
-          <div style={{
-            backgroundColor: 'rgba(212,168,83,0.15)', color: '#D4A853',
-            padding: '20px', border: '1px solid rgba(212,168,83,0.2)', marginTop: '20px'
-          }}>
-            <p style={{ color: '#F7E7CE', fontWeight: '600', marginBottom: '4px' }}>Upgrade to Growth</p>
-            <p style={{ color: '#8A7560', fontSize: '0.875rem', marginBottom: '16px' }}>
-              5,000 messages · Analytics · Priority support
-            </p>
-            <button style={{
-              backgroundColor: '#D4A853', color: '#102C26', border: 'none',
-              borderRadius: '8px', padding: '10px 24px', fontWeight: '700',
-              cursor: 'pointer', width: '100%', fontSize: '0.9rem'
-            }}>
-              Upgrade — PKR 7,000/mo
+          <div
+            style={{
+              backgroundColor: 'rgba(74, 225, 118, 0.06)',
+              border: '1px solid rgba(74, 225, 118, 0.15)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginTop: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(74, 225, 118, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Crown size={16} color="#4ae176" />
+            </div>
+            <div style={{ flex: 1, minWidth: '160px' }}>
+              <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', marginBottom: '2px' }}>Need more messages?</p>
+              <p style={{ color: '#888', fontSize: '13px' }}>Upgrade for higher limits, analytics & priority support.</p>
+            </div>
+            <button
+              onClick={handleUpgradeContact}
+              style={{
+                backgroundColor: '#4ae176',
+                color: '#121314',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Contact us to Upgrade
             </button>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Danger Zone */}
-                {/* Log Out */}
-        <div style={{ backgroundColor: '#0D2420', borderRadius: '16px', padding: '32px', border: '1px solid rgba(212,168,83,0.2)' }}>
+        {/* Logout Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.16 }}
+          style={{
+            backgroundColor: '#1a1b1c',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+            padding: '24px',
+          }}
+        >
           <button
             onClick={handleLogout}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
               background: 'transparent',
-              color: '#D4A853',
-              border: '1px solid #D4A853',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: '8px',
               padding: '12px 24px',
               cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '0.9rem',
-              width: '100%'
+              fontWeight: 600,
+              fontSize: '13px',
+              width: '100%',
+              fontFamily: 'Geist, sans-serif',
             }}
           >
+            <LogOut size={15} />
             Log Out
           </button>
-        </div>
+        </motion.div>
 
-        {/* Toast Notification */}
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
-    </DashboardLayout>
+    </AppShell>
   )
 }
