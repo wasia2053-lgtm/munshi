@@ -1,287 +1,419 @@
-'use client'
+"use client"
 
 import { useState, useEffect } from 'react'
 import DashboardLayout from '@/components/DashboardLayout'
-import { SkeletonCard } from '@/components/SkeletonLoader'
-import EmptyState from '@/components/EmptyState'
-import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { DownloadIcon, InboxIcon } from 'lucide-react'
 
-export default function AnalyticsPage() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [filter, setFilter] = useState('7D')
-  const [stats, setStats] = useState({ totalMessages: 0, totalConversations: 0, trainingCount: 0 })
-  const [msgData, setMsgData] = useState<any[]>([])
-  const [botMessages, setBotMessages] = useState(0)
-  const [customerMessages, setCustomerMessages] = useState(0)
-  const [animatedValues, setAnimatedValues] = useState({ totalMessages: 0, totalConversations: 0, trainingCount: 0, responseRate: 0 })
+// --- Mock Data ---
+const mockSparkline = [
+  { value: 10 }, { value: 15 }, { value: 12 }, { value: 25 }, { value: 20 }, { value: 35 }, { value: 30 }
+]
 
-  useEffect(() => { fetchData() }, [filter])
+const mockResolutionData = [
+  { date: '2024-05-01', resolved: 40, unresolved: 10 },
+  { date: '2024-05-02', resolved: 50, unresolved: 15 },
+  { date: '2024-05-03', resolved: 45, unresolved: 8 },
+  { date: '2024-05-04', resolved: 60, unresolved: 20 },
+  { date: '2024-05-05', resolved: 55, unresolved: 12 },
+  { date: '2024-05-06', resolved: 70, unresolved: 18 },
+  { date: '2024-05-07', resolved: 80, unresolved: 25 },
+]
+
+const mockLanguages = [
+  { name: 'Roman Urdu', value: 450, color: '#4ae176' },
+  { name: 'English', value: 320, color: '#2A9D8F' },
+  { name: 'Arabic', value: 120, color: '#D4A853' },
+]
+
+const generateHeatmapData = () => {
+  return Array.from({ length: 7 }, (_, day) => 
+    Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      day,
+      count: Math.floor(Math.random() * 50)
+    }))
+  ).flat()
+}
+const heatmapData = generateHeatmapData()
+const maxHeatmapCount = Math.max(...heatmapData.map(d => d.count))
+
+// --- Components ---
+
+const AnimatedCount = ({ value, duration = 0.8 }: { value: number, duration?: number }) => {
+  const [count, setCount] = useState(0)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
-    if (!loading) {
-      animateValues()
+    if (prefersReducedMotion) {
+      setCount(value)
+      return
     }
-  }, [loading, stats, botMessages, customerMessages])
-
-  const animateValues = () => {
-    const responseRate = stats.totalMessages > 0 ? ((botMessages / stats.totalMessages) * 100).toFixed(0) : '0'
-    const targetValues = {
-      totalMessages: stats.totalMessages,
-      totalConversations: stats.totalConversations,
-      trainingCount: stats.trainingCount,
-      responseRate: parseInt(responseRate)
-    }
-    
-    const duration = 1500
-    const steps = 30
-    const interval = duration / steps
-    
-    let step = 0
-    const timer = setInterval(() => {
-      step++
-      const progress = step / steps
-      const easeProgress = 1 - Math.pow(1 - progress, 3)
-      
-      setAnimatedValues({
-        totalMessages: Math.round(targetValues.totalMessages * easeProgress),
-        totalConversations: Math.round(targetValues.totalConversations * easeProgress),
-        trainingCount: Math.round(targetValues.trainingCount * easeProgress),
-        responseRate: Math.round(targetValues.responseRate * easeProgress)
-      })
-      
-      if (step >= steps) {
-        clearInterval(timer)
-        setAnimatedValues(targetValues)
+    let startTime: number | null = null
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1)
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4)
+      setCount(Math.floor(easeOutQuart * value))
+      if (progress < 1) {
+        window.requestAnimationFrame(step)
       }
-    }, interval)
-    
-    return () => clearInterval(timer)
-  }
-
-  const fetchData = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`/api/analytics?filter=${filter}`, { credentials: 'include' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch analytics data')
-      setStats(data.stats || { totalMessages: 0, totalConversations: 0, trainingCount: 0 })
-      setMsgData(data.msgData || [])
-      setBotMessages(data.bot_messages || 0)
-      setCustomerMessages(data.customer_messages || 0)
-    } catch(e: any) {
-      console.error(e)
-      setError(e.message)
-    } finally {
-      setLoading(false)
     }
-  }
+    window.requestAnimationFrame(step)
+  }, [value, duration, prefersReducedMotion])
 
-  const formatChartDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
+  return <span>{count}</span>
+}
 
-  const pieData = [
-    { name: 'Bot Messages', value: botMessages, color: '#D4A853' },
-    { name: 'Customer Messages', value: customerMessages, color: '#2A9D8F' },
-  ]
+const StatCard = ({ title, value, suffix = "", prefix = "", delta, sparklineData, index }: any) => {
+  const prefersReducedMotion = useReducedMotion()
+  const isPositive = delta >= 0
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ backgroundColor: '#0a1f1b', border: '1px solid #2A4A42', borderRadius: '8px', padding: '12px', color: '#F7E7CE', fontSize: '13px' }}>
-          <div style={{ marginBottom: '4px', color: '#8A7560' }}>{formatChartDate(label)}</div>
-          <div style={{ color: '#D4A853', fontWeight: '600' }}>{payload[0].value} messages</div>
+  return (
+    <motion.div
+      initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.08, ease: "easeOut" }}
+      whileHover={{ scale: 1.02, borderColor: '#4ae176' }}
+      style={{
+        backgroundColor: '#1a1b1c',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '16px',
+        padding: '20px',
+        transition: 'border-color 0.2s',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+        <h3 style={{ color: '#888', fontSize: '13px', fontWeight: 500, fontFamily: 'Geist, sans-serif' }}>{title}</h3>
+        <div style={{
+          backgroundColor: isPositive ? 'rgba(74, 225, 118, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          color: isPositive ? '#4ae176' : '#ef4444',
+          padding: '2px 8px',
+          borderRadius: '999px',
+          fontSize: '11px',
+          fontWeight: 600,
+          fontFamily: 'Geist, sans-serif'
+        }}>
+          {isPositive ? '▲' : '▼'} {Math.abs(delta)}%
         </div>
-      )
-    }
-    return null
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: '32px', fontWeight: 600, color: '#fff', fontFamily: 'Geist, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
+          {prefix}<AnimatedCount value={value} />{suffix}
+        </div>
+        <div style={{ width: '60px', height: '30px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sparklineData}>
+              <Line type="monotone" dataKey="value" stroke={isPositive ? "#4ae176" : "#ef4444"} strokeWidth={2} dot={false} isAnimationActive={!prefersReducedMotion} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ backgroundColor: '#1a1b1c', border: '1px solid #4ae176', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '13px', fontFamily: 'Geist, sans-serif', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 100 }}>
+        <div style={{ marginBottom: '8px', color: '#888', fontWeight: 500 }}>{label}</div>
+        {payload.map((p: any, i: number) => (
+          <div key={i} style={{ color: p.color, fontWeight: 600, marginBottom: '4px', display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+            <span>{p.name}:</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', color: '#fff' }}>{p.value}</span>
+          </div>
+        ))}
+      </div>
+    )
   }
+  return null
+}
+
+export default function AnalyticsPage() {
+  const [filter, setFilter] = useState('7D')
+  const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exported, setExported] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
+  const [hoveredLang, setHoveredLang] = useState<string | null>(null)
+
+  // Mock fetching
+  useEffect(() => {
+    setLoading(true)
+    const t = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(t)
+  }, [filter])
+
+  const handleExport = () => {
+    setExporting(true)
+    setTimeout(() => {
+      setExporting(false)
+      setExported(true)
+      setTimeout(() => setExported(false), 2000)
+    }, 1000)
+  }
+
+  const chartAnimationProps = prefersReducedMotion ? { isAnimationActive: false } : { animationDuration: 1000, animationEasing: 'ease-out' as const }
 
   return (
     <DashboardLayout>
-      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif' }}>
+        
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-          <h1 style={{ color: '#F7E7CE', fontSize: '28px', fontWeight: '700', fontFamily: 'DM Sans, sans-serif' }}>Analytics</h1>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {['7D', '30D', '3M', 'ALL'].map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: filter === f ? 'none' : '1px solid #F7E7CE',
-                  backgroundColor: filter === f ? '#D4A853' : 'transparent',
-                  color: filter === f ? '#102C26' : '#F7E7CE',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  fontFamily: 'DM Sans, sans-serif',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {f}
-              </button>
-            ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 600 }}>Analytics</h1>
+            <p style={{ color: '#888', fontSize: '14px', marginTop: '4px' }}>Measure your conversational performance</p>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', backgroundColor: '#1a1b1c', borderRadius: '8px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              {['7D', '30D', '3M', 'All'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: filter === f ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    color: filter === f ? '#fff' : '#888',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleExport}
+              disabled={exporting || exported}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 16px', borderRadius: '8px',
+                backgroundColor: exported ? '#4ae176' : '#1a1b1c',
+                border: exported ? '1px solid #4ae176' : '1px solid rgba(255,255,255,0.06)',
+                color: exported ? '#121314' : '#fff',
+                cursor: 'pointer', fontSize: '13px', fontWeight: 500,
+                transition: 'all 0.2s', height: '36px'
+              }}
+            >
+              {exporting ? (
+                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ width: 14, height: 14, border: '2px solid #888', borderTopColor: '#fff', borderRadius: '50%' }} />
+              ) : exported ? (
+                <span>✓ Exported</span>
+              ) : (
+                <><DownloadIcon size={14} /> Export CSV</>
+              )}
+            </button>
           </div>
         </div>
 
-        {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            <SkeletonCard lines={2} />
-            <SkeletonCard lines={2} />
-            <SkeletonCard lines={2} />
-            <SkeletonCard lines={2} />
-          </div>
-        ) : error ? (
-          <EmptyState icon="⚠️" title="Error loading analytics" description={error} />
-        ) : (
-          <>
-            {/* Stats Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-              {[
-                { label: 'Total Messages', value: animatedValues.totalMessages, icon: '📧', trend: '+12%' },
-                { label: 'Conversations', value: animatedValues.totalConversations, icon: '💬', trend: '+8%' },
-                { label: 'Training Sources', value: animatedValues.trainingCount, icon: '📚', trend: '+5%' },
-                { label: 'Response Rate', value: animatedValues.responseRate + '%', icon: '⚡', trend: '+15%' },
-              ].map((stat, index) => (
-                <div
-                  key={stat.label}
-                  style={{
-                    backgroundColor: '#0a1f1b',
-                    border: '1px solid #2A4A42',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    animation: `fadeInUp 0.5s ease ${index * 0.1}s both`
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '24px' }}>{stat.icon}</span>
-                    <span style={{ fontSize: '12px', color: '#2A9D8F', fontWeight: '500' }}>{stat.trend}</span>
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'grid', gap: '24px' }}
+            >
+              {/* Skeleton Loaders */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} style={{ height: '116px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
+                    <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
                   </div>
-                  <div style={{ color: '#8A7560', fontSize: '13px', fontFamily: 'DM Sans, sans-serif', marginBottom: '8px' }}>{stat.label}</div>
-                  <div style={{ color: '#D4A853', fontSize: '32px', fontWeight: '700', fontFamily: 'DM Sans, sans-serif' }}>{stat.value}</div>
+                ))}
+              </div>
+              <div style={{ height: '400px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
+                <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
+              </div>
+            </motion.div>
+          ) : mockResolutionData.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(74, 225, 118, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', color: '#4ae176' }}>
+                <InboxIcon size={32} />
+              </div>
+              <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No Data Available</h3>
+              <p style={{ color: '#888', fontSize: '14px' }}>There is no analytics data for the selected period.</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Stat Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                <StatCard title="Resolution Rate" value={86} suffix="%" delta={4.2} sparklineData={mockSparkline} index={0} />
+                <StatCard title="Avg Messages / Conv" value={6} delta={-1.5} sparklineData={mockSparkline} index={1} />
+                <StatCard title="Peak Hour" value={14} prefix="" suffix=":00" delta={0} sparklineData={mockSparkline} index={2} />
+                <StatCard title="Repeat Customers" value={24} suffix="%" delta={2.1} sparklineData={mockSparkline} index={3} />
+              </div>
+
+              {/* Resolution Trend Chart */}
+              <motion.div
+                initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}
+              >
+                <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Resolution Trend</h3>
+                <div style={{ height: '300px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={mockResolutionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4ae176" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#4ae176" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area type="monotone" dataKey="resolved" stroke="#4ae176" fill="url(#colorResolved)" strokeWidth={2} {...chartAnimationProps} activeDot={{ r: 6, fill: '#4ae176', stroke: '#121314', strokeWidth: 2, style: { filter: 'drop-shadow(0 0 8px #4ae176)' } }} name="Resolved" />
+                      <Area type="monotone" dataKey="unresolved" stroke="#ef4444" fill="transparent" strokeWidth={2} {...chartAnimationProps} activeDot={{ r: 6, fill: '#ef4444', stroke: '#121314', strokeWidth: 2 }} name="Unresolved" />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+              </motion.div>
 
-            {/* Charts Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-              {/* Messages Per Day - Area Chart */}
-              <div style={{ backgroundColor: '#0a1f1b', border: '1px solid #2A4A42', borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ color: '#F7E7CE', fontSize: '16px', fontWeight: '600', fontFamily: 'DM Sans, sans-serif', marginBottom: '20px' }}>Messages Per Day</h3>
-                <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={msgData}>
-                    <defs>
-                      <linearGradient id="colorGold" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#D4A853" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#D4A853" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2A4A42" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#F7E7CE" 
-                      fontSize={12}
-                      tickFormatter={formatChartDate}
-                      fontFamily="DM Sans, sans-serif"
-                    />
-                    <YAxis stroke="#F7E7CE" fontSize={12} fontFamily="DM Sans, sans-serif" />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="messages" 
-                      stroke="#D4A853" 
-                      fill="url(#colorGold)"
-                      animationDuration={1500}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Conversations Over Time - Bar Chart */}
-              <div style={{ backgroundColor: '#0a1f1b', border: '1px solid #2A4A42', borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ color: '#F7E7CE', fontSize: '16px', fontWeight: '600', fontFamily: 'DM Sans, sans-serif', marginBottom: '20px' }}>Conversations Over Time</h3>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={msgData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2A4A42" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#F7E7CE" 
-                      fontSize={12}
-                      tickFormatter={formatChartDate}
-                      fontFamily="DM Sans, sans-serif"
-                    />
-                    <YAxis stroke="#F7E7CE" fontSize={12} fontFamily="DM Sans, sans-serif" />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar 
-                      dataKey="messages" 
-                      fill="#D4A853" 
-                      radius={[4, 4, 0, 0]}
-                      animationDuration={1200}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Message Distribution - Pie Chart */}
-            <div style={{ backgroundColor: '#0a1f1b', border: '1px solid #2A4A42', borderRadius: '12px', padding: '24px' }}>
-              <h3 style={{ color: '#F7E7CE', fontSize: '16px', fontWeight: '600', fontFamily: 'DM Sans, sans-serif', marginBottom: '20px' }}>Message Distribution</h3>
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
-                <ResponsiveContainer width={300} height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={5}
-                      dataKey="value"
-                      animationBegin={0}
-                      animationDuration={1000}
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fill="#D4A853" fontSize="28" fontWeight="700" fontFamily="DM Sans, sans-serif">
-                      {stats.totalMessages}
-                    </text>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div>
-                  {pieData.map((item) => (
-                    <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                      <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: item.color }} />
-                      <span style={{ color: '#F7E7CE', fontSize: '14px', fontFamily: 'DM Sans, sans-serif' }}>{item.name}</span>
-                      <span style={{ color: '#D4A853', fontSize: '14px', fontWeight: '600', fontFamily: 'DM Sans, sans-serif' }}>{item.value}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+                {/* Peak Hours Heatmap */}
+                <motion.div
+                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}
+                >
+                  <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Peak Hours (Avg over 7D)</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {Array.from({ length: 7 }, (_, dayIndex) => (
+                      <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '32px' }}>
+                        <div style={{ width: '40px', color: '#888', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
+                        </div>
+                        {Array.from({ length: 24 }, (_, hour) => {
+                          const cellData = heatmapData.find(d => d.day === dayIndex && d.hour === hour)
+                          const count = cellData ? cellData.count : 0
+                          const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
+                          const index = dayIndex * 24 + hour
+                          
+                          return (
+                            <motion.div
+                              key={hour}
+                              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: index * 0.004, duration: 0.3 }}
+                              whileHover={{ scale: 1.1, zIndex: 10 }}
+                              title={`${count} messages at ${hour}:00`}
+                              style={{
+                                flex: 1,
+                                backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.1, opacity)})` : 'rgba(255,255,255,0.03)',
+                                borderRadius: '4px',
+                                cursor: 'crosshair',
+                                border: '1px solid transparent',
+                              }}
+                            />
+                          )
+                        })}
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '8px', paddingLeft: '44px' }}>
+                       {Array.from({ length: 24 }, (_, hour) => (
+                         <div key={hour} style={{ flex: 1, color: '#888', fontSize: '9px', textAlign: 'center' }}>
+                           {hour % 3 === 0 ? hour : ''}
+                         </div>
+                       ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+                  </div>
+                </motion.div>
 
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+                {/* Language Distribution */}
+                <motion.div
+                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}
+                >
+                  <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Language Distribution</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '40px', flexWrap: 'wrap' }}>
+                    <div style={{ width: '240px', height: '240px', position: 'relative' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={mockLanguages}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={100}
+                            paddingAngle={5}
+                            dataKey="value"
+                            stroke="none"
+                            {...chartAnimationProps}
+                          >
+                            {mockLanguages.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.color} 
+                                style={{
+                                  filter: hoveredLang === entry.name ? `drop-shadow(0 0 8px ${entry.color})` : 'none',
+                                  transition: 'filter 0.3s'
+                                }}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                          <AnimatedCount value={mockLanguages.reduce((a, b) => a + b.value, 0)} />
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#888' }}>Total</div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {mockLanguages.map((lang) => (
+                        <div 
+                          key={lang.name} 
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                          onMouseEnter={() => setHoveredLang(lang.name)}
+                          onMouseLeave={() => setHoveredLang(null)}
+                        >
+                          <div style={{ 
+                            width: '12px', height: '12px', borderRadius: '50%', backgroundColor: lang.color,
+                            transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)',
+                            boxShadow: hoveredLang === lang.name ? `0 0 8px ${lang.color}` : 'none',
+                            transition: 'all 0.2s'
+                          }} />
+                          <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px', transition: 'color 0.2s' }}>{lang.name}</span>
+                          <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
+                            {Math.round((lang.value / mockLanguages.reduce((a, b) => a + b.value, 0)) * 100)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </DashboardLayout>
   )
 }
