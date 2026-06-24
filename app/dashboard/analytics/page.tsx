@@ -1,8 +1,6 @@
-'use client'
-
+"use client"
 import { useState, useEffect } from 'react'
-import { DownloadIcon, InboxIcon } from 'lucide-react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Inbox } from 'lucide-react'
 import { DownloadIcon } from 'lucide-react'
@@ -25,26 +23,22 @@ const AnimatedCount = ({ value, duration = 0.8 }: { value: number; duration?: nu
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
+    if (prefersReducedMotion) {
+      setCount(value)
+      return
+    }
     let start: number | null = null
-    let frameId: number
     const step = (timestamp: number) => {
-      if (start === null) start = timestamp
+      if (!start) start = timestamp
       const progress = Math.min((timestamp - start) / (duration * 1000), 1)
       const easeOut = 1 - Math.pow(1 - progress, 4)
       setCount(Math.floor(easeOut * value))
-      if (progress < 1) {
-        frameId = requestAnimationFrame(step)
-      }
+      if (progress < 1) requestAnimationFrame(step)
     }
-    frameId = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frameId)
-    setCount(Math.floor(easeOut * value))
-    if (progress < 1) requestAnimationFrame(step)
-  }
     requestAnimationFrame(step)
   }, [value, duration, prefersReducedMotion])
 
-return <span>{count}</span>
+  return <span>{count}</span>
 }
 
 const StatCard = ({ title, value, suffix = '', prefix = '', delta, sparklineData, index }: StatCardProps) => {
