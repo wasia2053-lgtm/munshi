@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { Suspense } from 'react'
 import { Inbox } from 'lucide-react'
 import { DownloadIcon } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
@@ -106,7 +107,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const searchParams = useSearchParams()
   const [filter, setFilter] = useState<string>(searchParams.get('filter') || '7D')
   const [loading, setLoading] = useState(false)
@@ -414,4 +415,19 @@ export default function AnalyticsPage() {
       </div>
     </AppShell>
   )
+}
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<AnalyticsLoading />}>
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
+
+function AnalyticsLoading() {
+  return (
+    <div style={{ flex: 1, padding: '24px', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="animate-pulse text-sm text-muted-foreground" style={{ color: '#888' }}>Loading analytics...</div>
+    </div>
+  );
 }
