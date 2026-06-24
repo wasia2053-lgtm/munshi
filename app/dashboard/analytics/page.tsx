@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { Inbox } from 'lucide-react'
 import { DownloadIcon } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 
@@ -109,14 +110,28 @@ export default function AnalyticsPage() {
   const [exporting, setExporting] = useState(false)
   const [exported, setExported] = useState(false)
   const prefersReducedMotion = useReducedMotion()
-  const [hoveredLang, setHoveredLang] = useState<string | null>(null)
+  const [resolutionData, setResolutionData] = useState<any[]>([]);
+  const [sparklineData, setSparklineData] = useState<any[]>([]);
+  const [heatmapData, setHeatmapData] = useState<any[]>([]);
+  const [maxHeatmapCount, setMaxHeatmapCount] = useState(0);
+  const [languageData, setLanguageData] = useState<any[]>([]);
+const [hoveredLang, setHoveredLang] = useState<string | null>(null);
 
-  // Mock fetching
   useEffect(() => {
-    setLoading(true)
-    const t = setTimeout(() => setLoading(false), 600)
-    return () => clearTimeout(t)
-  }, [filter])
+    setLoading(true);
+    fetch(`/api/analytics?range=${filter}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setResolutionData(data.resolutionTrend || []);
+        setSparklineData(data.sparklines || []);
+        setHeatmapData(data.heatmap || []);
+        const maxCount = data.heatmap?.reduce((m: number, d: any) => Math.max(m, d.count), 0) ?? 0;
+        setMaxHeatmapCount(maxCount);
+        setLanguageData(data.languages || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [filter]);
 
   const handleExport = () => {
     setExporting(true)
@@ -130,7 +145,7 @@ export default function AnalyticsPage() {
   const chartAnimationProps = prefersReducedMotion ? { isAnimationActive: false } : { animationDuration: 1000, animationEasing: 'ease-out' as const }
 
   return (
-    <DashboardLayout>
+    <AppShell>
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#121314', minHeight: '100vh', fontFamily: 'Geist, sans-serif' }}>
         
         {/* Header */}
@@ -207,14 +222,14 @@ export default function AnalyticsPage() {
                 <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
               </div>
             </motion.div>
-          ) : mockResolutionData.length === 0 ? (
+          ) : resolutionData.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(74, 225, 118, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', color: '#4ae176' }}>
-                <InboxIcon size={32} />
+                <Inbox size={32} />
               </div>
               <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No Data Available</h3>
               <p style={{ color: '#888', fontSize: '14px' }}>There is no analytics data for the selected period.</p>
@@ -229,10 +244,10 @@ export default function AnalyticsPage() {
             >
               {/* Stat Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <StatCard title="Resolution Rate" value={86} suffix="%" delta={4.2} sparklineData={mockSparkline} index={0} />
-                <StatCard title="Avg Messages / Conv" value={6} delta={-1.5} sparklineData={mockSparkline} index={1} />
-                <StatCard title="Peak Hour" value={14} prefix="" suffix=":00" delta={0} sparklineData={mockSparkline} index={2} />
-                <StatCard title="Repeat Customers" value={24} suffix="%" delta={2.1} sparklineData={mockSparkline} index={3} />
+                <StatCard title="Resolution Rate" value={86} suffix="%" delta={4.2} sparklineData={sparklineData} index={0} />
+                <StatCard title="Avg Messages / Conv" value={6} delta={-1.5} sparklineData={sparklineData} index={1} />
+                <StatCard title="Peak Hour" value={14} suffix=":00" delta={0} sparklineData={sparklineData} index={2} />
+                <StatCard title="Repeat Customers" value={24} suffix="%" delta={2.1} sparklineData={sparklineData} index={3} />
               </div>
 
               {/* Resolution Trend Chart */}
@@ -245,7 +260,7 @@ export default function AnalyticsPage() {
                 <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Resolution Trend</h3>
                 <div style={{ height: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={mockResolutionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={resolutionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#4ae176" stopOpacity={0.3}/>
@@ -271,7 +286,7 @@ export default function AnalyticsPage() {
                   style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}
                 >
                   <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Peak Hours (Avg over 7D)</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowX: 'auto' }}>
                     {Array.from({ length: 7 }, (_, dayIndex) => (
                       <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '32px' }}>
                         <div style={{ width: '40px', color: '#888', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
@@ -326,7 +341,7 @@ export default function AnalyticsPage() {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={mockLanguages}
+                            data={languageData}
                             cx="50%"
                             cy="50%"
                             innerRadius={70}
@@ -336,7 +351,7 @@ export default function AnalyticsPage() {
                             stroke="none"
                             {...chartAnimationProps}
                           >
-                            {mockLanguages.map((entry, index) => (
+                            {languageData.map((entry, index) => (
                               <Cell 
                                 key={`cell-${index}`} 
                                 fill={entry.color} 
@@ -352,33 +367,38 @@ export default function AnalyticsPage() {
                       </ResponsiveContainer>
                       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
                         <div style={{ fontSize: '24px', fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                          <AnimatedCount value={mockLanguages.reduce((a, b) => a + b.value, 0)} />
+                          <AnimatedCount value={languageData.reduce((a, b) => a + b.value, 0)} />
                         </div>
                         <div style={{ fontSize: '12px', color: '#888' }}>Total</div>
                       </div>
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {mockLanguages.map((lang) => (
-                        <div 
-                          key={lang.name} 
-                          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredLang(lang.name)}
-                          onMouseLeave={() => setHoveredLang(null)}
-                        >
-                          <div style={{ 
-                            width: '12px', height: '12px', borderRadius: '50%', backgroundColor: lang.color,
-                            transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)',
-                            boxShadow: hoveredLang === lang.name ? `0 0 8px ${lang.color}` : 'none',
-                            transition: 'all 0.2s'
-                          }} />
-                          <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px', transition: 'color 0.2s' }}>{lang.name}</span>
-                          <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
-                            {Math.round((lang.value / mockLanguages.reduce((a, b) => a + b.value, 0)) * 100)}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+  {languageData.map((lang: { name: string; value: number; color: string }) => (
+    <div
+      key={lang.name}
+      style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+      onMouseEnter={() => setHoveredLang(lang.name)}
+      onMouseLeave={() => setHoveredLang(null)}
+    >
+      <div
+        style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          backgroundColor: lang.color,
+          transform: hoveredLang === lang.name ? 'scale(1.3)' : 'scale(1)',
+          boxShadow: hoveredLang === lang.name ? `0 0 8px ${lang.color}` : 'none',
+          transition: 'all 0.2s',
+        }}
+      />
+      <span style={{ color: hoveredLang === lang.name ? '#fff' : '#888', fontSize: '14px', transition: 'color 0.2s' }}>{lang.name}</span>
+      <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>
+        {Math.round((lang.value / languageData.reduce((a, b) => a + b.value, 0)) * 100)}%
+      </span>
+    </div>
+  ))}
+</div>
                   </div>
                 </motion.div>
               </div>
@@ -386,6 +406,6 @@ export default function AnalyticsPage() {
           )}
         </AnimatePresence>
       </div>
-    </DashboardLayout>
+    </AppShell>
   )
 }
