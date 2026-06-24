@@ -51,41 +51,60 @@ function StatCard({ title, value, suffix = '', prefix = '', delta, sparklineData
   const isPositive = delta >= 0
   return (
     <motion.div
-      initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.08, ease: 'easeOut' }}
-      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.4, delay: 0.3 }}
       style={{
         backgroundColor: '#1a1b1c',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '16px',
-        padding: '20px',
+        padding: '24px',
+        minWidth: 0,
+        maxWidth: '100%',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <h3 style={{ color: '#888', fontSize: '13px', fontWeight: 500, fontFamily: 'Geist, sans-serif' }}>{title}</h3>
-        <div style={{
-          backgroundColor: isPositive ? 'rgba(74, 225, 118, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-          color: isPositive ? '#4ae176' : '#ef4444',
-          padding: '2px 8px',
-          borderRadius: '999px',
-          fontSize: '11px',
-          fontWeight: 600,
-          fontFamily: 'Geist, sans-serif',
-        }}>
-          {isPositive ? '▲' : '▼'} {Math.abs(delta)}%
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: '32px', fontWeight: 600, color: '#fff', fontFamily: 'Geist, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
-          {prefix}<AnimatedCount value={value} />{suffix}
-        </div>
-        <div style={{ width: '60px', height: '30px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={sparklineData}>
-              <Line type="monotone" dataKey="value" stroke={isPositive ? '#4ae176' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={!prefersReducedMotion} />
-            </LineChart>
-          </ResponsiveContainer>
+      <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>
+        Peak Hours (by day)
+      </h3>
+
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+        <div style={{ minWidth: '472px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {Array.from({ length: 7 }, (_, dayIndex) => (
+            <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '24px' }}>
+              <div style={{ width: '40px', flexShrink: 0, color: '#888', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
+              </div>
+              {Array.from({ length: 24 }, (_, hour) => {
+                const cellData = heatmapData.find((d) => d.day === dayIndex && d.hour === hour)
+                const count = cellData ? cellData.count : 0
+                const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
+                return (
+                  <div
+                    key={hour}
+                    title={`${count} messages at ${hour}:00`}
+                    style={{
+                      width: '18px',
+                      minWidth: '18px',
+                      flexShrink: 0,
+                      height: '100%',
+                      backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.15, opacity)})` : 'rgba(255,255,255,0.03)',
+                      borderRadius: '4px',
+                      cursor: 'crosshair',
+                    }}
+                  />
+                )
+              })}
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+            <div style={{ width: '40px', flexShrink: 0 }} />
+            {Array.from({ length: 24 }, (_, hour) => (
+              <div key={hour} style={{ width: '18px', minWidth: '18px', flexShrink: 0, color: '#888', fontSize: '9px', textAlign: 'center' }}>
+                {hour % 3 === 0 ? hour : ''}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </motion.div>
