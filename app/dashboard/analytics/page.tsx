@@ -282,50 +282,59 @@ function AnalyticsContent() {
                 </div>
               </motion.div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', minWidth: 0 }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', overflow: 'hidden', maxWidth: '100%', minWidth: 0 }}>
                   <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Peak Hours (by day)</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowX: 'auto' }}>
-                    {Array.from({ length: 7 }, (_, dayIndex) => (
-                      <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '32px' }}>
-                        <div style={{ width: '40px', color: '#888', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
-                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
-                        </div>
-                        {Array.from({ length: 24 }, (_, hour) => {
-                          const cellData = heatmapData.find((d) => d.day === dayIndex && d.hour === hour)
-                          const count = cellData ? cellData.count : 0
-                          const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
-                          const idx = dayIndex * 24 + hour
-                          return (
-                            <motion.div
-                              key={hour}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: idx * 0.004, duration: 0.3 }}
-                              whileHover={{ scale: 1.1, zIndex: 10 }}
-                              title={`${count} messages at ${hour}:00`}
-                              style={{
-                                flex: 1,
-                                backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.15, opacity)})` : 'rgba(255,255,255,0.03)',
-                                borderRadius: '4px',
-                                cursor: 'crosshair',
-                              }}
-                            />
-                          )
-                        })}
+                  {/* Scroll container — only this scrolls horizontally, not the page */}
+                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <div style={{ minWidth: '472px' }}>{/* 40px label + 24 × 18px cells = 472px */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {Array.from({ length: 7 }, (_, dayIndex) => (
+                          <div key={dayIndex} style={{ display: 'flex', gap: '4px', height: '32px' }}>
+                            <div style={{ width: '40px', flexShrink: 0, color: '#888', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
+                              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayIndex]}
+                            </div>
+                            {Array.from({ length: 24 }, (_, hour) => {
+                              const cellData = heatmapData.find((d) => d.day === dayIndex && d.hour === hour)
+                              const count = cellData ? cellData.count : 0
+                              const opacity = maxHeatmapCount > 0 ? count / maxHeatmapCount : 0
+                              const idx = dayIndex * 24 + hour
+                              return (
+                                <motion.div
+                                  key={hour}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ delay: idx * 0.004, duration: 0.3 }}
+                                  whileHover={{ scale: 1.1, zIndex: 10 }}
+                                  title={`${count} messages at ${hour}:00`}
+                                  style={{
+                                    minWidth: '18px',
+                                    width: '18px',
+                                    height: '100%',
+                                    flexShrink: 0,
+                                    backgroundColor: opacity > 0 ? `rgba(74, 225, 118, ${Math.max(0.15, opacity)})` : 'rgba(255,255,255,0.03)',
+                                    borderRadius: '4px',
+                                    cursor: 'crosshair',
+                                  }}
+                                />
+                              )
+                            })}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '8px', paddingLeft: '44px' }}>
-                      {Array.from({ length: 24 }, (_, hour) => (
-                        <div key={hour} style={{ flex: 1, color: '#888', fontSize: '9px', textAlign: 'center' }}>
-                          {hour % 3 === 0 ? hour : ''}
-                        </div>
-                      ))}
+                      {/* Hour labels */}
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '8px', paddingLeft: '44px' }}>
+                        {Array.from({ length: 24 }, (_, hour) => (
+                          <div key={hour} style={{ minWidth: '18px', width: '18px', flexShrink: 0, color: '#888', fontSize: '9px', textAlign: 'center' }}>
+                            {hour % 3 === 0 ? hour : ''}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px' }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }} style={{ backgroundColor: '#1a1b1c', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '24px', minWidth: 0 }}>
                   <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>Language Distribution</h3>
                   {languageData.length === 0 ? (
                     <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '40px 0' }}>No bot replies yet for this period.</div>
