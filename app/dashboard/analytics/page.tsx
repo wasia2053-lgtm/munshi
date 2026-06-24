@@ -234,7 +234,7 @@ function AnalyticsContent() {
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'grid', gap: '24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '16px' }}>
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} style={{ height: '116px', backgroundColor: '#1a1b1c', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
                     <motion.div animate={prefersReducedMotion ? {} : { x: ['-100%', '100%'] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
@@ -256,7 +256,7 @@ function AnalyticsContent() {
           ) : (
             <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {/* Stat Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <StatCard title="Resolution Rate" value={stats.resolutionRate} suffix="%" delta={deltas.resolutionRate} sparklineData={sparklines.resolutionRate} index={0} />
                 <StatCard title="Avg Messages / Conv" value={stats.avgMessagesPerConv} delta={deltas.avgMessagesPerConv} sparklineData={sparklines.avgMessages} index={1} />
                 <StatCard title="Peak Hour" value={stats.peakHour} suffix=":00" delta={deltas.peakHour} sparklineData={sparklines.peakHour} index={2} />
@@ -291,7 +291,7 @@ function AnalyticsContent() {
               </motion.div>
 
               {/* Peak Hours + Language Distribution side-by-side */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', minWidth: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))', gap: '24px', minWidth: 0 }}>
 
                 {/* Peak Hours Heatmap */}
                 <motion.div
