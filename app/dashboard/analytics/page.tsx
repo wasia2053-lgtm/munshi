@@ -1,47 +1,22 @@
-"use client"
-
 import { useState, useEffect } from 'react'
-import DashboardLayout from '@/components/DashboardLayout'
-import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { AppShell } from '@/components/app-shell'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { DownloadIcon, InboxIcon } from 'lucide-react'
+import { DownloadIcon } from 'lucide-react'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 
-// --- Mock Data ---
-const mockSparkline = [
-  { value: 10 }, { value: 15 }, { value: 12 }, { value: 25 }, { value: 20 }, { value: 35 }, { value: 30 }
-]
+// No mock data – real data will be fetched from /api/analytics
 
-const mockResolutionData = [
-  { date: '2024-05-01', resolved: 40, unresolved: 10 },
-  { date: '2024-05-02', resolved: 50, unresolved: 15 },
-  { date: '2024-05-03', resolved: 45, unresolved: 8 },
-  { date: '2024-05-04', resolved: 60, unresolved: 20 },
-  { date: '2024-05-05', resolved: 55, unresolved: 12 },
-  { date: '2024-05-06', resolved: 70, unresolved: 18 },
-  { date: '2024-05-07', resolved: 80, unresolved: 25 },
-]
-
-const mockLanguages = [
-  { name: 'Roman Urdu', value: 450, color: '#4ae176' },
-  { name: 'English', value: 320, color: '#2A9D8F' },
-  { name: 'Arabic', value: 120, color: '#D4A853' },
-]
-
-const generateHeatmapData = () => {
-  return Array.from({ length: 7 }, (_, day) => 
-    Array.from({ length: 24 }, (_, hour) => ({
-      hour,
-      day,
-      count: Math.floor(Math.random() * 50)
-    }))
-  ).flat()
+type StatCardProps = {
+  title: string
+  value: number
+  suffix?: string
+  prefix?: string
+  delta: number
+  sparklineData: { value: number }[]
+  index: number
 }
-const heatmapData = generateHeatmapData()
-const maxHeatmapCount = Math.max(...heatmapData.map(d => d.count))
 
-// --- Components ---
-
-const AnimatedCount = ({ value, duration = 0.8 }: { value: number, duration?: number }) => {
+const AnimatedCount = ({ value, duration = 0.8 }: { value: number; duration?: number }) => {
   const [count, setCount] = useState(0)
   const prefersReducedMotion = useReducedMotion()
 
@@ -50,26 +25,23 @@ const AnimatedCount = ({ value, duration = 0.8 }: { value: number, duration?: nu
       setCount(value)
       return
     }
-    let startTime: number | null = null
+    let start: number | null = null
     const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1)
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4)
-      setCount(Math.floor(easeOutQuart * value))
-      if (progress < 1) {
-        window.requestAnimationFrame(step)
-      }
+      if (!start) start = timestamp
+      const progress = Math.min((timestamp - start) / (duration * 1000), 1)
+      const easeOut = 1 - Math.pow(1 - progress, 4)
+      setCount(Math.floor(easeOut * value))
+      if (progress < 1) requestAnimationFrame(step)
     }
-    window.requestAnimationFrame(step)
+    requestAnimationFrame(step)
   }, [value, duration, prefersReducedMotion])
 
   return <span>{count}</span>
 }
 
-const StatCard = ({ title, value, suffix = "", prefix = "", delta, sparklineData, index }: any) => {
+const StatCard = ({ title, value, suffix = '', prefix = '', delta, sparklineData, index }: StatCardProps) => {
   const prefersReducedMotion = useReducedMotion()
   const isPositive = delta >= 0
-
   return (
     <motion.div
       initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
