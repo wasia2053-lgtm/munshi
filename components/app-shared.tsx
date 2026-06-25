@@ -88,7 +88,7 @@ export const navGroups: SidebarNavGroup[] = [
 export const footerNavLinks: SidebarNavItem[] = [
 	{
 		title: "Help Center",
-		path: "/dashboard/help",
+		path: "/help",
 		icon: (
 			<HelpCircleIcon />
 		),
