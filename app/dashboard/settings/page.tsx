@@ -173,7 +173,8 @@ export default function SettingsPage() {
             <label style={label}>Bot Reply Language</label>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {[
-                { value: 'english', label: 'English', flag: '🇺🇸' },
+                { value: 'english_us', label: 'English (US)', flag: '🇺🇸' },
+                { value: 'english_uk', label: 'English (UK)', flag: '🇬🇧' },
                 { value: 'roman_urdu', label: 'Roman Urdu', flag: '🇵🇰' },
                 { value: 'arabic', label: 'Arabic', flag: '🇸🇦' },
               ].map(l => (
