@@ -1,776 +1,300 @@
 'use client'
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-
-import React, { useState } from 'react'
-import { DashboardLayout } from '@/components/DashboardLayout'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
+import { AppShell } from '@/components/app-shell'
+import { motion } from 'framer-motion'
+import { Bot, Clock, MessageSquare } from 'lucide-react'
 import Toast from '@/components/Toast'
-const BUSINESS_ID = '00000000-0000-0000-0000-000000000001'
 
 export default function SettingsPage() {
   const [botName, setBotName] = useState('')
-  const [orgName, setOrgName] = useState('')
   const [tone, setTone] = useState('friendly')
   const [language, setLanguage] = useState('roman_urdu')
-  const [greeting, setGreeting] = useState('')
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [userName, setUserName] = useState('Ahmad Raza')
-  const [userEmail, setUserEmail] = useState('ahmad@stylehub.pk')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<'growth' | 'pro'>('growth')
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
-  const [paymentSubmitted, setPaymentSubmitted] = useState(false)
-  
-  // Operating Hours State
-  const [operatingHours, setOperatingHours] = useState({
-    monday: { enabled: false, open: '09:00', close: '18:00' },
-    tuesday: { enabled: false, open: '09:00', close: '18:00' },
-    wednesday: { enabled: false, open: '09:00', close: '18:00' },
-    thursday: { enabled: false, open: '09:00', close: '18:00' },
-    friday: { enabled: false, open: '09:00', close: '18:00' },
-    saturday: { enabled: false, open: '09:00', close: '18:00' },
-    sunday: { enabled: false, open: '09:00', close: '18:00' }
-  })
-  
-  // Away Message State
   const [awayMessage, setAwayMessage] = useState('')
-  
-  // Toast State
-  const [toast, setToast] = useState<{message:string, type:'success'|'error'|'info'} | null>(null)
-
-
-React.useEffect(() => {
-  fetch('/api/settings/get', { credentials: 'include' })
-    .then(r => r.json())
-    .then(data => {
-      setBotName(data.bot_name || '')
-      setOrgName(data.organization_name || '')
-      setLanguage(data.language || 'roman_urdu')
-      setTone(data.tone || 'friendly')
-      setGreeting(data.greeting_message || '')
-      
-      // Load operating hours
-      if (data.operating_hours) {
-        setOperatingHours(data.operating_hours)
-      }
-      
-      // Load away message
-      if (data.away_message) {
-        setAwayMessage(data.away_message)
-      }
-    })
-}, [])
-
-
-const handleSave = async () => {
-  const res = await fetch('/api/settings/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      bot_name: botName,
-      organization_name: orgName,
-      language: language,
-      tone: tone,
-      greeting_message: greeting,
-    })
+  const [savingBot, setSavingBot] = useState(false)
+  const [savingHours, setSavingHours] = useState(false)
+  const [savingAway, setSavingAway] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [operatingHours, setOperatingHours] = useState({
+    monday: { enabled: true, open: '09:00', close: '18:00' },
+    tuesday: { enabled: true, open: '09:00', close: '18:00' },
+    wednesday: { enabled: true, open: '09:00', close: '18:00' },
+    thursday: { enabled: true, open: '09:00', close: '18:00' },
+    friday: { enabled: true, open: '09:00', close: '18:00' },
+    saturday: { enabled: false, open: '09:00', close: '18:00' },
+    sunday: { enabled: false, open: '09:00', close: '18:00' },
   })
-  if (res.ok) {
-    setToast({ message: 'Settings save ho gayi! ✅', type: 'success' })
-    setTimeout(() => setToast(null), 3000)
-  } else {
-    setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
   }
-}
 
-const handleSaveOperatingHours = async () => {
-  const res = await fetch('/api/settings/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      operating_hours: operatingHours
-    })
-  })
-  if (res.ok) {
-    setToast({ message: 'Operating hours save ho gayi! ✅', type: 'success' })
-    setTimeout(() => setToast(null), 3000)
-  } else {
-    setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
-    setTimeout(() => setToast(null), 3000)
-  }
-}
-
-const handleSaveAwayMessage = async () => {
-  const res = await fetch('/api/settings/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      away_message: awayMessage
-    })
-  })
-  if (res.ok) {
-    setToast({ message: 'Away message save ho gayi! ✅', type: 'success' })
-    setTimeout(() => setToast(null), 3000)
-  } else {
-    setToast({ message: 'Kuch masla hua, dobara try karo ❌', type: 'error' })
-    setTimeout(() => setToast(null), 3000)
-  }
-}
-
-
-
-  const handleSaveProfile = () => {
-    // Save user profile settings
-    console.log('Saving profile settings:', { userName, userEmail })
-  }
-
-  const handleSavePassword = () => {
-    if (newPassword !== confirmPassword) {
-      alert('Passwords do not match')
-      return
-    }
-    // Save password settings
-    console.log('Saving password settings')
-  }
-
-  const handleUpgrade = (plan: 'growth' | 'pro') => {
-    setSelectedPlan(plan)
-    setShowPaymentModal(true)
-    setPaymentSubmitted(false)
-  }
-
-  const handlePaymentSubmit = async () => {
-    setIsProcessingPayment(true)
-    
-    try {
-      const response = await fetch('/api/payments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'create',
-          plan: selectedPlan,
-          userId: 'current-user' // Replace with actual user ID from auth
-        })
+  useEffect(() => {
+    fetch('/api/settings/get', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        setBotName(data.bot_name || '')
+        setLanguage(data.language || 'roman_urdu')
+        setTone(data.tone || 'friendly')
+        setAwayMessage(data.away_message || '')
+        if (data.operating_hours) setOperatingHours(data.operating_hours)
       })
-      
-      const data = await response.json()
-      
-      if (data.success) {
-        setPaymentSubmitted(true)
-        setTimeout(() => {
-          setShowPaymentModal(false)
-          setPaymentSubmitted(false)
-        }, 3000)
-      } else {
-        alert('Failed to process payment')
-      }
-    } catch (error) {
-      console.error('Payment error:', error)
-      alert('Failed to process payment')
-    } finally {
-      setIsProcessingPayment(false)
-    }
+  }, [])
+
+  const handleSaveBot = async () => {
+    setSavingBot(true)
+    const res = await fetch('/api/settings/save', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bot_name: botName, language, tone }),
+    })
+    setSavingBot(false)
+    showToast(res.ok ? 'Bot settings saved! ✅' : 'Error saving ❌', res.ok ? 'success' : 'error')
+  }
+
+  const handleSaveHours = async () => {
+    setSavingHours(true)
+    const res = await fetch('/api/settings/save', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operating_hours: operatingHours }),
+    })
+    setSavingHours(false)
+    showToast(res.ok ? 'Operating hours saved! ✅' : 'Error saving ❌', res.ok ? 'success' : 'error')
+  }
+
+  const handleSaveAway = async () => {
+    setSavingAway(true)
+    const res = await fetch('/api/settings/save', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ away_message: awayMessage }),
+    })
+    setSavingAway(false)
+    showToast(res.ok ? 'Away message saved! ✅' : 'Error saving ❌', res.ok ? 'success' : 'error')
+  }
+
+  const card: React.CSSProperties = {
+    backgroundColor: '#1a1b1c',
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: '16px',
+    padding: '24px',
+    marginBottom: '24px',
+  }
+
+  const input: React.CSSProperties = {
+    width: '100%',
+    padding: '11px 14px',
+    borderRadius: '8px',
+    backgroundColor: '#121314',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: '#fff',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'Geist, sans-serif',
+  }
+
+  const btn = (loading?: boolean): React.CSSProperties => ({
+    backgroundColor: '#4ae176',
+    color: '#121314',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '10px 24px',
+    fontWeight: 600,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    fontSize: '13px',
+    opacity: loading ? 0.7 : 1,
+    fontFamily: 'Geist, sans-serif',
+  })
+
+  const label: React.CSSProperties = {
+    color: '#888',
+    fontSize: '13px',
+    display: 'block',
+    marginBottom: '8px',
   }
 
   return (
-    <DashboardLayout 
-      title="Settings" 
-      subtitle="Configure your bot and account preferences"
-    >
-      <div className="space-y-6">
+    <AppShell>
+      <div style={{ width: '100%', fontFamily: 'Geist, sans-serif' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 600 }}>Settings</h1>
+          <p style={{ color: '#888', fontSize: '14px', marginTop: '4px' }}>Configure your bot and preferences</p>
+        </div>
+
         {/* Bot Personality */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-          <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-6">Bot Personality</h3>
-          
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <Bot size={18} color="#4ae176" />
+            <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Bot Personality</h3>
+          </div>
+
           {/* Bot Name */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-[#C4A882] mb-2">
-              Bot Name
-            </label>
-            <input
-              type="text"
-              value={botName}
-              onChange={(e) => setBotName(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-            />
+          <div style={{ marginBottom: '20px' }}>
+            <label style={label}>Bot Name</label>
+            <input value={botName} onChange={e => setBotName(e.target.value)} style={input} />
           </div>
 
-          {/* Organization Name */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-[#C4A882] mb-2">
-              Organization Name
-            </label>
-            <input
-              type="text"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-            />
-          </div>
-
-          {/* Greeting Message */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-[#C4A882] mb-2">
-              Greeting Message
-            </label>
-            <textarea
-              value={greeting}
-              onChange={(e) => setGreeting(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all resize-none"
-              rows={3}
-            />
-          </div>
-
-          {/* Tone Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-[#C4A882] mb-3">
-              Communication Tone
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Tone */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={label}>Communication Tone</label>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {[
-                { value: 'professional', label: 'Professional', icon: '👔', desc: 'Formal and business-like' },
-                { value: 'friendly', label: 'Friendly', icon: '😊', desc: 'Warm and approachable' },
-                { value: 'casual', label: 'Casual', icon: '🤙', desc: 'Relaxed and informal' },
-              ].map((toneOption) => (
+                { value: 'professional', label: 'Professional', desc: 'Formal & business-like' },
+                { value: 'friendly', label: 'Friendly', desc: 'Warm & approachable' },
+                { value: 'casual', label: 'Casual', desc: 'Relaxed & informal' },
+              ].map(t => (
                 <div
-                  key={toneOption.value}
-                  onClick={() => setTone(toneOption.value)}
-                  className={`border-2 p-4 rounded-xl cursor-pointer transition-all text-center bg-[#0D2420] ${
-        tone === toneOption.value
-          ? 'border-[#D4A853] bg-[rgba(212,168,83,0.15)] text-[#D4A853]'
-          : 'border-transparent hover:border-[rgba(196,168,130,0.3)]'
-      }`}
+                  key={t.value}
+                  onClick={() => setTone(t.value)}
                   style={{
-                    border: tone === toneOption.value ? '2px solid #D4A853' : '2px solid transparent',
-                    backgroundColor: tone === toneOption.value ? 'rgba(212,168,83,0.15)' : ''
+                    flex: '1 1 140px',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    border: `1px solid ${tone === t.value ? '#4ae176' : 'rgba(255,255,255,0.06)'}`,
+                    backgroundColor: tone === t.value ? 'rgba(74,225,118,0.07)' : '#121314',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
                   }}
                 >
-                  <div className="text-2xl mb-2">{toneOption.icon}</div>
-                  <div className="text-sm font-medium">{toneOption.label}</div>
-                  <div className="text-xs text-[#8A7560] mt-1">{toneOption.desc}</div>
+                  <div style={{ color: tone === t.value ? '#4ae176' : '#fff', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>{t.label}</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>{t.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Language Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-[#C4A882] mb-3">
-              Primary Language
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  { value: 'english_us', label: 'English (US)', icon: '🇺🇸' },
-                  { value: 'english_uk', label: 'English (UK)', icon: '🇬🇧' },
-                  { value: 'roman_urdu', label: 'Roman Urdu', icon: '🇵🇰' },
-                  { value: 'arabic', label: 'Arabic', icon: '🇸🇦' },
-                ].map((langOption) => (
-                <div
-                  key={langOption.value}
-                  onClick={() => setLanguage(langOption.value)}
-                  className={`border-2 p-4 rounded-xl cursor-pointer transition-all text-center bg-[#0D2420] ${
-  language === langOption.value
-    ? 'border-[#D4A853] bg-[rgba(212,168,83,0.15)] text-[#D4A853]'
-    : 'border-[#0D2420]'
-}`}
-                >
-                  <div className="text-2xl mb-2">{langOption.icon}</div>
-                  <div className="text-sm font-medium">{langOption.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={handleSave}
-            className="px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
-          >
-            Save Personality Settings
-          </button>
-        </div>
-
-        {/* Profile Settings */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-          <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-6">Profile</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-[#C4A882] mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#C4A882] mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={handleSaveProfile}
-            className="px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
-          >
-            Save Profile
-          </button>
-        </div>
-
-        {/* Password Settings */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-          <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-6">Change Password</h3>
-          
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-[#C4A882] mb-2">
-                Current Password
-              </label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#C4A882] mb-2">
-                New Password
-              </label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#C4A882] mb-2">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0D2420] border border-[#2A4A42] rounded-lg text-[#F7E7CE] placeholder-[#8A7560] focus:outline-none focus:border-[#D4A853] focus:ring-3 focus:ring-[rgba(212,168,83,0.1)] transition-all"
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={handleSavePassword}
-            className="px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
-          >
-            Update Password
-          </button>
-        </div>
-
-        {/* Plan Settings */}
-        <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-6 hover:border-[rgba(212,168,83,0.2)] transition-all">
-          <h3 className="font-serif text-lg font-bold text-[#F7E7CE] mb-6">Plan</h3>
-          
-          <div className="p-6 bg-[rgba(212,168,83,0.06)] border border-[rgba(212,168,83,0.2)] rounded-xl mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <div className="font-serif text-xl font-bold text-[#D4A853]">Free Plan</div>
-                <div className="text-sm text-[#8A7560]">Perfect for getting started</div>
-              </div>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[rgba(212,168,83,0.15)] text-[#D4A853] border border-[rgba(212,168,83,0.25)]">
-                Current
-              </span>
-            </div>
-            
-            <div className="space-y-2">
+          {/* Language */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={label}>Bot Reply Language</label>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {[
-                'Up to 500 messages per month',
-                'Basic bot training',
-                '1 WhatsApp connection',
-                'Email support',
-                'Basic analytics',
-              ].map((feature, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm text-[#C4A882]">
-                  <span className="text-[#4CAF82]">✓</span>
-                  {feature}
+                { value: 'english', label: 'English', flag: '🇺🇸' },
+                { value: 'roman_urdu', label: 'Roman Urdu', flag: '🇵🇰' },
+                { value: 'arabic', label: 'Arabic', flag: '🇸🇦' },
+              ].map(l => (
+                <div
+                  key={l.value}
+                  onClick={() => setLanguage(l.value)}
+                  style={{
+                    flex: '1 1 100px',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    border: `1px solid ${language === l.value ? '#4ae176' : 'rgba(255,255,255,0.06)'}`,
+                    backgroundColor: language === l.value ? 'rgba(74,225,118,0.07)' : '#121314',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div style={{ fontSize: '20px', marginBottom: '4px' }}>{l.flag}</div>
+                  <div style={{ color: language === l.value ? '#4ae176' : '#fff', fontWeight: 600, fontSize: '13px' }}>{l.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <button 
-            onClick={() => handleUpgrade('growth')}
-            className="w-full px-6 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all"
-          >
-            Upgrade to Growth Plan
+          <button onClick={handleSaveBot} disabled={savingBot} style={btn(savingBot)}>
+            {savingBot ? 'Saving...' : 'Save Bot Settings'}
           </button>
-        </div>
+        </motion.div>
 
         {/* Operating Hours */}
-        <div style={{
-          backgroundColor: '#0D2420',
-          border: '1px solid #2A4A42',
-          borderRadius: '16px',
-          padding: '24px',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{
-            fontFamily: 'serif',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            color: '#F7E7CE',
-            marginBottom: '24px'
-          }}>
-            Operating Hours
-          </h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <Clock size={18} color="#4ae176" />
+            <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Operating Hours</h3>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
             {Object.entries(operatingHours).map(([day, hours]) => (
               <div key={day} style={{
-                backgroundColor: '#1A3D35',
-                border: '1px solid #2A4A42',
-                borderRadius: '8px',
-                padding: '16px'
+                display: 'flex', alignItems: 'center', gap: '16px',
+                padding: '12px 16px', borderRadius: '10px',
+                backgroundColor: '#121314',
+                border: '1px solid rgba(255,255,255,0.06)',
+                flexWrap: 'wrap',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#D4A853',
-                    textTransform: 'capitalize'
-                  }}>
-                    {day.slice(0, 3)}
-                  </span>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '44px',
-                    height: '24px'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={hours.enabled}
-                      onChange={(e) => setOperatingHours(prev => ({
-                        ...prev,
-                        [day]: { ...prev[day as keyof typeof prev], enabled: e.target.checked }
-                      }))}
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: hours.enabled ? '#D4A853' : '#2A4A42',
-                      transition: '.4s',
-                      borderRadius: '24px'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '18px',
-                        width: '18px',
-                        left: hours.enabled ? '20px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        transition: '.4s',
-                        borderRadius: '50%'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-                
-                {hours.enabled && (
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        color: '#8A7560',
-                        marginBottom: '4px'
-                      }}>
-                        Open
-                      </label>
-                      <input
-                        type="time"
-                        value={hours.open}
-                        onChange={(e) => setOperatingHours(prev => ({
-                          ...prev,
-                          [day]: { ...prev[day as keyof typeof prev], open: e.target.value }
-                        }))}
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          backgroundColor: '#0D2420',
-                          border: '1px solid #2A4A42',
-                          borderRadius: '4px',
-                          color: '#F7E7CE',
-                          fontSize: '12px'
-                        }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        color: '#8A7560',
-                        marginBottom: '4px'
-                      }}>
-                        Close
-                      </label>
-                      <input
-                        type="time"
-                        value={hours.close}
-                        onChange={(e) => setOperatingHours(prev => ({
-                          ...prev,
-                          [day]: { ...prev[day as keyof typeof prev], close: e.target.value }
-                        }))}
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          backgroundColor: '#0D2420',
-                          border: '1px solid #2A4A42',
-                          borderRadius: '4px',
-                          color: '#F7E7CE',
-                          fontSize: '12px'
-                        }}
-                      />
-                    </div>
+                {/* Day + Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '120px' }}>
+                  <div
+                    onClick={() => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], enabled: !hours.enabled } }))}
+                    style={{
+                      width: '40px', height: '22px', borderRadius: '999px',
+                      backgroundColor: hours.enabled ? '#4ae176' : 'rgba(255,255,255,0.1)',
+                      position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute', top: '3px',
+                      left: hours.enabled ? '21px' : '3px',
+                      width: '16px', height: '16px',
+                      borderRadius: '50%', backgroundColor: '#fff',
+                      transition: 'left 0.2s',
+                    }} />
                   </div>
+                  <span style={{ color: hours.enabled ? '#fff' : '#555', fontSize: '13px', fontWeight: 600, textTransform: 'capitalize' }}>
+                    {day.slice(0, 3).toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Time inputs */}
+                {hours.enabled ? (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input type="time" value={hours.open}
+                      onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], open: e.target.value } }))}
+                      style={{ ...input, width: '120px', padding: '6px 10px' }}
+                    />
+                    <span style={{ color: '#555', fontSize: '12px' }}>to</span>
+                    <input type="time" value={hours.close}
+                      onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], close: e.target.value } }))}
+                      style={{ ...input, width: '120px', padding: '6px 10px' }}
+                    />
+                  </div>
+                ) : (
+                  <span style={{ color: '#555', fontSize: '13px' }}>Closed</span>
                 )}
               </div>
             ))}
           </div>
-          
-          <button
-            onClick={handleSaveOperatingHours}
-            style={{
-              marginTop: '20px',
-              padding: '12px 24px',
-              backgroundColor: '#D4A853',
-              color: '#102C26',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Save Operating Hours
+
+          <button onClick={handleSaveHours} disabled={savingHours} style={btn(savingHours)}>
+            {savingHours ? 'Saving...' : 'Save Operating Hours'}
           </button>
-        </div>
+        </motion.div>
 
         {/* Away Message */}
-        <div style={{
-          backgroundColor: '#0D2420',
-          border: '1px solid #2A4A42',
-          borderRadius: '16px',
-          padding: '24px'
-        }}>
-          <h3 style={{
-            fontFamily: 'serif',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            color: '#F7E7CE',
-            marginBottom: '24px'
-          }}>
-            Away Message
-          </h3>
-          
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#C4A882',
-              marginBottom: '12px'
-            }}>
-              Away Message
-            </label>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <MessageSquare size={18} color="#4ae176" />
+            <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Away Message</h3>
+          </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <label style={label}>Message sent outside operating hours</label>
             <textarea
               value={awayMessage}
-              onChange={(e) => setAwayMessage(e.target.value)}
-              placeholder="Abhi available nahi hen. Thori der baad contact karein ya website visit karein."
-              style={{
-                width: '100%',
-                minHeight: '100px',
-                padding: '12px 16px',
-                backgroundColor: '#1A3D35',
-                border: '1px solid #2A4A42',
-                borderRadius: '8px',
-                color: '#F7E7CE',
-                fontSize: '14px',
-                resize: 'vertical',
-                fontFamily: 'inherit'
-              }}
+              onChange={e => setAwayMessage(e.target.value)}
+              rows={3}
+              placeholder="Abhi available nahi hain. Thori der baad contact karein..."
+              style={{ ...input, resize: 'vertical', minHeight: '90px' }}
             />
-            <p style={{
-              fontSize: '12px',
-              color: '#8A7560',
-              marginTop: '8px',
-              lineHeight: '1.4'
-            }}>
-              Ye message tab jayega jab bot operating hours ke bahar message receive kare
-            </p>
           </div>
-          
-          <button
-            onClick={handleSaveAwayMessage}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#D4A853',
-              color: '#102C26',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Save Away Message
+          <p style={{ color: '#555', fontSize: '12px', marginBottom: '20px' }}>
+            Bot operating hours ke bahar ye message send karega automatically.
+          </p>
+
+          <button onClick={handleSaveAway} disabled={savingAway} style={btn(savingAway)}>
+            {savingAway ? 'Saving...' : 'Save Away Message'}
           </button>
-        </div>
+        </motion.div>
+
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-[#1A3D35] to-[#142E28] border border-[#2A4A42] rounded-2xl p-8 max-w-md w-full">
-            {!paymentSubmitted ? (
-              <>
-                <h3 className="font-serif text-2xl font-bold text-[#F7E7CE] mb-2">
-                  Upgrade to {selectedPlan === 'growth' ? 'Growth' : 'Pro'} Plan
-                </h3>
-                <div className="text-3xl font-bold text-[#D4A853] mb-6">
-                  PKR {selectedPlan === 'growth' ? '7,000' : '20,000'}
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
-                    <div className="text-sm text-[#8A7560] mb-1">JazzCash</div>
-                    <div className="text-lg font-semibold text-[#F7E7CE]">03XX-XXXXXXX</div>
-                  </div>
-                  <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
-                    <div className="text-sm text-[#8A7560] mb-1">EasyPaisa</div>
-                    <div className="text-lg font-semibold text-[#F7E7CE]">03XX-XXXXXXX</div>
-                  </div>
-                  <div className="bg-[#0D2420] border border-[#2A4A42] rounded-lg p-4">
-                    <div className="text-sm text-[#8A7560] mb-1">Reference Number</div>
-                    <div className="text-lg font-semibold text-[#D4A853]">MUNSHI-CURRENTUSER</div>
-                  </div>
-                </div>
-
-                <div className="text-sm text-[#8A7560] mb-6">
-                  Payment screenshot send karne ke baad "I have paid" button click karein
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowPaymentModal(false)}
-                    className="flex-1 px-4 py-3 border border-[#2A4A42] text-[#C4A882] rounded-lg hover:bg-[#0D2420] transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handlePaymentSubmit}
-                    disabled={isProcessingPayment}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#D4A853] to-[#C4983F] text-[#0D2420] font-semibold rounded-lg hover:transform hover:translateY-[-2px] hover:shadow-lg hover:shadow-[rgba(212,168,83,0.3)] transition-all disabled:opacity-50"
-                  >
-                    {isProcessingPayment ? 'Processing...' : 'I have paid'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">✅</div>
-                <div className="text-lg font-semibold text-[#D4A853] mb-2">
-                  Payment Under Review
-                </div>
-                <div className="text-sm text-[#C4A882]">
-                  24 hours mein activate ho jaye ga
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      {showSuccess && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: '#102C26',
-            border: '1px solid #D4A853',
-            borderRadius: '16px',
-            padding: '40px 48px',
-            textAlign: 'center',
-            maxWidth: '360px',
-            width: '90%',
-          }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>✅</div>
-            <h3 style={{ color: '#F7E7CE', fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>
-              Settings Saved!
-            </h3>
-            <p style={{ color: '#D4A853', fontSize: '0.875rem', marginBottom: '24px' }}>
-              Bot personality updated successfully
-            </p>
-            <button
-              onClick={() => setShowSuccess(false)}
-              style={{
-                backgroundColor: '#D4A853',
-                color: '#102C26',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 32px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-              }}
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
-    </DashboardLayout>
+    </AppShell>
   )
 }
