@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { MessageCircleIcon, SendIcon, CheckCircleIcon, SparklesIcon, CheckCheckIcon } from "lucide-react"
+import { MessageCircleIcon, SendIcon, CheckCircleIcon, SparklesIcon, CheckCheckIcon, ArrowLeftIcon } from "lucide-react"
 
 type ConversationListItem = {
     id: string
@@ -51,6 +51,9 @@ export function ConversationsView() {
     const [loadingDetail, setLoadingDetail] = useState(false)
     const [filter, setFilter] = useState<FilterTab>("all")
     const [resolving, setResolving] = useState(false)
+    // Mobile: controls whether the chat thread is shown full-screen over the list.
+    // Desktop (md+) ignores this and always shows list + chat side by side.
+    const [showChatOnMobile, setShowChatOnMobile] = useState(false)
 
     useEffect(() => {
         fetch('/api/conversations', { credentials: 'include' })
@@ -77,6 +80,11 @@ export function ConversationsView() {
             })
             .catch(() => setLoadingDetail(false))
     }, [selectedId])
+
+    function handleSelectConversation(id: string) {
+        setSelectedId(id)
+        setShowChatOnMobile(true)
+    }
 
     async function handleToggleResolve() {
         if (!detail) return
@@ -139,8 +147,13 @@ export function ConversationsView() {
 
     return (
         <div className="flex h-[calc(100vh-3.5rem)] -m-4 md:-m-6 overflow-hidden">
-            {/* LEFT: Conversation list */}
-            <aside className="w-[320px] shrink-0 border-r border-border overflow-y-auto flex flex-col">
+            {/* LEFT: Conversation list — full width on mobile, hidden once a chat is opened */}
+            <aside
+                className={cn(
+                    "w-full md:w-[320px] md:shrink-0 border-r border-border overflow-y-auto flex flex-col",
+                    showChatOnMobile && "hidden md:flex"
+                )}
+            >
                 <div className="p-4 border-b border-border">
                     <h2 className="font-semibold text-sm mb-3">Conversations</h2>
                     <div className="flex gap-1 p-1 bg-muted rounded-lg">
@@ -182,7 +195,7 @@ export function ConversationsView() {
                         filteredConversations.map((c) => (
                             <button
                                 key={c.id}
-                                onClick={() => setSelectedId(c.id)}
+                                onClick={() => handleSelectConversation(c.id)}
                                 className={cn(
                                     "w-full text-left p-4 border-b border-border/50 transition-colors hover:bg-muted/50",
                                     selectedId === c.id && "bg-[var(--chart-1)]/5 border-l-2 border-l-[var(--chart-1)]"
@@ -209,24 +222,36 @@ export function ConversationsView() {
                 </div>
             </aside>
 
-            {/* MIDDLE: Chat thread */}
-            <section className="flex-1 flex flex-col overflow-hidden bg-muted/20">
+            {/* MIDDLE: Chat thread — full width on mobile, only visible once a conversation is opened */}
+            <section
+                className={cn(
+                    "flex-1 min-w-0 flex-col overflow-hidden bg-muted/20",
+                    showChatOnMobile ? "flex" : "hidden md:flex"
+                )}
+            >
                 {loadingDetail || !detail ? (
                     <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
                         Loading conversation...
                     </div>
                 ) : (
                     <>
-                        <div className="p-4 border-b border-border flex items-center justify-between bg-background">
-                            <div className="flex items-center gap-3">
+                        <div className="p-4 border-b border-border flex items-center justify-between bg-background gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <button
+                                    onClick={() => setShowChatOnMobile(false)}
+                                    className="md:hidden size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted shrink-0"
+                                    aria-label="Back to conversations"
+                                >
+                                    <ArrowLeftIcon className="size-4" />
+                                </button>
                                 <div className={cn(
-                                    "size-10 rounded-full flex items-center justify-center font-bold text-sm",
+                                    "size-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0",
                                     detail.conversation.is_resolved ? "bg-muted text-muted-foreground" : "bg-[var(--chart-1)]/15 text-[var(--chart-1)]"
                                 )}>
                                     {detail.conversation.customer_phone.slice(-2)}
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-sm">{detail.conversation.customer_phone}</h3>
+                                <div className="min-w-0">
+                                    <h3 className="font-semibold text-sm truncate">{detail.conversation.customer_phone}</h3>
                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                                         {detail.conversation.is_resolved ? (
                                             <>
@@ -246,18 +271,18 @@ export function ConversationsView() {
                                 onClick={handleToggleResolve}
                                 disabled={resolving}
                                 className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50",
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 shrink-0",
                                     detail.conversation.is_resolved
                                         ? "border-border text-muted-foreground hover:bg-muted"
                                         : "border-[var(--chart-1)]/30 text-[var(--chart-1)] hover:bg-[var(--chart-1)]/10"
                                 )}
                             >
                                 <CheckCheckIcon className="size-3.5" />
-                                {detail.conversation.is_resolved ? "Reopen" : "Mark Resolved"}
+                                <span className="hidden sm:inline">{detail.conversation.is_resolved ? "Reopen" : "Mark Resolved"}</span>
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                             {detail.messages.length === 0 ? (
                                 <div className="text-center text-muted-foreground text-sm py-12">
                                     No messages in this conversation
@@ -267,12 +292,12 @@ export function ConversationsView() {
                                     <div
                                         key={m.id}
                                         className={cn(
-                                            "flex flex-col max-w-[70%]",
+                                            "flex flex-col max-w-[85%] sm:max-w-[70%]",
                                             m.sender === "bot" ? "items-end ml-auto" : "items-start"
                                         )}
                                     >
                                         <div className={cn(
-                                            "px-4 py-2.5 rounded-2xl text-sm shadow-sm",
+                                            "px-4 py-2.5 rounded-2xl text-sm shadow-sm break-words",
                                             m.sender === "bot"
                                                 ? "bg-[var(--chart-1)] text-background rounded-br-sm font-medium"
                                                 : "bg-background border border-border rounded-bl-sm"
@@ -293,9 +318,9 @@ export function ConversationsView() {
                                     type="text"
                                     disabled
                                     placeholder="Manual reply coming soon..."
-                                    className="flex-1 bg-transparent border-none outline-none text-sm px-2 text-muted-foreground placeholder:text-muted-foreground"
+                                    className="flex-1 bg-transparent border-none outline-none text-sm px-2 text-muted-foreground placeholder:text-muted-foreground min-w-0"
                                 />
-                                <button disabled className="size-9 rounded-xl bg-muted-foreground/20 flex items-center justify-center">
+                                <button disabled className="size-9 rounded-xl bg-muted-foreground/20 flex items-center justify-center shrink-0">
                                     <SendIcon className="size-4 text-muted-foreground" />
                                 </button>
                             </div>
@@ -304,9 +329,9 @@ export function ConversationsView() {
                 )}
             </section>
 
-            {/* RIGHT: Customer info */}
+            {/* RIGHT: Customer info — desktop only (lg+), hidden on mobile/tablet to avoid cramming a 3rd column */}
             {detail && (
-                <aside className="w-[280px] shrink-0 border-l border-border overflow-y-auto p-6 space-y-6">
+                <aside className="hidden lg:flex lg:w-[280px] lg:shrink-0 border-l border-border overflow-y-auto p-6 flex-col gap-6">
                     <div className="flex flex-col items-center text-center pb-6 border-b border-border">
                         <div className={cn(
                             "size-16 rounded-full flex items-center justify-center font-bold text-lg mb-3",

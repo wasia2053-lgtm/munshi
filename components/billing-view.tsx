@@ -131,7 +131,7 @@ export function BillingView() {
     }
 
     return (
-        <div className="space-y-8 max-w-6xl">
+        <div className="space-y-8 w-full">
             {/* Header */}
             <div className="flex items-start justify-between flex-wrap gap-4">
                 <div>

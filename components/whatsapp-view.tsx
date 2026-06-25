@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
     Card,
@@ -18,6 +19,9 @@ import {
     SendIcon,
     ExternalLinkIcon,
     Loader2Icon,
+    GraduationCapIcon,
+    MessageSquareIcon,
+    SettingsIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -50,6 +54,12 @@ const selfServeSteps = [
         title: "Generate a permanent access token",
         desc: "Under System Users, create a token with whatsapp_business_messaging permission.",
     },
+]
+
+const quickActions = [
+    { title: "Train your bot", desc: "Add website, PDF or text sources", href: "/dashboard/training", icon: GraduationCapIcon },
+    { title: "View conversations", desc: "See live customer chats", href: "/dashboard/conversations", icon: MessageSquareIcon },
+    { title: "Bot settings", desc: "Tone, language & away message", href: "/dashboard/settings", icon: SettingsIcon },
 ]
 
 export function WhatsAppView() {
@@ -130,7 +140,7 @@ export function WhatsAppView() {
     const isConnected = data?.whatsappStatus === 'connected'
 
     return (
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6 w-full">
             <div>
                 <h2 className="text-xl font-semibold">WhatsApp Connection</h2>
                 <p className="text-sm text-muted-foreground mt-1">Link your WhatsApp Business number to go live</p>
@@ -164,24 +174,48 @@ export function WhatsAppView() {
             </Card>
 
             {isConnected && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Card className="shadow-none dark:ring-0">
-                        <CardContent className="pt-6">
-                            <p className="text-sm text-muted-foreground mb-1.5">Connected Number</p>
-                            <p className="text-xl font-semibold tabular-nums">
-                                {data?.phoneNumber || "Not available"}
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-none dark:ring-0">
-                        <CardContent className="pt-6">
-                            <p className="text-sm text-muted-foreground mb-1.5">Display Name</p>
-                            <p className="text-xl font-semibold">
-                                {data?.displayName || "Munshi Bot"}
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Card className="shadow-none dark:ring-0">
+                            <CardContent className="pt-6">
+                                <p className="text-sm text-muted-foreground mb-1.5">Connected Number</p>
+                                <p className="text-xl font-semibold tabular-nums">
+                                    {data?.phoneNumber || "Not available"}
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-none dark:ring-0">
+                            <CardContent className="pt-6">
+                                <p className="text-sm text-muted-foreground mb-1.5">Display Name</p>
+                                <p className="text-xl font-semibold">
+                                    {data?.displayName || "Munshi Bot"}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Quick Actions</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {quickActions.map((action) => {
+                                const Icon = action.icon
+                                return (
+                                    <Link key={action.href} href={action.href}>
+                                        <Card className="shadow-none dark:ring-0 hover:border-[var(--chart-1)]/40 hover:bg-[var(--chart-1)]/5 transition-colors cursor-pointer h-full">
+                                            <CardContent className="pt-6">
+                                                <div className="size-10 rounded-lg bg-[var(--chart-1)]/10 text-[var(--chart-1)] flex items-center justify-center mb-3">
+                                                    <Icon className="size-5" />
+                                                </div>
+                                                <p className="font-medium text-sm">{action.title}</p>
+                                                <p className="text-xs text-muted-foreground mt-0.5">{action.desc}</p>
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </>
             )}
 
             {!isConnected && (
@@ -285,67 +319,67 @@ export function WhatsAppView() {
                                     Meta's official guide <ExternalLinkIcon className="size-3.5" />
                                 </a>
 
-                            <div className="pt-2 border-t border-border">
-                                {credsSubmitted ? (
-                                    <div className="flex items-center gap-2.5 p-4 bg-[var(--chart-1)]/5 rounded-lg text-sm mt-4">
-                                        <CheckCircle2Icon className="size-4 text-[var(--chart-1)] shrink-0" />
-                                        <span>Credentials submitted, we will review and activate your bot soon.</span>
-                                    </div>
-                                ) : !showCredsForm ? (
-                                    <Button onClick={() => setShowCredsForm(true)} variant="outline" className="w-full mt-4" size="lg">
-                                        I have my credentials
-                                    </Button>
-                                ) : (
-                                    <div className="space-y-3 mt-4">
-                                        <div>
-                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Phone Number ID</label>
-                                            <input
-                                                type="text"
-                                                value={phoneNumberId}
-                                                onChange={e => setPhoneNumberId(e.target.value)}
-                                                placeholder="e.g. 1019865717885435"
-                                                className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] font-mono"
-                                            />
+                                <div className="pt-2 border-t border-border">
+                                    {credsSubmitted ? (
+                                        <div className="flex items-center gap-2.5 p-4 bg-[var(--chart-1)]/5 rounded-lg text-sm mt-4">
+                                            <CheckCircle2Icon className="size-4 text-[var(--chart-1)] shrink-0" />
+                                            <span>Credentials submitted, we will review and activate your bot soon.</span>
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Access Token</label>
-                                            <input
-                                                type="password"
-                                                value={accessToken}
-                                                onChange={e => setAccessToken(e.target.value)}
-                                                placeholder="Paste your permanent access token"
-                                                className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] font-mono"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">WhatsApp Number (optional)</label>
-                                            <input
-                                                type="tel"
-                                                value={credsPhoneNumber}
-                                                onChange={e => setCredsPhoneNumber(e.target.value)}
-                                                placeholder="+92 300 1234567"
-                                                className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
-                                            />
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Your credentials are stored securely and only used to activate your bot.
-                                        </p>
-                                        <Button
-                                            onClick={handleCredsSubmit}
-                                            disabled={submittingCreds || !phoneNumberId.trim() || !accessToken.trim()}
-                                            className="w-full"
-                                            size="lg"
-                                        >
-                                            {submittingCreds ? <Loader2Icon className="size-4 animate-spin mr-2" /> : <SendIcon className="size-4 mr-2" />}
-                                            Submit Credentials
+                                    ) : !showCredsForm ? (
+                                        <Button onClick={() => setShowCredsForm(true)} variant="outline" className="w-full mt-4" size="lg">
+                                            I have my credentials
                                         </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </>
+                                    ) : (
+                                        <div className="space-y-3 mt-4">
+                                            <div>
+                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Phone Number ID</label>
+                                                <input
+                                                    type="text"
+                                                    value={phoneNumberId}
+                                                    onChange={e => setPhoneNumberId(e.target.value)}
+                                                    placeholder="e.g. 1019865717885435"
+                                                    className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] font-mono"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Access Token</label>
+                                                <input
+                                                    type="password"
+                                                    value={accessToken}
+                                                    onChange={e => setAccessToken(e.target.value)}
+                                                    placeholder="Paste your permanent access token"
+                                                    className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)] font-mono"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">WhatsApp Number (optional)</label>
+                                                <input
+                                                    type="tel"
+                                                    value={credsPhoneNumber}
+                                                    onChange={e => setCredsPhoneNumber(e.target.value)}
+                                                    placeholder="+92 300 1234567"
+                                                    className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-lg text-sm outline-none focus:border-[var(--chart-1)]"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Your credentials are stored securely and only used to activate your bot.
+                                            </p>
+                                            <Button
+                                                onClick={handleCredsSubmit}
+                                                disabled={submittingCreds || !phoneNumberId.trim() || !accessToken.trim()}
+                                                className="w-full"
+                                                size="lg"
+                                            >
+                                                {submittingCreds ? <Loader2Icon className="size-4 animate-spin mr-2" /> : <SendIcon className="size-4 mr-2" />}
+                                                Submit Credentials
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </>
             )}
         </div>
     )
