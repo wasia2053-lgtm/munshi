@@ -19,11 +19,13 @@ export async function GET() {
       .eq('business_id', user.id)
       .single()
 
-    const { data: sub } = await supabase
+    const { data: sub, error: subError } = await supabase
       .from('subscriptions')
       .select('plan, messages_limit, messages_used')
       .eq('user_id', user.id)
       .single()
+
+    console.log('[account/get] sub:', JSON.stringify(sub), 'subError:', subError?.message, 'user.id:', user.id)
 
     return NextResponse.json({
       name: settings?.organization_name || null,
