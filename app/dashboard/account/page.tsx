@@ -100,8 +100,7 @@ export default function AccountPage() {
 
   return (
     <AppShell>
-      <div style={{ width: '100%', fontFamily: 'Geist, sans-serif', maxWidth: '720px' }}>
-        {/* Header */}
+      <div style={{ width: '100%', fontFamily: 'Geist, sans-serif' }}>
         <div style={{ marginBottom: '32px' }}>
           <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 600 }}>Account</h1>
           <p style={{ color: '#888', fontSize: '14px', marginTop: '4px' }}>Manage your profile and subscription</p>
