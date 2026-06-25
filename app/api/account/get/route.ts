@@ -23,7 +23,7 @@ export async function GET() {
       .from('subscriptions')
       .select('plan, messages_limit, messages_used')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     console.log('[account/get] sub:', JSON.stringify(sub), 'subError:', subError?.message, 'user.id:', user.id)
 
