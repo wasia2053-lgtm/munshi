@@ -149,8 +149,6 @@ export default function BillingPage() {
   return (
     <AppShell>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap');
-
         .billing-wrap { padding: 48px 40px; width: 100%; box-sizing: border-box; }
 
         .fade-up {
