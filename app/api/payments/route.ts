@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase-server'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,7 +44,7 @@ async function createPayment(plan: string, userId: string) {
   }
 
   const price = PLAN_PRICES[plan as keyof typeof PLAN_PRICES]
-  const referenceNumber = `MUNSHI-${userId.slice(0,8).toUpperCase()}`
+  const referenceNumber = `MUNSHI-${userId.slice(0, 8).toUpperCase()}`
 
   // Create payment record with basic columns only
   const { data: payment, error } = await supabase
@@ -173,4 +174,25 @@ async function confirmPayment(paymentId: string, userId: string) {
       current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     }
   })
+}
+export async function GET(request: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data, error } = await supabase
+    .from('payments')
+    .select('id, plan, amount, status, gateway, reference_number, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  if (error) {
+    return NextResponse.json({ error: 'Failed to fetch payments' }, { status: 500 })
+  }
+
+  return NextResponse.json(data ?? [])
 }
