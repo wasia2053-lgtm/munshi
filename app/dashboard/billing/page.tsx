@@ -21,6 +21,8 @@ interface Payment {
   reference_number: string
 }
 
+type Currency = 'PKR' | 'USD'
+
 const PLANS = [
   {
     id: 'starter',
@@ -113,6 +115,11 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState(false)
   const [visible, setVisible] = useState(false)
+  const [currency, setCurrency] = useState<Currency>('PKR')
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -142,21 +149,50 @@ export default function BillingPage() {
   }
 
   async function handleUpgrade(planId: string) {
+    if (currency === 'PKR') {
+      const savedPhone = typeof window !== 'undefined' ? localStorage.getItem('munshi_phone') : null
+      if (!savedPhone) {
+        setPendingPlan(planId)
+        setPhoneInput('')
+        setPhoneError('')
+        setPhoneModalOpen(true)
+        return
+      }
+    }
+    await submitCheckout(planId)
+  }
+
+  async function submitCheckout(planId: string, phone?: string) {
     setUpgrading(planId)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify({ plan: planId, currency, phone }),
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
-      else alert('Checkout failed. Please try again.')
+      else alert(data.error || 'Checkout failed. Please try again.')
     } catch {
       alert('Something went wrong.')
     } finally {
       setUpgrading(null)
+    }
+  }
+
+  function handlePhoneSubmit() {
+    const cleaned = phoneInput.trim()
+    const valid = /^03\d{9}$/.test(cleaned)
+    if (!valid) {
+      setPhoneError('Enter a valid number, e.g. 03001234567')
+      return
+    }
+    localStorage.setItem('munshi_phone', cleaned)
+    setPhoneModalOpen(false)
+    if (pendingPlan) {
+      submitCheckout(pendingPlan, cleaned)
+      setPendingPlan(null)
     }
   }
 
@@ -176,6 +212,18 @@ export default function BillingPage() {
           transition: opacity 0.5s ease, transform 0.5s ease;
         }
         .fade-up.in { opacity: 1; transform: translateY(0); }
+
+        .currency-toggle {
+          display: flex; padding: 4px; background: #1a1b1c;
+          border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; gap: 4px;
+        }
+        .currency-btn {
+          padding: 7px 16px; border-radius: 9px; font-size: 12px; font-weight: 700;
+          letter-spacing: 0.04em; cursor: pointer; border: none; background: transparent;
+          color: #6b7280; transition: all 0.18s;
+        }
+        .currency-btn.active { background: #4ae176; color: #0b0c0c; }
+        .currency-btn:not(.active):hover { color: #9ca3af; }
 
         .plan-card {
           border-radius: 20px;
@@ -209,6 +257,7 @@ export default function BillingPage() {
           .plans-grid { grid-template-columns: 1fr !important; }
           .bill-wrap { padding: 24px 16px !important; }
           .usage-inner { flex-direction: column !important; gap: 20px !important; }
+          .header-row { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
         }
       `}</style>
 
@@ -227,14 +276,31 @@ export default function BillingPage() {
           </div>
         )}
 
-        {/* Header */}
-        <div className={`fade-up ${visible ? 'in' : ''}`} style={{ marginBottom: '36px' }}>
-          <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
-            Billing & Plans
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            Start free. Scale when you're ready.
-          </p>
+        {/* Header + currency toggle */}
+        <div className={`fade-up header-row ${visible ? 'in' : ''}`} style={{
+          marginBottom: '36px', display: 'flex', alignItems: 'flex-start',
+          justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap',
+        }}>
+          <div>
+            <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+              Billing & Plans
+            </h1>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+              Start free. Scale when you're ready.
+            </p>
+          </div>
+
+          <div className="currency-toggle">
+            {(['PKR', 'USD'] as Currency[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className={`currency-btn ${currency === c ? 'active' : ''}`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Usage Card */}
@@ -376,7 +442,7 @@ export default function BillingPage() {
                       <span style={{ fontSize: '28px', fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Custom</span>
                       <p style={{ color: '#4b5563', fontSize: '12px', margin: '3px 0 0' }}>Tailored to your needs</p>
                     </div>
-                  ) : (
+                  ) : currency === 'PKR' ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                         <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 500 }}>PKR</span>
@@ -387,6 +453,19 @@ export default function BillingPage() {
                       </div>
                       <p style={{ color: '#4b5563', fontSize: '12px', margin: '3px 0 0' }}>
                         ~${plan.price_usd}/mo · {plan.messages.toLocaleString()} msgs
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                        <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 500 }}>$</span>
+                        <span style={{ fontSize: '32px', fontWeight: 800, color: '#fff', letterSpacing: '-1px', lineHeight: 1 }}>
+                          {plan.price_usd}
+                        </span>
+                        <span style={{ color: '#4b5563', fontSize: '13px' }}>/mo</span>
+                      </div>
+                      <p style={{ color: '#4b5563', fontSize: '12px', margin: '3px 0 0' }}>
+                        {plan.messages.toLocaleString()} msgs/mo
                       </p>
                     </div>
                   )}
@@ -425,7 +504,9 @@ export default function BillingPage() {
                   <div style={{ height: '42px' }} />
                 ) : plan.isEnterprise ? (
                   <a
-                    href="mailto:shahmeershaikh900@gmail.com?subject=Munshi Enterprise Plan"
+                    href={`https://wa.me/923282847607?text=${encodeURIComponent('Hi, I want to discuss the Munshi Enterprise plan')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
                       width: '100%', padding: '12px 16px', borderRadius: '12px',
@@ -540,6 +621,73 @@ export default function BillingPage() {
         </div>
 
       </div>
+
+      {/* Phone collection modal */}
+      {phoneModalOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '20px',
+          }}
+          onClick={() => setPhoneModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#1a1b1c', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '18px', padding: '28px', width: '100%', maxWidth: '380px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            <h3 style={{ color: '#fff', fontSize: '17px', fontWeight: 700, margin: '0 0 6px' }}>
+              One more thing
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px', lineHeight: 1.5 }}>
+              We need a mobile number for your PKR payment. We'll only ask once.
+            </p>
+            <input
+              type="tel"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              placeholder="03001234567"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handlePhoneSubmit()}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: '10px',
+                background: '#121314', border: `1px solid ${phoneError ? '#ef4444' : 'rgba(255,255,255,0.08)'}`,
+                color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+                marginBottom: '6px',
+              }}
+            />
+            {phoneError && (
+              <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 14px' }}>{phoneError}</p>
+            )}
+            <div style={{ display: 'flex', gap: '10px', marginTop: phoneError ? '0' : '16px' }}>
+              <button
+                onClick={() => setPhoneModalOpen(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', fontSize: '13px',
+                  fontWeight: 600, background: 'rgba(255,255,255,0.04)', color: '#9ca3af',
+                  border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePhoneSubmit}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', fontSize: '13px',
+                  fontWeight: 700, background: '#4ae176', color: '#0b0c0c',
+                  border: 'none', cursor: 'pointer',
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }
