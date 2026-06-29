@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { LayoutGridIcon, MessageSquareTextIcon, GraduationCapIcon, BarChart3Icon, CreditCardIcon, MessagesSquareIcon, SettingsIcon, HelpCircleIcon } from "lucide-react";
+import { LayoutGridIcon, MessageSquareTextIcon, GraduationCapIcon, BarChart3Icon, CreditCardIcon, MessagesSquareIcon, SettingsIcon, HelpCircleIcon, ShieldCheckIcon, FileTextIcon, RotateCcwIcon } from "lucide-react";
 
 export type SidebarNavItem = {
 	title: string;
@@ -91,6 +91,27 @@ export const footerNavLinks: SidebarNavItem[] = [
 		path: "/help",
 		icon: (
 			<HelpCircleIcon />
+		),
+	},
+	{
+		title: "Privacy Policy",
+		path: "/privacy",
+		icon: (
+			<ShieldCheckIcon />
+		),
+	},
+	{
+		title: "Terms of Service",
+		path: "/terms",
+		icon: (
+			<FileTextIcon />
+		),
+	},
+	{
+		title: "Refund Policy",
+		path: "/refund",
+		icon: (
+			<RotateCcwIcon />
 		),
 	},
 ];
