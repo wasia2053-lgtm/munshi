@@ -95,7 +95,7 @@ export const footerNavLinks: SidebarNavItem[] = [
 	},
 	{
 		title: "Privacy Policy",
-		path: "/privacy",
+		path: "/privacy-policy",
 		icon: (
 			<ShieldCheckIcon />
 		),
@@ -109,7 +109,7 @@ export const footerNavLinks: SidebarNavItem[] = [
 	},
 	{
 		title: "Refund Policy",
-		path: "/refund",
+		path: "/refund-policy",
 		icon: (
 			<RotateCcwIcon />
 		),
