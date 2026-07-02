@@ -132,6 +132,7 @@ async function createRapidGatewayCheckout(plan: string, user: { id: string; emai
             CHECKOUT_URL: `${BASE_URL}/dashboard/billing`,
             VERSION: 'MY_VER_1.0',
             PROCCODE: '0',
+            ORDER_DATE: new Date().toISOString().split('T')[0],
         })
 
         const payRes = await fetch('https://secure.rapid-gateway.com/rapid/process-transaction', {
