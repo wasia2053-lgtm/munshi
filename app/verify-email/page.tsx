@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { BrandLogo } from "@/components/brand-logo"
 
 export default function VerifyEmailPage() {
   const router = useRouter()
@@ -48,7 +49,7 @@ export default function VerifyEmailPage() {
         <div className="bg-[#1A3D35] border border-[#2A4A42] rounded-2xl p-5 sm:p-6 md:p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6 sm:mb-8">
-            <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto' }} />
+            <BrandLogo variant="full" height="36px" />
           </div>
 
           {/* Icon */}

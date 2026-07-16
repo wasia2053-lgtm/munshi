@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
+import { BrandLogo } from "@/components/brand-logo"
 
 const navLinks = [
     { label: "Features", href: "#features" },
@@ -207,10 +208,7 @@ const Navbar1 = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
-                    <Link href="/" className="mn-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                        <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '36px', width: 'auto' }} />
-                        <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap', lineHeight: 1 }}>AI Employee for SMBs</span>
-                    </Link>
+                    <BrandLogo variant="full" withTagline={true} withLink={true} height="36px" className="mn-brand" />
 
                     <nav className="mn-nav-links">
                         {navLinks.map(link => (
@@ -240,8 +238,8 @@ const Navbar1 = () => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25 }}
                     >
-                        <div style={{ padding: '0 0 32px 0' }}>
-                            <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '32px', width: 'auto' }} />
+                        <div style={{ padding: '0 0 32px 0', display: 'flex', justifyContent: 'center' }}>
+                            <BrandLogo variant="full" height="32px" />
                         </div>
                         <button className="mn-mobile-close" onClick={toggleMenu} aria-label="Close menu">
                             <X size={20} />

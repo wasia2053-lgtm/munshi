@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import React, { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { BrandLogo } from "@/components/brand-logo"
 
 export default function SignupPage() {
   const supabase = createClient()
@@ -328,11 +329,7 @@ export default function SignupPage() {
 
         {/* Header */}
         <div style={{ marginBottom: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-          <img
-            src="/branding/logo.svg"
-            alt="Munshi"
-            style={{ display: 'block', height: '34px', width: 'auto', marginBottom: '24px' }}
-          />
+          <BrandLogo variant="full" height="36px" style={{ marginBottom: '24px' }} />
           <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: '0 0 8px', textAlign: 'center' }}>
             Start your AI journey
           </h1>

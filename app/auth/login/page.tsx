@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import React, { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { BrandLogo } from "@/components/brand-logo"
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -299,7 +300,7 @@ export default function LoginPage() {
         <main className="login-main">
           {/* Brand */}
           <div className="brand-header">
-            <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto', marginBottom: '8px' }} />
+            <BrandLogo variant="full" height="36px" style={{ marginBottom: '8px' }} />
             <h1 className="brand-title">Welcome Back</h1>
             <p className="brand-sub">Log in to your precision workspace</p>
           </div>

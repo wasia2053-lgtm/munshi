@@ -1,5 +1,6 @@
 "use client";
-import Link from 'next/link'
+import Link from 'next/link';
+import { BrandLogo } from "@/components/brand-logo";
 
 const links = {
   Product: [
@@ -35,7 +36,7 @@ export default function Footer() {
       }}>
         {/* Brand */}
         <div>
-          <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto', marginBottom: '12px' }} />
+          <BrandLogo variant="full" height="32px" style={{ marginBottom: '12px' }} />
           <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', lineHeight: 1.6, maxWidth: '200px' }}>
             WhatsApp AI that works while you sleep. Built for SMBs.
           </p>

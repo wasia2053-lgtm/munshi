@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import React, { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { BrandLogo } from "@/components/brand-logo"
 
 export default function ForgotPasswordPage() {
   const supabase = createClient()
@@ -241,7 +242,7 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <>
-              <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto', margin: '0 auto 16px' }} />
+              <BrandLogo variant="full" height="36px" style={{ margin: '0 auto 16px' }} />
               <h1 className="card-title">Recover Access</h1>
               <p className="card-sub">Enter your verified email to initialize the secure recovery sequence.</p>
 

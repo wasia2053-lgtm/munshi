@@ -12,14 +12,16 @@ import {
 import { NavGroup } from "@/components/nav-group";
 import { footerNavLinks, navGroups } from "@/components/app-shared";
 import { LatestChange } from "@/components/latest-change";
+import { BrandLogo } from "@/components/brand-logo";
+
 export function AppSidebar() {
 	return (
 		<Sidebar collapsible="icon" variant="inset">
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
 					<a href="/dashboard" className="flex items-center gap-2 overflow-hidden">
-						<img src="/branding/icon.svg" alt="Munshi icon" className="hidden group-data-[collapsible=icon]:block group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:h-7" style={{ borderRadius: '6px' }} />
-						<img src="/branding/logo.svg" alt="Munshi" className="block group-data-[collapsible=icon]:hidden" style={{ height: '30px', width: 'auto' }} />
+						<BrandLogo variant="icon" height="38px" className="hidden group-data-[collapsible=icon]:block group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9" style={{ borderRadius: '6px' }} />
+						<BrandLogo variant="full" height="30px" className="block group-data-[collapsible=icon]:hidden" />
 					</a>
 				</SidebarMenuButton>
 			</SidebarHeader>

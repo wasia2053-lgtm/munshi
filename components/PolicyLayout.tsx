@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { BrandLogo } from "@/components/brand-logo"
 
 interface Section {
     title: string
@@ -219,7 +220,7 @@ export default function PolicyLayout({ title, subtitle, effectiveDate, sections,
                 {/* Header */}
                 <header className="policy-header">
                     <Link href="/" className="brand">
-                        <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto' }} />
+                        <BrandLogo variant="full" height="36px" />
                     </Link>
                     <Link href="/" className="back-btn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
