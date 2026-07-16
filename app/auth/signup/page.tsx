@@ -328,17 +328,13 @@ export default function SignupPage() {
 
         {/* Header */}
         <div style={{ marginBottom: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-          <div style={{
-            width: '64px', height: '64px', marginBottom: '24px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '16px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px', fontWeight: '700', color: '#4ae176',
-            letterSpacing: '-0.04em'
-          }}>
-            M
-          </div>
+          <img
+            src="/branding/logo.svg"
+            alt="Munshi"
+            width={140}
+            height={30}
+            style={{ display: 'block', marginBottom: '24px' }}
+          />
           <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: '0 0 8px', textAlign: 'center' }}>
             Start your AI journey
           </h1>

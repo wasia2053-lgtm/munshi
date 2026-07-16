@@ -69,16 +69,10 @@ const Navbar1 = () => {
           flex-shrink: 0;
         }
         .mn-brand-icon {
-          width: 28px; height: 28px;
-          background: #4ae176;
-          border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 700; color: #000;
+          display: none;
         }
         .mn-brand-name {
-          font-size: 15px; font-weight: 700;
-          letter-spacing: -0.03em; color: #fff;
-          white-space: nowrap;
+          display: none;
         }
         .mn-nav-links {
           display: flex;
@@ -214,8 +208,7 @@ const Navbar1 = () => {
                     transition={{ duration: 0.4 }}
                 >
                     <Link href="/" className="mn-brand">
-                        <div className="mn-brand-icon">M</div>
-                        <span className="mn-brand-name">Munshi AI</span>
+                        <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block' }} />
                     </Link>
 
                     <nav className="mn-nav-links">

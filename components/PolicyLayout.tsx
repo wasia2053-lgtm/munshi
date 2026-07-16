@@ -51,15 +51,10 @@ export default function PolicyLayout({ title, subtitle, effectiveDate, sections,
           text-decoration: none;
         }
         .brand-icon {
-          width: 28px; height: 28px;
-          background: #4ae176;
-          border-radius: 6px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 700; color: #000;
+          display: none;
         }
         .brand-name {
-          font-size: 16px; font-weight: 700;
-          letter-spacing: -0.03em; color: #fff;
+          display: none;
         }
         .back-btn {
           font-size: 13px;
@@ -224,8 +219,7 @@ export default function PolicyLayout({ title, subtitle, effectiveDate, sections,
                 {/* Header */}
                 <header className="policy-header">
                     <Link href="/" className="brand">
-                        <div className="brand-icon">M</div>
-                        <span className="brand-name">Munshi AI</span>
+                        <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block' }} />
                     </Link>
                     <Link href="/" className="back-btn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

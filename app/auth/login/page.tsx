@@ -299,7 +299,7 @@ export default function LoginPage() {
         <main className="login-main">
           {/* Brand */}
           <div className="brand-header">
-            <div className="brand-icon">M</div>
+            <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block', marginBottom: '8px' }} />
             <h1 className="brand-title">Welcome Back</h1>
             <p className="brand-sub">Log in to your precision workspace</p>
           </div>

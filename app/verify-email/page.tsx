@@ -48,14 +48,7 @@ export default function VerifyEmailPage() {
         <div className="bg-[#1A3D35] border border-[#2A4A42] rounded-2xl p-5 sm:p-6 md:p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6 sm:mb-8">
-            <div className="flex flex-col items-center">
-              <span className="font-serif text-3xl sm:text-4xl md:text-4xl font-bold text-[#D4A853] tracking-[3px] sm:tracking-[3.5px] leading-none" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-                MUNSHI
-              </span>
-              <span className="text-[9px] sm:text-[10px] md:text-[11px] font-light text-[#C4A882] tracking-[2px] sm:tracking-[2.5px] uppercase mt-2">
-                AI WhatsApp Secretary
-              </span>
-            </div>
+            <img src="/branding/logo.svg" alt="Munshi" width={140} height={30} style={{ display: 'block' }} />
           </div>
 
           {/* Icon */}

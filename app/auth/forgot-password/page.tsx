@@ -115,13 +115,7 @@ export default function ForgotPasswordPage() {
           z-index: 10;
         }
         .brand-icon {
-          width: 32px; height: 32px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 700; color: #4ae176;
-          margin: 0 auto 16px;
+          display: none;
         }
         .card-title {
           font-size: clamp(20px, 3vw, 26px);
@@ -247,7 +241,7 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <>
-              <div className="brand-icon">M</div>
+              <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block', margin: '0 auto 16px' }} />
               <h1 className="card-title">Recover Access</h1>
               <p className="card-sub">Enter your verified email to initialize the secure recovery sequence.</p>
 

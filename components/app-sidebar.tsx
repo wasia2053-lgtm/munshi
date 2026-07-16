@@ -18,9 +18,7 @@ export function AppSidebar() {
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
 					<a href="/dashboard">
-						<div className="flex size-7 items-center justify-center rounded-md bg-[#4ae176] text-[#121314] font-bold text-sm">
-							M
-						</div>
+						<img src="/branding/icon.svg" alt="Munshi" width={28} height={28} style={{ display: 'block', borderRadius: '6px' }} />
 						<span className="font-medium">Munshi</span>
 					</a>
 				</SidebarMenuButton>

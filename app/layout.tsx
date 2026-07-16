@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     description: 'Automate your WhatsApp business communication with AI. Start free.',
     url: 'https://munshi.pk',
     siteName: 'Munshi',
+    images: [{ url: '/branding/og-image.png', width: 1200, height: 630, alt: 'Munshi - WhatsApp Business Operating System' }],
     locale: 'en_US',
     type: 'website',
   },
@@ -37,9 +38,21 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Munshi - WhatsApp Business Operating System',
     description: 'Automate your WhatsApp business communication with AI.',
+    images: ['/branding/og-image.png'],
   },
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/branding/favicon.ico' },
+      { url: '/branding/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/branding/favicon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/branding/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    other: [
+      { url: '/branding/android-chrome-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/branding/android-chrome-512.png', sizes: '512x512', type: 'image/png' },
+    ],
   },
 }
 
