@@ -241,7 +241,7 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <>
-              <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block', margin: '0 auto 16px' }} />
+              <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto', margin: '0 auto 16px' }} />
               <h1 className="card-title">Recover Access</h1>
               <p className="card-sub">Enter your verified email to initialize the secure recovery sequence.</p>
 

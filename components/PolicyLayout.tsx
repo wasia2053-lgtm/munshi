@@ -219,7 +219,7 @@ export default function PolicyLayout({ title, subtitle, effectiveDate, sections,
                 {/* Header */}
                 <header className="policy-header">
                     <Link href="/" className="brand">
-                        <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block' }} />
+                        <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto' }} />
                     </Link>
                     <Link href="/" className="back-btn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

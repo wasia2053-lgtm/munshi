@@ -10,10 +10,8 @@ export const LogoCompact: React.FC<{ className?: string }> = ({ className }) => 
     <img
       src="/branding/logo.svg"
       alt="Munshi"
-      width={110}
-      height={24}
       className={className}
-      style={{ display: 'block' }}
+      style={{ display: 'block', height: '34px', width: 'auto' }}
     />
   </Link>
 )
@@ -37,9 +35,7 @@ export const LogoStacked: React.FC<{ className?: string }> = ({ className }) => 
     <img
       src="/branding/logo.svg"
       alt="Munshi"
-      width={110}
-      height={24}
-      style={{ display: 'block' }}
+      style={{ display: 'block', height: '34px', width: 'auto' }}
     />
   </div>
 )

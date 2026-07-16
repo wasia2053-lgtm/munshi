@@ -39,10 +39,8 @@ export const Logo = ({
 	<img
 		src={src ?? "/branding/logo.svg"}
 		alt="Munshi"
-		width={width ?? 110}
-		height={height ?? 24}
 		className={className}
-		style={style}
+		style={{ display: 'block', height: height ?? '34px', width: width ?? 'auto', ...style }}
 		{...rest}
 	/>
 );
@@ -60,10 +58,8 @@ export const LogoDark = ({
 	<img
 		src="/branding/logo-dark.svg"
 		alt="Munshi"
-		width={width ?? 110}
-		height={height ?? 24}
 		className={className}
-		style={style}
+		style={{ display: 'block', height: height ?? '34px', width: width ?? 'auto', ...style }}
 		{...rest}
 	/>
 );
@@ -81,10 +77,8 @@ export const LogoWhite = ({
 	<img
 		src="/branding/logo-white.svg"
 		alt="Munshi"
-		width={width ?? 110}
-		height={height ?? 24}
 		className={className}
-		style={style}
+		style={{ display: 'block', height: height ?? '34px', width: width ?? 'auto', ...style }}
 		{...rest}
 	/>
 );

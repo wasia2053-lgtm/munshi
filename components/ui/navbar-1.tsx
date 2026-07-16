@@ -207,8 +207,9 @@ const Navbar1 = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
-                    <Link href="/" className="mn-brand">
-                        <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block' }} />
+                    <Link href="/" className="mn-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '36px', width: 'auto' }} />
+                        <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap', lineHeight: 1 }}>AI Employee for SMBs</span>
                     </Link>
 
                     <nav className="mn-nav-links">
@@ -239,6 +240,9 @@ const Navbar1 = () => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25 }}
                     >
+                        <div style={{ padding: '0 0 32px 0' }}>
+                            <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '32px', width: 'auto' }} />
+                        </div>
                         <button className="mn-mobile-close" onClick={toggleMenu} aria-label="Close menu">
                             <X size={20} />
                         </button>

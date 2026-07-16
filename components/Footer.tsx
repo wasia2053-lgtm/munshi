@@ -35,7 +35,7 @@ export default function Footer() {
       }}>
         {/* Brand */}
         <div>
-          <img src="/branding/logo.svg" alt="Munshi" width={110} height={24} style={{ display: 'block', marginBottom: '12px' }} />
+          <img src="/branding/logo.svg" alt="Munshi" style={{ display: 'block', height: '34px', width: 'auto', marginBottom: '12px' }} />
           <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', lineHeight: 1.6, maxWidth: '200px' }}>
             WhatsApp AI that works while you sleep. Built for SMBs.
           </p>

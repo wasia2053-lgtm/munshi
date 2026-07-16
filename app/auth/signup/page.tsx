@@ -331,9 +331,7 @@ export default function SignupPage() {
           <img
             src="/branding/logo.svg"
             alt="Munshi"
-            width={140}
-            height={30}
-            style={{ display: 'block', marginBottom: '24px' }}
+            style={{ display: 'block', height: '34px', width: 'auto', marginBottom: '24px' }}
           />
           <h1 style={{ fontFamily: 'Geist', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: '600', color: '#ffffff', letterSpacing: '-0.04em', lineHeight: '1.1', margin: '0 0 8px', textAlign: 'center' }}>
             Start your AI journey

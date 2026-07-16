@@ -17,9 +17,9 @@ export function AppSidebar() {
 		<Sidebar collapsible="icon" variant="inset">
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
-					<a href="/dashboard">
-						<img src="/branding/icon.svg" alt="Munshi" width={28} height={28} style={{ display: 'block', borderRadius: '6px' }} />
-						<span className="font-medium">Munshi</span>
+					<a href="/dashboard" className="flex items-center gap-2 overflow-hidden">
+						<img src="/branding/icon.svg" alt="Munshi icon" className="hidden group-data-[collapsible=icon]:block group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:h-7" style={{ borderRadius: '6px' }} />
+						<img src="/branding/logo.svg" alt="Munshi" className="block group-data-[collapsible=icon]:hidden" style={{ height: '30px', width: 'auto' }} />
 					</a>
 				</SidebarMenuButton>
 			</SidebarHeader>
