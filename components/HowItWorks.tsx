@@ -1,121 +1,121 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-
+import { BrandLogo } from "@/components/brand-logo";
 const steps = [
-    {
-        num: '01',
-        title: 'Connect WhatsApp',
-        body: 'Link your existing WhatsApp Business number in a few clicks. No new number needed.',
-        icon: (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M21 11.5C21 16.7 16.7 21 11.5 21C9.6 21 7.8 20.5 6.3 19.5L3 21L4.5 17.7C3.5 16.2 3 14.4 3 12.5C3 7.3 7.3 3 12.5 3C17.7 3 21 7.3 21 11.5Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-        )
-    },
-    {
-        num: '02',
-        title: 'Train on Your Business',
-        body: 'Add your website, PDFs, or product info. Munshi learns everything automatically.',
-        icon: (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
-                <path d="M2 17L12 22L22 17" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
-                <path d="M2 12L12 17L22 12" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-        )
-    },
-    {
-        num: '03',
-        title: 'Go Live',
-        body: 'Munshi starts replying to customers instantly — in English, Arabic, or Roman Urdu.',
-        icon: (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-        )
-    },
+  {
+    num: '01',
+    title: 'Connect WhatsApp',
+    body: 'Link your existing WhatsApp Business number in a few clicks. No new number needed.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M21 11.5C21 16.7 16.7 21 11.5 21C9.6 21 7.8 20.5 6.3 19.5L3 21L4.5 17.7C3.5 16.2 3 14.4 3 12.5C3 7.3 7.3 3 12.5 3C17.7 3 21 7.3 21 11.5Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    )
+  },
+  {
+    num: '02',
+    title: 'Train on Your Business',
+    body: 'Add your website, PDFs, or product info. Munshi learns everything automatically.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M2 17L12 22L22 17" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M2 12L12 17L22 12" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    )
+  },
+  {
+    num: '03',
+    title: 'Go Live',
+    body: 'Munshi starts replying to customers instantly — in English, Arabic, or Roman Urdu.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    )
+  },
 ]
 
 const demoMessages = [
-    { from: 'customer', text: 'Hi! Do you deliver to Dubai?' },
-    { from: 'bot', text: 'Yes! We deliver to Dubai within 3-5 business days.' },
-    { from: 'customer', text: 'How much is the shipping cost?' },
-    { from: 'bot', text: 'Shipping to UAE is free for orders above $50. Below that, it\u2019s a flat $8 fee.' },
-    { from: 'customer', text: 'Perfect, I\u2019ll order today!' },
+  { from: 'customer', text: 'Hi! Do you deliver to Dubai?' },
+  { from: 'bot', text: 'Yes! We deliver to Dubai within 3-5 business days.' },
+  { from: 'customer', text: 'How much is the shipping cost?' },
+  { from: 'bot', text: 'Shipping to UAE is free for orders above $50. Below that, it\u2019s a flat $8 fee.' },
+  { from: 'customer', text: 'Perfect, I\u2019ll order today!' },
 ]
 
 export default function HowItWorks() {
-    const stepsRef = useRef<(HTMLDivElement | null)[]>([])
-    const headerRef = useRef<HTMLDivElement>(null)
-    const demoSectionRef = useRef<HTMLDivElement>(null)
-    const [visibleMessages, setVisibleMessages] = useState(0)
-    const [isTyping, setIsTyping] = useState(false)
-    const demoStarted = useRef(false)
+  const stepsRef = useRef<(HTMLDivElement | null)[]>([])
+  const headerRef = useRef<HTMLDivElement>(null)
+  const demoSectionRef = useRef<HTMLDivElement>(null)
+  const [visibleMessages, setVisibleMessages] = useState(0)
+  const [isTyping, setIsTyping] = useState(false)
+  const demoStarted = useRef(false)
 
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('in-view')
-                    }
-                })
-            },
-            { threshold: 0.15 }
-        )
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view')
+          }
+        })
+      },
+      { threshold: 0.15 }
+    )
 
-        stepsRef.current.forEach(el => el && observer.observe(el))
-        if (headerRef.current) observer.observe(headerRef.current)
+    stepsRef.current.forEach(el => el && observer.observe(el))
+    if (headerRef.current) observer.observe(headerRef.current)
 
-        return () => observer.disconnect()
-    }, [])
+    return () => observer.disconnect()
+  }, [])
 
-    // Demo animation - plays once when scrolled into view
-    useEffect(() => {
-        const demoObserver = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting && !demoStarted.current) {
-                        demoStarted.current = true
-                        entry.target.classList.add('in-view')
-                        runDemoSequence()
-                    }
-                })
-            },
-            { threshold: 0.3 }
-        )
+  // Demo animation - plays once when scrolled into view
+  useEffect(() => {
+    const demoObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !demoStarted.current) {
+            demoStarted.current = true
+            entry.target.classList.add('in-view')
+            runDemoSequence()
+          }
+        })
+      },
+      { threshold: 0.3 }
+    )
 
-        if (demoSectionRef.current) demoObserver.observe(demoSectionRef.current)
-        return () => demoObserver.disconnect()
-    }, [])
+    if (demoSectionRef.current) demoObserver.observe(demoSectionRef.current)
+    return () => demoObserver.disconnect()
+  }, [])
 
-    const runDemoSequence = () => {
-        let index = 0
-        const showNext = () => {
-            if (index >= demoMessages.length) return
+  const runDemoSequence = () => {
+    let index = 0
+    const showNext = () => {
+      if (index >= demoMessages.length) return
 
-            const msg = demoMessages[index]
-            if (msg.from === 'bot') {
-                setIsTyping(true)
-                setTimeout(() => {
-                    setIsTyping(false)
-                    setVisibleMessages(prev => prev + 1)
-                    index++
-                    setTimeout(showNext, 900)
-                }, 1100)
-            } else {
-                setVisibleMessages(prev => prev + 1)
-                index++
-                setTimeout(showNext, 1000)
-            }
-        }
-        setTimeout(showNext, 500)
+      const msg = demoMessages[index]
+      if (msg.from === 'bot') {
+        setIsTyping(true)
+        setTimeout(() => {
+          setIsTyping(false)
+          setVisibleMessages(prev => prev + 1)
+          index++
+          setTimeout(showNext, 900)
+        }, 1100)
+      } else {
+        setVisibleMessages(prev => prev + 1)
+        index++
+        setTimeout(showNext, 1000)
+      }
     }
+    setTimeout(showNext, 500)
+  }
 
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
         .how-root {
           font-family: 'Geist', sans-serif;
           position: relative;
@@ -405,68 +405,66 @@ export default function HowItWorks() {
         }
       `}</style>
 
-            <div className="how-root" id="how-it-works">
-                <div className="how-section">
-                    {/* Header */}
-                    <div className="how-header" ref={headerRef}>
-                        <div className="how-eyebrow">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-                            How It Works
-                        </div>
-                        <h2 className="how-title">Up and Running in Minutes</h2>
-                        <p className="how-sub">
-                            Train Munshi on your business once. It answers customers, captures leads, and works around the clock — in multiple languages.
-                        </p>
-                    </div>
-
-                    {/* Steps */}
-                    <div className="steps-grid">
-                        {steps.map((step, i) => (
-                            <div
-                                key={i}
-                                ref={el => { stepsRef.current[i] = el }}
-                                className="step-card"
-                            >
-                                <div className="step-num">{step.num}</div>
-                                <div className="step-icon-wrap">{step.icon}</div>
-                                <h3 className="step-title">{step.title}</h3>
-                                <p className="step-body">{step.body}</p>
-                                <div className="step-connector" />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Live demo */}
-                    <div className="demo-wrap" ref={demoSectionRef}>
-                        <div className="demo-card">
-                            <div className="demo-header">
-                                <div className="demo-avatar">M</div>
-                                <div className="demo-header-text">
-                                    <div className="demo-header-name">Munshi AI</div>
-                                    <div className="demo-header-status">
-                                        <span className="demo-online-dot" />
-                                        Online now
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="demo-body">
-                                {demoMessages.slice(0, visibleMessages).map((msg, i) => (
-                                    <div key={i} className={`demo-bubble ${msg.from}`}>
-                                        {msg.text}
-                                    </div>
-                                ))}
-                                {isTyping && (
-                                    <div className="demo-typing">
-                                        <span className="demo-typing-dot" />
-                                        <span className="demo-typing-dot" />
-                                        <span className="demo-typing-dot" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      <div className="how-root" id="how-it-works">
+        <div className="how-section">
+          {/* Header */}
+          <div className="how-header" ref={headerRef}>
+            <div className="how-eyebrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="#4ae176" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+              How It Works
             </div>
-        </>
-    )
+            <h2 className="how-title">Up and Running in Minutes</h2>
+            <p className="how-sub">
+              Train Munshi on your business once. It answers customers, captures leads, and works around the clock — in multiple languages.
+            </p>
+          </div>
+
+          {/* Steps */}
+          <div className="steps-grid">
+            {steps.map((step, i) => (
+              <div
+                key={i}
+                ref={el => { stepsRef.current[i] = el }}
+                className="step-card"
+              >
+                <div className="step-num">{step.num}</div>
+                <div className="step-icon-wrap">{step.icon}</div>
+                <h3 className="step-title">{step.title}</h3>
+                <p className="step-body">{step.body}</p>
+                <div className="step-connector" />
+              </div>
+            ))}
+          </div>
+
+          {/* Live demo */}
+          <div className="demo-wrap" ref={demoSectionRef}>
+            <div className="demo-card">
+              <div className="demo-header">
+                <BrandLogo variant="full" height="22px" />
+
+                <div className="demo-header-status" style={{ marginLeft: 10 }}>
+                  <span className="demo-online-dot" />
+                  Online now
+                </div>
+              </div>
+              <div className="demo-body">
+                {demoMessages.slice(0, visibleMessages).map((msg, i) => (
+                  <div key={i} className={`demo-bubble ${msg.from}`}>
+                    {msg.text}
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="demo-typing">
+                    <span className="demo-typing-dot" />
+                    <span className="demo-typing-dot" />
+                    <span className="demo-typing-dot" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
 }
