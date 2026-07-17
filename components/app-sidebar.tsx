@@ -8,6 +8,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
 import { NavGroup } from "@/components/nav-group";
 import { footerNavLinks, navGroups } from "@/components/app-shared";
@@ -15,25 +16,23 @@ import { LatestChange } from "@/components/latest-change";
 import { BrandLogo } from "@/components/brand-logo";
 
 export function AppSidebar() {
+	const { state } = useSidebar();
 	return (
 		<Sidebar collapsible="icon" variant="inset">
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
 					<a href="/dashboard" className="flex items-center gap-2 overflow-hidden">
-						{/* Expanded Sidebar */}
-						{/* Collapsed */}
-						<BrandLogo
-							variant="icon"
-							height="34px"
-							className="hidden group-data-[collapsible=icon]:block"
-						/>
-
-						{/* Expanded */}
-						<BrandLogo
-							variant="full"
-							height="30px"
-							className="block group-data-[collapsible=icon]:hidden"
-						/>
+						{state === "collapsed" ? (
+							<BrandLogo
+								variant="icon"
+								height="34px"
+							/>
+						) : (
+							<BrandLogo
+								variant="full"
+								height="30px"
+							/>
+						)}
 					</a>
 				</SidebarMenuButton>
 			</SidebarHeader>
