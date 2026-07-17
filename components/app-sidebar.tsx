@@ -24,10 +24,13 @@ export function AppSidebar() {
 	return (
 		<Sidebar collapsible="icon" variant="inset">
 			<SidebarHeader className="h-14 justify-center">
-				<SidebarMenuButton asChild>
-					<a href="/dashboard" className="flex items-center gap-2 overflow-hidden">
+				<SidebarMenuButton
+					asChild
+					className="group-data-[collapsible=icon]:!size-auto group-data-[collapsible=icon]:!p-1"
+				>
+					<a href="/dashboard" className="flex items-center justify-center gap-2 overflow-visible">
 						{showIcon ? (
-							<BrandLogo variant="icon" height="42px" />
+							<BrandLogo variant="icon" height="32px" />
 						) : (
 							<BrandLogo variant="full" height="30px" />
 						)}
