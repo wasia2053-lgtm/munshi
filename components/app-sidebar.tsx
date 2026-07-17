@@ -20,8 +20,17 @@ export function AppSidebar() {
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
 					<a href="/dashboard" className="flex items-center gap-2 overflow-hidden">
-						<BrandLogo variant="icon" height="38px" className="hidden group-data-[collapsible=icon]:block group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:h-9" style={{ borderRadius: '6px' }} />
-						<BrandLogo variant="full" height="30px" className="block group-data-[collapsible=icon]:hidden" />
+						<BrandLogo
+							variant="full"
+							height="30px"
+							className="block group-data-[collapsible=icon]:hidden"
+						/>
+
+						<BrandLogo
+							variant="full"
+							height="22px"
+							className="hidden group-data-[collapsible=icon]:block"
+						/>
 					</a>
 				</SidebarMenuButton>
 			</SidebarHeader>
