@@ -8,27 +8,27 @@ import Link from "next/link"
 import { BrandLogo } from "@/components/brand-logo"
 
 const navLinks = [
-    { label: "Features", href: "#features" },
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
+  { label: "Features", href: "#features" },
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
 ]
 
 const Navbar1 = () => {
-    const [isOpen, setIsOpen] = useState(false)
-    const [scrolled, setScrolled] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
-    const toggleMenu = () => setIsOpen(!isOpen)
+  const toggleMenu = () => setIsOpen(!isOpen)
 
-    useEffect(() => {
-        const onScroll = () => setScrolled(window.scrollY > 20)
-        window.addEventListener("scroll", onScroll)
-        return () => window.removeEventListener("scroll", onScroll)
-    }, [])
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", onScroll)
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
         .mn-nav-wrap {
           position: fixed;
           top: 0;
@@ -201,75 +201,75 @@ const Navbar1 = () => {
         }
       `}</style>
 
-            <div className="mn-nav-wrap">
-                <motion.div
-                    className={`mn-nav-pill ${scrolled ? 'scrolled' : ''}`}
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
+      <div className="mn-nav-wrap">
+        <motion.div
+          className={`mn-nav-pill ${scrolled ? 'scrolled' : ''}`}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <BrandLogo variant="full" withTagline={true} withLink={true} height="28px" className="mn-brand" />
+
+          <nav className="mn-nav-links">
+            {navLinks.map(link => (
+              <a key={link.label} href={link.href} className="mn-nav-link">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="mn-nav-actions">
+            <Link href="/auth/login" className="mn-login">Login</Link>
+            <Link href="/auth/signup" className="mn-cta">Start Free</Link>
+            <button className="mn-burger" onClick={toggleMenu} aria-label="Open menu">
+              <Menu size={20} />
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Mobile overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="mn-mobile-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div style={{ padding: '0 0 32px 0', display: 'flex', justifyContent: 'center' }}>
+              <BrandLogo variant="full" height="32px" />
+            </div>
+            <button className="mn-mobile-close" onClick={toggleMenu} aria-label="Close menu">
+              <X size={20} />
+            </button>
+
+            <div className="mn-mobile-links">
+              {navLinks.map((link, i) => (
+                <motion.a
+                  key={link.label}
+                  href={link.href}
+                  className="mn-mobile-link"
+                  onClick={toggleMenu}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
                 >
-                    <BrandLogo variant="full" withTagline={true} withLink={true} height="36px" className="mn-brand" />
-
-                    <nav className="mn-nav-links">
-                        {navLinks.map(link => (
-                            <a key={link.label} href={link.href} className="mn-nav-link">
-                                {link.label}
-                            </a>
-                        ))}
-                    </nav>
-
-                    <div className="mn-nav-actions">
-                        <Link href="/auth/login" className="mn-login">Login</Link>
-                        <Link href="/auth/signup" className="mn-cta">Start Free</Link>
-                        <button className="mn-burger" onClick={toggleMenu} aria-label="Open menu">
-                            <Menu size={20} />
-                        </button>
-                    </div>
-                </motion.div>
+                  {link.label}
+                </motion.a>
+              ))}
             </div>
 
-            {/* Mobile overlay */}
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        className="mn-mobile-overlay"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                    >
-                        <div style={{ padding: '0 0 32px 0', display: 'flex', justifyContent: 'center' }}>
-                            <BrandLogo variant="full" height="32px" />
-                        </div>
-                        <button className="mn-mobile-close" onClick={toggleMenu} aria-label="Close menu">
-                            <X size={20} />
-                        </button>
-
-                        <div className="mn-mobile-links">
-                            {navLinks.map((link, i) => (
-                                <motion.a
-                                    key={link.label}
-                                    href={link.href}
-                                    className="mn-mobile-link"
-                                    onClick={toggleMenu}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.06 }}
-                                >
-                                    {link.label}
-                                </motion.a>
-                            ))}
-                        </div>
-
-                        <div className="mn-mobile-cta-wrap">
-                            <Link href="/auth/login" className="mn-mobile-login" onClick={toggleMenu}>Login</Link>
-                            <Link href="/auth/signup" className="mn-mobile-cta" onClick={toggleMenu}>Start Free</Link>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </>
-    )
+            <div className="mn-mobile-cta-wrap">
+              <Link href="/auth/login" className="mn-mobile-login" onClick={toggleMenu}>Login</Link>
+              <Link href="/auth/signup" className="mn-mobile-cta" onClick={toggleMenu}>Start Free</Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
 }
 
 export { Navbar1 }
