@@ -47,7 +47,7 @@ export function BrandLogo({
   );
 
   const content = withTagline ? (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
       {imageElement}
       <span
         style={{
