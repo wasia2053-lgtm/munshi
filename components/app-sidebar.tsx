@@ -21,16 +21,18 @@ export function AppSidebar() {
 				<SidebarMenuButton asChild>
 					<a href="/dashboard" className="flex items-center gap-2 overflow-hidden">
 						{/* Expanded Sidebar */}
+						{/* Collapsed */}
 						<BrandLogo
 							variant="icon"
 							height="34px"
-							className="hidden data-[collapsible=icon]:block"
+							className="hidden group-data-[collapsible=icon]:block"
 						/>
 
+						{/* Expanded */}
 						<BrandLogo
 							variant="full"
 							height="30px"
-							className="block data-[collapsible=icon]:hidden"
+							className="block group-data-[collapsible=icon]:hidden"
 						/>
 					</a>
 				</SidebarMenuButton>
