@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-
+import { BrandLogo } from "@/components/brand-logo"
 const rows = [
   {
     feature: 'Monthly Cost',
@@ -392,71 +392,71 @@ export default function Comparison() {
                   Human Agent
                 </div>
                 <div className="cmp-col-head munshi-col">
-                  <div className="munshi-avatar">M</div>
-                  Munshi AI
-                  <span className="munshi-winner-badge">WINS</span>
-                </div>
-              </div>
-
-              {/* Rows */}
-              {rows.map((row, i) => (
-                <div
-                  key={i}
-                  className={`cmp-row ${i < visibleRows ? 'row-visible' : ''}`}
-                  style={{ transitionDelay: `${i * 0.04}s` }}
-                >
-                  {/* Feature */}
-                  <div className="cmp-cell feat-cell">
-                    {row.feature}
+                  <div className="cmp-col-head munshi-col">
+                    <BrandLogo variant="full" height="20px" />
+                    <span className="munshi-winner-badge">WINS</span>
                   </div>
+                </div>
 
-                  {/* Human */}
-                  <div className="cmp-cell human-cell">
-                    <div className="cross-icon">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="#ffb4ab" strokeWidth="2.5" strokeLinecap="round" />
-                      </svg>
+                {/* Rows */}
+                {rows.map((row, i) => (
+                  <div
+                    key={i}
+                    className={`cmp-row ${i < visibleRows ? 'row-visible' : ''}`}
+                    style={{ transitionDelay: `${i * 0.04}s` }}
+                  >
+                    {/* Feature */}
+                    <div className="cmp-cell feat-cell">
+                      {row.feature}
                     </div>
-                    {row.human}
-                  </div>
 
-                  {/* Munshi */}
-                  <div className={`cmp-cell munshi-cell ${row.neutral ? 'neutral-cell' : ''}`}>
-                    {row.neutral ? (
-                      <div className="neutral-icon">
+                    {/* Human */}
+                    <div className="cmp-cell human-cell">
+                      <div className="cross-icon">
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
-                          <path d="M5 12H19" stroke="rgba(196,199,200,0.6)" strokeWidth="2.5" strokeLinecap="round" />
+                          <path d="M18 6L6 18M6 6L18 18" stroke="#ffb4ab" strokeWidth="2.5" strokeLinecap="round" />
                         </svg>
                       </div>
-                    ) : (
-                      <div className="check-icon">
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 6L9 17L4 12" stroke="#4ae176" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                    )}
-                    {row.munshi}
+                      {row.human}
+                    </div>
+
+                    {/* Munshi */}
+                    <div className={`cmp-cell munshi-cell ${row.neutral ? 'neutral-cell' : ''}`}>
+                      {row.neutral ? (
+                        <div className="neutral-icon">
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12H19" stroke="rgba(196,199,200,0.6)" strokeWidth="2.5" strokeLinecap="round" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="check-icon">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17L4 12" stroke="#4ae176" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                      {row.munshi}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Bottom CTA */}
-        <div className="cmp-bottom">
-          <p className="cmp-cta-text">
-            Same result. <span>A fraction of the cost.</span>
-          </p>
-          <a href="/auth/signup" className="cmp-cta-btn">
-            Try Free — No Card Needed
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
-        </div>
+          {/* Bottom CTA */}
+          <div className="cmp-bottom">
+            <p className="cmp-cta-text">
+              Same result. <span>A fraction of the cost.</span>
+            </p>
+            <a href="/auth/signup" className="cmp-cta-btn">
+              Try Free — No Card Needed
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          </div>
 
-      </div>
-    </>
-  )
+        </div>
+      </>
+      )
 }
