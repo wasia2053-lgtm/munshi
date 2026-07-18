@@ -72,8 +72,9 @@ export default function Footer() {
         flexWrap: 'wrap',
         gap: '12px'
       }}>
-        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '13px' }}>
-          © 2026 Munshi AI. All rights reserved.
+        <BrandLogo variant="full" height="24px" />
+        <p className="text-sm text-muted-foreground mt-2">
+          WhatsApp AI that works while you sleep. Built for SMBs.
         </p>
         <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '13px' }}>
           Built with Meta WhatsApp API · Powered by Groq

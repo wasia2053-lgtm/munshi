@@ -11,6 +11,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Force every heading site-wide to Syne, kill any inline/local font-family */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-syne), sans-serif !important;
+}
+
+body,
+p,
+span,
+div,
+a,
+button {
+  font-family: var(--font-geist-sans), sans-serif !important;
+}
+
 /* Landing page logo styles */
 .nav-logo {
   text-decoration: none;
