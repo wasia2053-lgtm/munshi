@@ -114,9 +114,7 @@ async function createRapidGatewayCheckout(plan: string, user: { id: string; emai
         }
 
         // Step 2: Submit transaction
-        const orderId = `MUNSHI-${plan.toUpperCase()}-${Date.now()}`
-        // TODO: source real customer mobile from business profile/account once stored —
-        // gateway requires it, this fallback is a placeholder.
+        const orderId = `MUNSHI-${plan.toUpperCase()}-${user.id}-${Date.now()}`        // gateway requires it, this fallback is a placeholder.
         const customerMobile = user.phone || '03000000000'
 
         const body = new URLSearchParams({
