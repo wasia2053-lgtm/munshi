@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 import { Syne } from 'next/font/google'
 const syne = Syne({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-syne' })
 

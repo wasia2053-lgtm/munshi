@@ -20,7 +20,11 @@ interface Payment {
   created_at: string
   reference_number: string
 }
-
+declare global {
+  interface Window {
+    Paddle: any
+  }
+}
 type Currency = 'PKR' | 'USD'
 
 const PLANS = [
@@ -122,6 +126,10 @@ export default function BillingPage() {
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.Paddle) {
+      window.Paddle.Environment.set('sandbox') // remove when going live
+      window.Paddle.Initialize({ token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN! })
+    }
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       if (params.get('success') === '1') {
@@ -172,8 +180,16 @@ export default function BillingPage() {
         body: JSON.stringify({ plan: planId, currency, phone }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else alert(data.error || 'Checkout failed. Please try again.')
+
+      if (currency === 'USD' && data.transactionId) {
+        // Paddle overlay checkout — no redirect
+        window.Paddle.Checkout.open({ transactionId: data.transactionId })
+      } else if (data.url) {
+        // Rapid Gateway (PKR) — hosted redirect
+        window.location.href = data.url
+      } else {
+        alert(data.error || 'Checkout failed. Please try again.')
+      }
     } catch {
       alert('Something went wrong.')
     } finally {
