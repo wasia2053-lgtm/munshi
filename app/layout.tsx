@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 import { Syne } from 'next/font/google'
 const syne = Syne({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-syne' })
 
@@ -65,6 +64,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&display=swap" rel="stylesheet" />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"

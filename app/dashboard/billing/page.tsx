@@ -190,9 +190,11 @@ export default function BillingPage() {
       } else {
         alert(data.error || 'Checkout failed. Please try again.')
       }
-    } catch {
+    } catch (err) {
+      console.error('[Checkout Error]', err)
       alert('Something went wrong.')
-    } finally {
+    }
+    finally {
       setUpgrading(null)
     }
   }
