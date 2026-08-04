@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 
-// ---- Plan → Paddle Price ID mapping (sandbox) ----
+
+
+// Paddle Price IDs (USD)
 const PADDLE_PRICE_IDS: Record<string, string> = {
-    basic: 'pri_01ky9vtk0gh1yxjj15h31138ct',
-    growth: 'pri_01ky9vxrxzs393a6z7srpbn5ne',
-    pro: 'pri_01ky9vzy7aanmdqr4141v6dx6c',
+    basic: 'pri_01kz70m79qzbcxxv4ab8r8q9a5',
+    growth: 'pri_01kz70k41x6073ra0z79hvnww7',
+    pro: 'pri_01kz70hzqzay5nywzfs8bbd7ps',
 }
 
 // PKR prices (paisa-free, whole rupees) — used for Rapid Gateway amount
@@ -155,4 +157,4 @@ async function createRapidGatewayCheckout(plan: string, user: { id: string; emai
         console.error('[Rapid Gateway] Unexpected error:', err)
         return NextResponse.json({ error: 'Checkout creation failed' }, { status: 500 })
     }
-}
+}   

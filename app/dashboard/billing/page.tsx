@@ -127,7 +127,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Paddle) {
-      window.Paddle.Environment.set('sandbox') // remove when going live
+      window.Paddle.Environment.set('production')
       window.Paddle.Initialize({ token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN! })
     }
     if (typeof window !== 'undefined') {
