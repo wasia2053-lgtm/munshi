@@ -25,13 +25,11 @@ declare global {
     Paddle: any
   }
 }
-type Currency = 'PKR' | 'USD'
 
 const PLANS = [
   {
     id: 'starter',
     name: 'Starter',
-    price_pkr: 0,
     price_usd: 0,
     messages: 50,
     icon: Zap,
@@ -47,7 +45,6 @@ const PLANS = [
   {
     id: 'basic',
     name: 'Basic',
-    price_pkr: 1000,
     price_usd: 4,
     messages: 1000,
     icon: Rocket,
@@ -63,7 +60,6 @@ const PLANS = [
   {
     id: 'growth',
     name: 'Growth',
-    price_pkr: 7000,
     price_usd: 25,
     messages: 5000,
     icon: TrendingUp,
@@ -79,7 +75,6 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price_pkr: 30000,
     price_usd: 99,
     messages: 50000,
     icon: Crown,
@@ -95,7 +90,6 @@ const PLANS = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price_pkr: 0,
     price_usd: 0,
     messages: 0,
     icon: Building2,
@@ -119,11 +113,6 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState(false)
   const [visible, setVisible] = useState(false)
-  const [currency, setCurrency] = useState<Currency>('PKR')
-  const [phoneModalOpen, setPhoneModalOpen] = useState(false)
-  const [phoneInput, setPhoneInput] = useState('')
-  const [phoneError, setPhoneError] = useState('')
-  const [pendingPlan, setPendingPlan] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Paddle) {
@@ -157,60 +146,26 @@ export default function BillingPage() {
   }
 
   async function handleUpgrade(planId: string) {
-    if (currency === 'PKR') {
-      const savedPhone = typeof window !== 'undefined' ? localStorage.getItem('munshi_phone') : null
-      if (!savedPhone) {
-        setPendingPlan(planId)
-        setPhoneInput('')
-        setPhoneError('')
-        setPhoneModalOpen(true)
-        return
-      }
-    }
-    await submitCheckout(planId)
-  }
-
-  async function submitCheckout(planId: string, phone?: string) {
     setUpgrading(planId)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, currency, phone }),
+        body: JSON.stringify({ plan: planId }),
       })
       const data = await res.json()
 
-      if (currency === 'USD' && data.transactionId) {
-        // Paddle overlay checkout — no redirect
+      if (data.transactionId) {
         window.Paddle.Checkout.open({ transactionId: data.transactionId })
-      } else if (data.url) {
-        // Rapid Gateway (PKR) — hosted redirect
-        window.location.href = data.url
       } else {
         alert(data.error || 'Checkout failed. Please try again.')
       }
     } catch (err) {
       console.error('[Checkout Error]', err)
       alert('Something went wrong.')
-    }
-    finally {
+    } finally {
       setUpgrading(null)
-    }
-  }
-
-  function handlePhoneSubmit() {
-    const cleaned = phoneInput.trim()
-    const valid = /^03\d{9}$/.test(cleaned)
-    if (!valid) {
-      setPhoneError('Enter a valid number, e.g. 03001234567')
-      return
-    }
-    localStorage.setItem('munshi_phone', cleaned)
-    setPhoneModalOpen(false)
-    if (pendingPlan) {
-      submitCheckout(pendingPlan, cleaned)
-      setPendingPlan(null)
     }
   }
 
@@ -230,18 +185,6 @@ export default function BillingPage() {
           transition: opacity 0.5s ease, transform 0.5s ease;
         }
         .fade-up.in { opacity: 1; transform: translateY(0); }
-
-        .currency-toggle {
-          display: flex; padding: 4px; background: #1a1b1c;
-          border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; gap: 4px;
-        }
-        .currency-btn {
-          padding: 7px 16px; border-radius: 9px; font-size: 12px; font-weight: 700;
-          letter-spacing: 0.04em; cursor: pointer; border: none; background: transparent;
-          color: #6b7280; transition: all 0.18s;
-        }
-        .currency-btn.active { background: #4ae176; color: #0b0c0c; }
-        .currency-btn:not(.active):hover { color: #9ca3af; }
 
         .plan-card {
           border-radius: 20px;
@@ -281,7 +224,6 @@ export default function BillingPage() {
 
       <div className="bill-wrap">
 
-        {/* Success */}
         {successMsg && (
           <div className={`fade-up ${visible ? 'in' : ''}`} style={{
             background: 'rgba(74,225,118,0.08)',
@@ -294,7 +236,6 @@ export default function BillingPage() {
           </div>
         )}
 
-        {/* Header + currency toggle */}
         <div className={`fade-up header-row ${visible ? 'in' : ''}`} style={{
           marginBottom: '36px', display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap',
@@ -307,21 +248,8 @@ export default function BillingPage() {
               Start free. Scale when you're ready.
             </p>
           </div>
-
-          <div className="currency-toggle">
-            {(['PKR', 'USD'] as Currency[]).map((c) => (
-              <button
-                key={c}
-                onClick={() => setCurrency(c)}
-                className={`currency-btn ${currency === c ? 'active' : ''}`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Usage Card */}
         {!loading && subscription && (
           <div className={`fade-up ${visible ? 'in' : ''}`} style={{
             transitionDelay: '0.08s',
@@ -385,7 +313,6 @@ export default function BillingPage() {
           </div>
         )}
 
-        {/* Plans Grid */}
         <div className={`plans-grid fade-up ${visible ? 'in' : ''}`} style={{
           transitionDelay: '0.14s',
           display: 'grid',
@@ -412,7 +339,6 @@ export default function BillingPage() {
                     : `0 2px 12px rgba(0,0,0,0.15)`,
                 }}
               >
-                {/* Popular badge */}
                 {plan.popular && (
                   <div style={{
                     position: 'absolute', top: '-12px', left: '50%',
@@ -426,7 +352,6 @@ export default function BillingPage() {
                   </div>
                 )}
 
-                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{
@@ -448,7 +373,6 @@ export default function BillingPage() {
                   )}
                 </div>
 
-                {/* Price */}
                 <div style={{ marginBottom: '20px' }}>
                   {plan.isFree ? (
                     <div>
@@ -459,19 +383,6 @@ export default function BillingPage() {
                     <div>
                       <span style={{ fontSize: '28px', fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Custom</span>
                       <p style={{ color: '#4b5563', fontSize: '12px', margin: '3px 0 0' }}>Tailored to your needs</p>
-                    </div>
-                  ) : currency === 'PKR' ? (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-                        <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 500 }}>PKR</span>
-                        <span style={{ fontSize: '32px', fontWeight: 800, color: '#fff', letterSpacing: '-1px', lineHeight: 1 }}>
-                          {plan.price_pkr.toLocaleString()}
-                        </span>
-                        <span style={{ color: '#4b5563', fontSize: '13px' }}>/mo</span>
-                      </div>
-                      <p style={{ color: '#4b5563', fontSize: '12px', margin: '3px 0 0' }}>
-                        ~${plan.price_usd}/mo · {plan.messages.toLocaleString()} msgs
-                      </p>
                     </div>
                   ) : (
                     <div>
@@ -489,10 +400,8 @@ export default function BillingPage() {
                   )}
                 </div>
 
-                {/* Divider */}
                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '18px' }} />
 
-                {/* Features */}
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1 }}>
                   {plan.features.map((f) => (
                     <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '9px' }}>
@@ -509,7 +418,6 @@ export default function BillingPage() {
                   ))}
                 </ul>
 
-                {/* CTA */}
                 {isCurrent ? (
                   <div style={{
                     background: plan.accent + '10', border: `1px solid ${plan.accent}20`,
@@ -521,8 +429,8 @@ export default function BillingPage() {
                 ) : plan.isFree || isDowngrade ? (
                   <div style={{ height: '42px' }} />
                 ) : plan.isEnterprise ? (
-                  <a
-                    href={`https://wa.me/923282847607?text=${encodeURIComponent('Hi, I want to discuss the Munshi Enterprise plan')}`}
+
+                  <a href={`https://wa.me/923282847607?text=${encodeURIComponent('Hi, I want to discuss the Munshi Enterprise plan')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -565,7 +473,6 @@ export default function BillingPage() {
           })}
         </div>
 
-        {/* Payment History */}
         <div className={`fade-up ${visible ? 'in' : ''}`} style={{
           transitionDelay: '0.22s',
           background: '#1a1b1c',
@@ -617,7 +524,7 @@ export default function BillingPage() {
                         {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
                       <td style={{ padding: '14px 24px', color: '#fff', fontWeight: 600, textTransform: 'capitalize' }}>{p.plan}</td>
-                      <td style={{ padding: '14px 24px', color: '#4ae176', fontWeight: 700 }}>PKR {p.amount.toLocaleString()}</td>
+                      <td style={{ padding: '14px 24px', color: '#4ae176', fontWeight: 700 }}>${p.amount.toLocaleString()}</td>
                       <td style={{ padding: '14px 24px', color: '#6b7280', textTransform: 'capitalize' }}>{p.gateway}</td>
                       <td style={{ padding: '14px 24px' }}>
                         <span style={{
@@ -639,73 +546,6 @@ export default function BillingPage() {
         </div>
 
       </div>
-
-      {/* Phone collection modal */}
-      {phoneModalOpen && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1000, padding: '20px',
-          }}
-          onClick={() => setPhoneModalOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#1a1b1c', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '18px', padding: '28px', width: '100%', maxWidth: '380px',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-            }}
-          >
-            <h3 style={{ color: '#fff', fontSize: '17px', fontWeight: 700, margin: '0 0 6px' }}>
-              One more thing
-            </h3>
-            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px', lineHeight: 1.5 }}>
-              We need a mobile number for your PKR payment. We'll only ask once.
-            </p>
-            <input
-              type="tel"
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-              placeholder="03001234567"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handlePhoneSubmit()}
-              style={{
-                width: '100%', padding: '12px 14px', borderRadius: '10px',
-                background: '#121314', border: `1px solid ${phoneError ? '#ef4444' : 'rgba(255,255,255,0.08)'}`,
-                color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                marginBottom: '6px',
-              }}
-            />
-            {phoneError && (
-              <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 14px' }}>{phoneError}</p>
-            )}
-            <div style={{ display: 'flex', gap: '10px', marginTop: phoneError ? '0' : '16px' }}>
-              <button
-                onClick={() => setPhoneModalOpen(false)}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: '10px', fontSize: '13px',
-                  fontWeight: 600, background: 'rgba(255,255,255,0.04)', color: '#9ca3af',
-                  border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePhoneSubmit}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: '10px', fontSize: '13px',
-                  fontWeight: 700, background: '#4ae176', color: '#0b0c0c',
-                  border: 'none', cursor: 'pointer',
-                }}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </AppShell>
+    </AppShell >
   )
 }
