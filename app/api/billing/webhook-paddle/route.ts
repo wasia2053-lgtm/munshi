@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
             user_id: userId,
             plan: planInfo.plan,
             amount: amount ? Number(amount) / 100 : null, // Paddle sends amounts in cents
-            status: 'success',
+            status: 'completed'
             reference_number: eventId,
             gateway: 'paddle',
             expires_at: validUntil.toISOString(),
