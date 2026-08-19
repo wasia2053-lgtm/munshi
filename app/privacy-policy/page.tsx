@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
       title: 'Introduction',
       content: (
         <p>
-          Munshi AI ("we", "us", "our") operates munshi.pk — a WhatsApp AI automation platform for small and medium businesses.
+          Munshi AI ("we", "us", "our") operates munshi-theta.vercel.app — a WhatsApp AI automation platform for small and medium businesses.
           This Privacy Policy explains what data we collect, how we use it, and your rights regarding that data.
           By using our services, you agree to the practices described here.
         </p>
@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
           <p><strong>WhatsApp Data:</strong> We process incoming and outgoing WhatsApp messages, customer phone numbers, message timestamps, and conversation history to deliver our service.</p>
           <p><strong>Training Data:</strong> Website content, PDFs, and text you upload to train your AI bot.</p>
           <p><strong>Usage Data:</strong> Pages visited, features used, message counts, and performance metrics collected automatically to improve the platform.</p>
-          <p><strong>Payment Data:</strong> Subscription plan and payment reference numbers. We do not store full card details — payments are processed by our payment partners.</p>
+          <p><strong>Payment Data:</strong> Subscription plan and payment reference numbers. We do not store full card details — payments are processed by our payment partner, Paddle.com.</p>
         </>
       )
     },
@@ -51,6 +51,7 @@ export default function PrivacyPolicy() {
             <li><strong>Supabase:</strong> Secure database storage and authentication infrastructure.</li>
             <li><strong>Groq:</strong> AI inference for bot responses. Your data is processed but not stored or used for training by Groq.</li>
             <li><strong>Vercel:</strong> Application hosting and delivery.</li>
+            <li><strong>Paddle.com:</strong> Payment processing and billing, as our Merchant of Record.</li>
           </ul>
         </>
       )
@@ -100,8 +101,8 @@ export default function PrivacyPolicy() {
         <>
           <p>For privacy questions or data requests, contact our team:</p>
           <div className="contact-card">
-            <div className="contact-email">support@munshi.pk</div>
-            <div className="contact-sub">Munshi AI — munshi.pk · We respond within 2 business days.</div>
+            <div className="contact-email">shahmeershaikh900@gmail.com</div>
+            <div className="contact-sub">Munshi AI — Karachi, Pakistan · We respond within 2 business days.</div>
           </div>
         </>
       )

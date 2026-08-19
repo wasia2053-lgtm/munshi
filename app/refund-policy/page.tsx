@@ -54,7 +54,7 @@ export default function RefundPolicy() {
       content: (
         <>
           <ol>
-            <li>Email us at <strong>support@munshi.pk</strong> with subject line: "Refund Request — [Your Email]"</li>
+            <li>Email us at <strong>shahmeershaikh900@gmail.com</strong> with subject line: "Refund Request — [Your Email]"</li>
             <li>Include your registered email address and reason for the refund request</li>
             <li>Our team will review your request within 3 business days</li>
             <li>If approved, refunds are processed within 5–10 business days depending on your payment method</li>
@@ -65,21 +65,21 @@ export default function RefundPolicy() {
     {
       title: 'Refund Methods & Timelines',
       content: (
-        <ul>
-          <li><strong>JazzCash / EasyPaisa:</strong> 2–3 business days to original mobile account</li>
-          <li><strong>Bank Transfer (Pakistan):</strong> 3–5 business days</li>
-          <li><strong>International Cards:</strong> 5–10 business days depending on your bank</li>
-          <li><strong>Dodo Payments (international):</strong> 5–7 business days</li>
-        </ul>
+        <p>
+          All payments are processed by <strong>Paddle.com</strong>, our Merchant of Record. Approved refunds
+          are issued back to your original payment method (card or PayPal) and typically appear within
+          <strong> 5–10 business days</strong>, depending on your bank or payment provider.
+        </p>
       )
     },
     {
       title: 'Plan Pricing Reference',
       content: (
         <ul>
-          <li><strong>Starter:</strong> Free — PKR 0 / $0 per month</li>
-          <li><strong>Growth:</strong> PKR 7,000 / ~$25 per month</li>
-          <li><strong>Pro:</strong> PKR 30,000 / ~$99 per month</li>
+          <li><strong>Starter:</strong> Free — $0/month</li>
+          <li><strong>Basic:</strong> $4/month</li>
+          <li><strong>Growth:</strong> $25/month</li>
+          <li><strong>Pro:</strong> $99/month</li>
         </ul>
       )
     },
@@ -100,8 +100,8 @@ export default function RefundPolicy() {
         <>
           <p>For refund requests or billing questions, reach out to our support team:</p>
           <div className="contact-card">
-            <div className="contact-email">support@munshi.pk</div>
-            <div className="contact-sub">Munshi AI — munshi.pk · We respond within 2 business days.</div>
+            <div className="contact-email">shahmeershaikh900@gmail.com</div>
+            <div className="contact-sub">Munshi AI — Karachi, Pakistan · We respond within 2 business days.</div>
           </div>
         </>
       )

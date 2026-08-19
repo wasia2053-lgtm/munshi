@@ -11,7 +11,7 @@ export default function TermsOfService() {
       title: 'Agreement to Terms',
       content: (
         <p>
-          By accessing or using Munshi AI ("Service") at munshi.pk, you agree to be bound by these Terms of Service.
+          By accessing or using Munshi AI ("Service") at munshi-theta.vercel.app, you agree to be bound by these Terms of Service.
           If you do not agree, do not use the Service. These terms apply to all users, including businesses and individuals.
         </p>
       )
@@ -60,11 +60,12 @@ export default function TermsOfService() {
       title: 'Subscription & Pricing',
       content: (
         <>
-          <p>Munshi AI operates on a monthly subscription basis:</p>
+          <p>Munshi AI operates on a monthly subscription basis, billed in USD:</p>
           <ul>
             <li><strong>Starter:</strong> Free — 50 messages/month</li>
-            <li><strong>Growth:</strong> PKR 7,000 / $25 per month — 5,000 messages/month</li>
-            <li><strong>Pro:</strong> PKR 30,000 / $99 per month — 50,000 messages/month</li>
+            <li><strong>Basic:</strong> $4/month — 1,000 messages/month</li>
+            <li><strong>Growth:</strong> $25/month — 5,000 messages/month</li>
+            <li><strong>Pro:</strong> $99/month — 50,000 messages/month</li>
           </ul>
           <p>Prices are subject to change with 30 days' notice. Subscriptions auto-renew monthly unless cancelled.
             Message limits reset at the start of each billing cycle. Unused messages do not carry over.</p>
@@ -75,11 +76,11 @@ export default function TermsOfService() {
       title: 'Payment',
       content: (
         <>
-          <p>Payments are accepted via:</p>
-          <ul>
-            <li><strong>Pakistan:</strong> JazzCash, EasyPaisa, Bank Transfer (via Safepay)</li>
-            <li><strong>International:</strong> Credit/Debit cards, Apple Pay, Google Pay (via Dodo Payments)</li>
-          </ul>
+          <p>
+            Payments are processed securely by <strong>Paddle.com</strong>, our Merchant of Record, who handles
+            billing, tax collection, and payment support on our behalf. Paddle accepts credit/debit cards
+            and PayPal, and displays pricing in your local currency where supported.
+          </p>
           <p>All payments are final unless eligible for a refund under our Refund Policy.
             Failed payments will result in service suspension until resolved.</p>
         </>
@@ -149,8 +150,8 @@ export default function TermsOfService() {
         <>
           <p>For questions about these Terms, contact us:</p>
           <div className="contact-card">
-            <div className="contact-email">support@munshi.pk</div>
-            <div className="contact-sub">Munshi AI — munshi.pk · We respond within 2 business days.</div>
+            <div className="contact-email">shahmeershaikh900@gmail.com</div>
+            <div className="contact-sub">Munshi AI — Karachi, Pakistan · We respond within 2 business days.</div>
           </div>
         </>
       )
