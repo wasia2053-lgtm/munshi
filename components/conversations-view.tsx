@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { MessageCircleIcon, SendIcon, CheckCircleIcon, SparklesIcon, CheckCheckIcon, ArrowLeftIcon } from "lucide-react"
+import { MessageCircleIcon, SendIcon, CheckCircleIcon, SparklesIcon, CheckCheckIcon, ArrowLeftIcon, DownloadIcon } from "lucide-react"
 
 type ConversationListItem = {
     id: string
@@ -43,6 +43,15 @@ function formatMessageTime(timestamp: string): string {
     return new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
+// Escapes a value for safe CSV embedding — wraps in quotes if it contains
+// a comma, quote, or newline, and doubles up any internal quotes.
+function csvEscape(value: string): string {
+    if (/[",\n]/.test(value)) {
+        return `"${value.replace(/"/g, '""')}"`
+    }
+    return value
+}
+
 export function ConversationsView() {
     const [conversations, setConversations] = useState<ConversationListItem[]>([])
     const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -54,6 +63,8 @@ export function ConversationsView() {
     // Mobile: controls whether the chat thread is shown full-screen over the list.
     // Desktop (md+) ignores this and always shows list + chat side by side.
     const [showChatOnMobile, setShowChatOnMobile] = useState(false)
+    const [exporting, setExporting] = useState(false)
+    const [exported, setExported] = useState(false)
 
     useEffect(() => {
         fetch('/api/conversations', { credentials: 'include' })
@@ -118,6 +129,39 @@ export function ConversationsView() {
         }
     }
 
+    // Exports the currently visible (filtered) conversation list — phone, last
+    // message, date, status — as a CSV download. Uses in-memory state, no refetch.
+    function handleExportCSV() {
+        setExporting(true)
+        const rows = [['Phone', 'Last Message', 'Date', 'Status']]
+        filteredConversations.forEach((c) => {
+            const date = c.last_message_time ? new Date(c.last_message_time).toLocaleString('en-GB') : ''
+            const status = c.is_resolved ? 'Resolved' : 'Active'
+            rows.push([
+                csvEscape(c.customer_phone),
+                csvEscape(c.last_message || ''),
+                csvEscape(date),
+                csvEscape(status),
+            ])
+        })
+        const csvContent = rows.map((r) => r.join(',')).join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        const today = new Date().toISOString().split('T')[0]
+        a.href = url
+        a.download = `munshi-conversations-${filter}-${today}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setTimeout(() => {
+            setExporting(false)
+            setExported(true)
+            setTimeout(() => setExported(false), 2000)
+        }, 400)
+    }
+
     const filteredConversations = conversations.filter(c => {
         if (filter === "active") return !c.is_resolved
         if (filter === "resolved") return !!c.is_resolved
@@ -155,7 +199,29 @@ export function ConversationsView() {
                 )}
             >
                 <div className="p-4 border-b border-border">
-                    <h2 className="font-semibold text-sm mb-3">Conversations</h2>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="font-semibold text-sm">Conversations</h2>
+                        <button
+                            onClick={handleExportCSV}
+                            disabled={exporting || exported || filteredConversations.length === 0}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors disabled:opacity-40",
+                                exported
+                                    ? "border-[var(--chart-1)]/40 text-[var(--chart-1)] bg-[var(--chart-1)]/10"
+                                    : "border-border text-muted-foreground hover:bg-muted"
+                            )}
+                            title="Export visible conversations as CSV"
+                        >
+                            {exporting ? (
+                                <span className="size-3 rounded-full border-2 border-muted-foreground/40 border-t-foreground animate-spin" />
+                            ) : exported ? (
+                                <CheckCircleIcon className="size-3" />
+                            ) : (
+                                <DownloadIcon className="size-3" />
+                            )}
+                            {exported ? "Exported" : "Export"}
+                        </button>
+                    </div>
                     <div className="flex gap-1 p-1 bg-muted rounded-lg">
                         <button
                             onClick={() => setFilter("all")}
