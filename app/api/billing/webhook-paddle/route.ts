@@ -3,10 +3,11 @@ import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 
 // ---- Paddle Price ID → plan + messages_limit ----
+// MUST match PADDLE_PRICE_IDS in app/api/billing/checkout/route.ts (live mode IDs)
 const PRICE_TO_PLAN: Record<string, { plan: string; limit: number }> = {
-    pri_01ky9vtk0gh1yxjj15h31138ct: { plan: 'basic', limit: 1000 },
-    pri_01ky9vxrxzs393a6z7srpbn5ne: { plan: 'growth', limit: 5000 },
-    pri_01ky9vzy7aanmdqr4141v6dx6c: { plan: 'pro', limit: 50000 },
+    pri_01kz70m79qzbcxxv4ab8r8q9a5: { plan: 'basic', limit: 1000 },
+    pri_01kz70k41x6073ra0z79hvnww7: { plan: 'growth', limit: 5000 },
+    pri_01kz70hzqzay5nywzfs8bbd7ps: { plan: 'pro', limit: 50000 },
 }
 
 const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET!
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
             user_id: userId,
             plan: planInfo.plan,
             amount: amount ? Number(amount) / 100 : null, // Paddle sends amounts in cents
-            status: 'completed'
+            status: 'completed',
             reference_number: eventId,
             gateway: 'paddle',
             expires_at: validUntil.toISOString(),
