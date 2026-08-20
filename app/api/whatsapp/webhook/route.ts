@@ -159,7 +159,8 @@ export async function POST(request: NextRequest) {
         .eq('business_id', BUSINESS_ID)
         .single()
 
-      // Helper function to check if business is open
+      // Helper function to check if business is open — handles time windows
+      // AND overnight ranges that cross midnight (e.g. 9:00 AM to 3:00 AM).
       function isBusinessOpen(operatingHours: any): boolean {
         if (!operatingHours) return true // default open
 
@@ -168,19 +169,42 @@ export async function POST(request: NextRequest) {
         const pakistanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000))
 
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-        const dayName = days[pakistanTime.getUTCDay()]
-        const daySettings = operatingHours[dayName]
-
-        if (!daySettings || !daySettings.enabled) return false
+        const todayIndex = pakistanTime.getUTCDay()
+        const todayName = days[todayIndex]
+        const yesterdayName = days[(todayIndex + 6) % 7] // wraps Sunday -> Saturday
 
         const currentHour = pakistanTime.getUTCHours()
         const currentMin = pakistanTime.getUTCMinutes()
         const currentTotal = currentHour * 60 + currentMin
 
-        const [openH, openM] = daySettings.open.split(':').map(Number)
-        const [closeH, closeM] = daySettings.close.split(':').map(Number)
-        const openTotal = openH * 60 + openM
-        const closeTotal = closeH * 60 + closeM
+        function toMinutes(t: string): number {
+          const [h, m] = t.split(':').map(Number)
+          return h * 60 + m
+        }
+
+        // Case 1: yesterday's window crossed midnight and is still running
+        // right now (e.g. yesterday was 9AM-3AM and it's currently 1:21AM).
+        const yesterdaySettings = operatingHours[yesterdayName]
+        if (yesterdaySettings?.enabled) {
+          const yOpenTotal = toMinutes(yesterdaySettings.open)
+          const yCloseTotal = toMinutes(yesterdaySettings.close)
+          if (yCloseTotal < yOpenTotal && currentTotal <= yCloseTotal) {
+            return true
+          }
+        }
+
+        // Case 2: today's own window.
+        const daySettings = operatingHours[todayName]
+        if (!daySettings || !daySettings.enabled) return false
+
+        const openTotal = toMinutes(daySettings.open)
+        const closeTotal = toMinutes(daySettings.close)
+
+        if (closeTotal < openTotal) {
+          // Crosses midnight — open from today's open time through to midnight;
+          // the after-midnight portion is covered by Case 1 tomorrow morning.
+          return currentTotal >= openTotal
+        }
 
         return currentTotal >= openTotal && currentTotal <= closeTotal
       }
