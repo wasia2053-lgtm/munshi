@@ -10,7 +10,7 @@ const groq = new Groq({
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
-  
+
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Fetch training data (with cache)
     console.log('\n🧠 [TRAINING] Fetching data...')
     let trainingData = trainingCache.get(business_id)
-    
+
     if (!trainingData) {
       const { data, error } = await supabase
         .from('knowledge_base')
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       knowledgeContext = trainingData
         .map((item: any) => {
           const limitedContent = item.content.substring(0, 500)
-          const source = item.source_type === 'pdf' ? '📄' : 
-                        item.source_type === 'website' ? '🌐' : '✏️'
+          const source = item.source_type === 'pdf' ? '📄' :
+            item.source_type === 'website' ? '🌐' : '✏️'
           return `${source} ${item.source_url}:\n${limitedContent}...`
         })
         .join('\n\n')
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     // Fetch conversation history (last 5 messages)
     console.log('\n💬 [MEMORY] Fetching conversation history...')
     let conversationContext = ''
-    
+
     if (customerPhone) {
       const { data: messages, error } = await supabase
         .from('messages')
@@ -122,7 +122,7 @@ RULES:
           content: message,
         },
       ],
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       temperature: 0.7,
       max_tokens: 256,
       top_p: 0.9,
