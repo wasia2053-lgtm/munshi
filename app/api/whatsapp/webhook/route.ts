@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
       const customerPhone = msg.from
       const messageText = msg.text.body
-      
+
       // Strip all non-digits for consistent storage
       const customerPhoneDigits = customerPhone.replace(/\D/g, '')
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       // Step 1: Check if conversation exists with this phone + business_id
       console.log('\nStep 1: Checking for existing conversation...')
       let conversationId: string
-      
+
       const { data: existing, error: selectError } = await supabase
         .from('conversations')
         .select('id')
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
               .eq('customer_phone', customerPhone)
               .eq('business_id', BUSINESS_ID)
               .single()
-            
+
             if (retryExisting) {
               conversationId = retryExisting.id
               console.log('Found existing conversation after duplicate error:', conversationId)
@@ -162,26 +162,26 @@ export async function POST(request: NextRequest) {
       // Helper function to check if business is open
       function isBusinessOpen(operatingHours: any): boolean {
         if (!operatingHours) return true // default open
-        
+
         // Pakistan timezone (UTC+5)
         const now = new Date()
         const pakistanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000))
-        
-        const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
         const dayName = days[pakistanTime.getUTCDay()]
         const daySettings = operatingHours[dayName]
-        
+
         if (!daySettings || !daySettings.enabled) return false
-        
+
         const currentHour = pakistanTime.getUTCHours()
         const currentMin = pakistanTime.getUTCMinutes()
         const currentTotal = currentHour * 60 + currentMin
-        
+
         const [openH, openM] = daySettings.open.split(':').map(Number)
         const [closeH, closeM] = daySettings.close.split(':').map(Number)
         const openTotal = openH * 60 + openM
         const closeTotal = closeH * 60 + closeM
-        
+
         return currentTotal >= openTotal && currentTotal <= closeTotal
       }
 
@@ -193,26 +193,26 @@ export async function POST(request: NextRequest) {
       console.log(`⚙️ Settings - Name: ${botName}, Org: ${orgName}, Lang: ${language}, Tone: ${tone}`)
 
       const detectedLanguage = (() => {
-  const text = messageText;
-  if (/[\u0600-\u06FF]/.test(text)) return 'arabic';
-  const romanUrduWords = /\b(hai|he|hain|kya|aur|or|nahi|mujhe|apna)\b/i;
-  if (romanUrduWords.test(text)) return 'roman_urdu';
-  if (/^[A-Za-z0-9\s.,!?-]*$/.test(text)) return 'english';
-  return language; // fallback to bot default
-})();
+        const text = messageText;
+        if (/[\u0600-\u06FF]/.test(text)) return 'arabic';
+        const romanUrduWords = /\b(hai|he|hain|kya|aur|or|nahi|mujhe|apna)\b/i;
+        if (romanUrduWords.test(text)) return 'roman_urdu';
+        if (/^[A-Za-z0-9\s.,!?-]*$/.test(text)) return 'english';
+        return language; // fallback to bot default
+      })();
 
-const languageInstruction =
-  detectedLanguage === 'english_us' ? 'Reply in American English' :
-  detectedLanguage === 'english_uk' ? 'Reply in British English' :
-  detectedLanguage === 'roman_urdu' ? 'Reply in Roman Urdu (Urdu words in English letters)' :
-  detectedLanguage === 'arabic' ? 'Reply in Arabic (العربية)' :
-  'Reply in English';
+      const languageInstruction =
+        detectedLanguage === 'english_us' ? 'Reply in American English' :
+          detectedLanguage === 'english_uk' ? 'Reply in British English' :
+            detectedLanguage === 'roman_urdu' ? 'Reply in Roman Urdu (Urdu words in English letters)' :
+              detectedLanguage === 'arabic' ? 'Reply in Arabic (العربية)' :
+                'Reply in English';
 
       const toneInstruction =
         tone === 'professional' ? 'Be formal and professional in responses.' :
-        tone === 'friendly' ? 'Be warm, friendly and approachable.' :
-        tone === 'casual' ? 'Be casual and relaxed, like a friend.' :
-        'Be friendly and helpful.'
+          tone === 'friendly' ? 'Be warm, friendly and approachable.' :
+            tone === 'casual' ? 'Be casual and relaxed, like a friend.' :
+              'Be friendly and helpful.'
 
       // ─── Fetch Conversation History ───────────────────────────
       const { data: recentMsgs } = await supabase
@@ -246,7 +246,7 @@ const languageInstruction =
       const open = isBusinessOpen(settings?.operating_hours)
       if (!open) {
         const awayMsg = settings?.away_message || 'Assalam o alaikum! Abhi hum available nahi hain.'
-        
+
         // Send away message via WhatsApp
         const waRes = await fetch(
           `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -264,14 +264,14 @@ const languageInstruction =
             })
           }
         )
-        
+
         const waResult = await waRes.json()
         if (!waRes.ok) {
           console.log('❌ WhatsApp Away Message Error:', waResult)
         } else {
           console.log('✅ Away message sent:', awayMsg)
         }
-        
+
         // Save away message to database
         const { error: awayError } = await supabase.from('messages').insert({
           conversation_id: conversationId,
@@ -279,13 +279,13 @@ const languageInstruction =
           content: awayMsg,
           timestamp: new Date().toISOString()
         })
-        
+
         if (awayError) {
           console.log('❌ Away message save error:', awayError.message)
         } else {
           console.log('✅ Away message saved to messages table')
         }
-        
+
         continue // Skip AI generation and move to next message
       }
 
@@ -322,7 +322,7 @@ const languageInstruction =
       // Step 3: Limit exceeded - send limit message and return
       if (botMsgCount >= messagesLimit) {
         const limitMsg = `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
-        
+
         // Send limit message via WhatsApp
         const waRes = await fetch(
           `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -340,14 +340,14 @@ const languageInstruction =
             })
           }
         )
-        
+
         const waResult = await waRes.json()
         if (!waRes.ok) {
           console.log('❌ WhatsApp Limit Message Error:', waResult)
         } else {
           console.log('✅ Limit message sent:', limitMsg)
         }
-        
+
         // Save limit message to database
         const { error: limitError } = await supabase.from('messages').insert({
           conversation_id: conversationId,
@@ -355,13 +355,13 @@ const languageInstruction =
           content: limitMsg,
           timestamp: new Date().toISOString()
         })
-        
+
         if (limitError) {
           console.log('❌ Limit message save error:', limitError.message)
         } else {
           console.log('✅ Limit message saved to messages table')
         }
-        
+
         continue // Skip AI generation and move to next message
       }
 
@@ -391,21 +391,22 @@ const languageInstruction =
 
       // ─── Generate AI Response ───────────────────────────
       const greeting_message = settings?.greeting_message || 'Hello! How can I help you today?'
-      
+
       // Prepare messages with explicit typing to satisfy Groq SDK role requirements
       const messages: Message[] = [
-        { role: 'system', content: `Tu Munshi hai — ${orgName} ka WhatsApp sales agent.
+        {
+          role: 'system', content: `Tu Munshi hai — ${orgName} ka WhatsApp sales agent.
 Tera kaam hai customers ki madad karna bilkul ek real Pakistani sales representative ki tarah.
 
-STRICT LANGUAGE RULES:
-- SIRF Roman Urdu mein baat karo
-- Hindi words BILKUL nahi: "aapka", "hain", "mein" nahi bolna — Pakistani style: "apka", "hen", "me"
-- "Ji" use karo — "haan" nahi
-- Kabhi bhi robotic/formal mat lagna
-- Chhoti sentences, natural flow
+LANGUAGE RULE (SABSE ZAROORI — is se compromise mat karna):
+${languageInstruction}
+Agar customer Roman Urdu me likhe to Pakistani style follow karo: "apka", "hen", "me" (Hindi spellings jaise "aapka", "hain", "mein" nahi), "ji" use karo "haan" nahi.
+Customer jis language me likhe usi me reply karo — bot ki default setting sirf tab use karo jab customer ki language clear na ho.
+
+TONE: ${toneInstruction}
 
 PERSONALITY:
-- Warm, friendly, thoda casual
+- Kabhi bhi robotic mat lagna, natural flow
 - Jaise koi dukaan ka helpful banda ho
 - Customer ki baat dhyan se suno
 - Khud se suggest karo related products
@@ -429,7 +430,8 @@ FALLBACK RULE:
 KNOWLEDGE BASE:
 ${knowledgeContext}
 
-          Greeting: ${greeting_message}\nLanguage Instruction: ${languageInstruction}` },
+          Greeting: ${greeting_message}`
+        },
         ...conversationHistory,
         { role: 'user', content: messageText }
       ];
