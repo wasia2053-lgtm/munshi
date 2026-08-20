@@ -128,7 +128,7 @@ export default function TermsOfService() {
       title: 'Termination',
       content: (
         <>
-          <p>You may cancel your subscription at any time from the Billing page. Cancellation takes effect at the end of the current billing period.</p>
+          <p>To cancel your subscription, email us at <strong>shahmeershaikh900@gmail.com</strong>. Cancellation takes effect at the end of the current billing period.</p>
           <p>We reserve the right to suspend or terminate accounts that violate these Terms, with or without notice depending on the severity of the violation.</p>
           <p>Upon termination, your data will be retained for 30 days before permanent deletion, giving you time to export any necessary information.</p>
         </>

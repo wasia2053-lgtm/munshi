@@ -87,7 +87,8 @@ export default function RefundPolicy() {
       title: 'Cancellation',
       content: (
         <p>
-          You can cancel your subscription at any time from the Billing section of your dashboard.
+          To cancel your subscription, email us at <strong>shahmeershaikh900@gmail.com</strong> with
+          your registered email address. We process cancellation requests within 2 business days.
           Cancellation stops future charges — your service remains active until the end of the
           current billing period. Cancellation alone does not trigger a refund unless you are
           within the 7-day window or another eligibility condition applies.
