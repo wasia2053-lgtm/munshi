@@ -15,19 +15,35 @@ export async function POST(request: NextRequest) {
     const business_id = user.id
 
     const body = await request.json()
-    const { bot_name, organization_name, language, tone, greeting_message } = body
+    const {
+      bot_name,
+      organization_name,
+      language,
+      tone,
+      greeting_message,
+      operating_hours,
+      away_message,
+    } = body
+
+    // Settings page saves independently per section (Bot Personality,
+    // Operating Hours, Away Message) — each request only sends its own
+    // fields. Only include keys that were actually sent, so one section's
+    // save doesn't blank out the others.
+    const updatePayload: Record<string, any> = {
+      business_id,
+      updated_at: new Date().toISOString(),
+    }
+    if (bot_name !== undefined) updatePayload.bot_name = bot_name
+    if (organization_name !== undefined) updatePayload.organization_name = organization_name
+    if (language !== undefined) updatePayload.language = language
+    if (tone !== undefined) updatePayload.tone = tone
+    if (greeting_message !== undefined) updatePayload.greeting_message = greeting_message
+    if (operating_hours !== undefined) updatePayload.operating_hours = operating_hours
+    if (away_message !== undefined) updatePayload.away_message = away_message
 
     const { data, error } = await supabase
       .from('business_settings')
-      .upsert({
-        business_id,
-        bot_name,
-        language,
-        tone,
-        organization_name,
-        greeting_message,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'business_id' })
+      .upsert(updatePayload, { onConflict: 'business_id' })
       .select()
       .single()
 
