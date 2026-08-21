@@ -474,7 +474,8 @@ ${knowledgeContext}
         messages,
         model: 'openai/gpt-oss-120b',
         temperature: 0.7,
-        max_tokens: 256
+        max_tokens: 1024,
+        reasoning_effort: 'medium'
       });
 
       const aiReply = chatCompletion.choices[0]?.message?.content
