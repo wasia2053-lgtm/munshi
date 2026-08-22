@@ -15,7 +15,7 @@ const links = {
     { label: 'Refund Policy', href: '/refund-policy' },
   ],
   Support: [
-    { label: 'Contact', href: 'mailto:shahmeershaikh900@gmail.com' },
+    { label: 'Contact', href: 'https://mail.google.com/mail/?view=cm&fs=1&to=shahmeershaikh900@gmail.com' },
     { label: 'WhatsApp', href: 'https://wa.me/923282847607' },
   ]
 }
