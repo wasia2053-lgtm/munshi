@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
       // AND overnight ranges that cross midnight (e.g. 9:00 AM to 3:00 AM).
       function isBusinessOpen(operatingHours: any): boolean {
         if (!operatingHours) return true // default open
+        if (operatingHours.always_open) return true
 
         // Pakistan timezone (UTC+5)
         const now = new Date()

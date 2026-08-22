@@ -15,8 +15,8 @@ const links = {
     { label: 'Refund Policy', href: '/refund-policy' },
   ],
   Support: [
-    { label: 'Contact', href: 'mailto:support@munshi.pk' },
-    { label: 'WhatsApp', href: 'https://wa.me/923001234567' },
+    { label: 'Contact', href: 'mailto:shahmeershaikh900@gmail.com' },
+    { label: 'WhatsApp', href: 'https://wa.me/923282847607' },
   ]
 }
 
@@ -37,8 +37,11 @@ export default function Footer() {
         {/* Brand */}
         <div>
           <BrandLogo variant="full" height="32px" style={{ marginBottom: '12px' }} />
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', lineHeight: 1.6, maxWidth: '200px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', lineHeight: 1.6, maxWidth: '200px', marginBottom: '8px' }}>
             WhatsApp AI that works while you sleep. Built for SMBs.
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px' }}>
+            Karachi, Pakistan
           </p>
         </div>
 
@@ -73,9 +76,6 @@ export default function Footer() {
         gap: '12px'
       }}>
         <BrandLogo variant="full" height="24px" />
-        <p className="text-sm text-muted-foreground mt-2">
-          WhatsApp AI that works while you sleep. Built for SMBs.
-        </p>
         <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '13px' }}>
           Built with Meta WhatsApp API · Powered by Groq
         </p>

@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [savingHours, setSavingHours] = useState(false)
   const [savingAway, setSavingAway] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [alwaysOpen, setAlwaysOpen] = useState(false)
   const [operatingHours, setOperatingHours] = useState({
     monday: { enabled: true, open: '09:00', close: '18:00' },
     tuesday: { enabled: true, open: '09:00', close: '18:00' },
@@ -39,7 +40,10 @@ export default function SettingsPage() {
         setLanguage(data.language || 'roman_urdu')
         setTone(data.tone || 'friendly')
         setAwayMessage(data.away_message || '')
-        if (data.operating_hours) setOperatingHours(data.operating_hours)
+        if (data.operating_hours) {
+          setOperatingHours(data.operating_hours)
+          setAlwaysOpen(!!data.operating_hours.always_open)
+        }
       })
   }, [])
 
@@ -56,10 +60,13 @@ export default function SettingsPage() {
 
   const handleSaveHours = async () => {
     setSavingHours(true)
+    // always_open lives inside the same operating_hours JSON object — the
+    // webhook checks this flag first, before looking at any individual day.
+    const payload = { ...operatingHours, always_open: alwaysOpen }
     const res = await fetch('/api/settings/save', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ operating_hours: operatingHours }),
+      body: JSON.stringify({ operating_hours: payload }),
     })
     setSavingHours(false)
     showToast(res.ok ? 'Operating hours saved! ✅' : 'Error saving ❌', res.ok ? 'success' : 'error')
@@ -206,62 +213,105 @@ export default function SettingsPage() {
 
         {/* Operating Hours */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <Clock size={18} color="#4ae176" />
-            <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Operating Hours</h3>
-          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Clock size={18} color="#4ae176" />
+              <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Operating Hours</h3>
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-            {Object.entries(operatingHours).map(([day, hours]) => (
-              <div key={day} style={{
-                display: 'flex', alignItems: 'center', gap: '16px',
-                padding: '12px 16px', borderRadius: '10px',
-                backgroundColor: '#121314',
-                border: '1px solid rgba(255,255,255,0.06)',
-                flexWrap: 'wrap',
+            {/* Always Open toggle */}
+            <div
+              onClick={() => setAlwaysOpen(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '8px 14px', borderRadius: '10px', cursor: 'pointer',
+                backgroundColor: alwaysOpen ? 'rgba(74,225,118,0.08)' : '#121314',
+                border: `1px solid ${alwaysOpen ? 'rgba(74,225,118,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                transition: 'all 0.2s',
+              }}
+            >
+              <div style={{
+                width: '36px', height: '20px', borderRadius: '999px',
+                backgroundColor: alwaysOpen ? '#4ae176' : 'rgba(255,255,255,0.1)',
+                position: 'relative', transition: 'all 0.2s', flexShrink: 0,
               }}>
-                {/* Day + Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '120px' }}>
-                  <div
-                    onClick={() => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], enabled: !hours.enabled } }))}
-                    style={{
-                      width: '40px', height: '22px', borderRadius: '999px',
-                      backgroundColor: hours.enabled ? '#4ae176' : 'rgba(255,255,255,0.1)',
-                      position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
-                    }}
-                  >
-                    <div style={{
-                      position: 'absolute', top: '3px',
-                      left: hours.enabled ? '21px' : '3px',
-                      width: '16px', height: '16px',
-                      borderRadius: '50%', backgroundColor: '#fff',
-                      transition: 'left 0.2s',
-                    }} />
-                  </div>
-                  <span style={{ color: hours.enabled ? '#fff' : '#555', fontSize: '13px', fontWeight: 600, textTransform: 'capitalize' }}>
-                    {day.slice(0, 3).toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Time inputs */}
-                {hours.enabled ? (
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input type="time" value={hours.open}
-                      onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], open: e.target.value } }))}
-                      style={{ ...input, width: '120px', padding: '6px 10px' }}
-                    />
-                    <span style={{ color: '#555', fontSize: '12px' }}>to</span>
-                    <input type="time" value={hours.close}
-                      onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], close: e.target.value } }))}
-                      style={{ ...input, width: '120px', padding: '6px 10px' }}
-                    />
-                  </div>
-                ) : (
-                  <span style={{ color: '#555', fontSize: '13px' }}>Closed</span>
-                )}
+                <div style={{
+                  position: 'absolute', top: '2px',
+                  left: alwaysOpen ? '18px' : '2px',
+                  width: '16px', height: '16px',
+                  borderRadius: '50%', backgroundColor: '#fff',
+                  transition: 'left 0.2s',
+                }} />
               </div>
-            ))}
+              <span style={{ color: alwaysOpen ? '#4ae176' : '#aaa', fontSize: '13px', fontWeight: 600 }}>
+                Always Open (24/7)
+              </span>
+            </div>
           </div>
+
+          {alwaysOpen ? (
+            <div style={{
+              padding: '16px', borderRadius: '10px', marginBottom: '24px',
+              backgroundColor: 'rgba(74,225,118,0.05)', border: '1px solid rgba(74,225,118,0.15)',
+              color: '#9ca3af', fontSize: '13px', lineHeight: 1.5,
+            }}>
+              Bot will reply to customers <strong style={{ color: '#4ae176' }}>24 hours a day, every day</strong> — the daily schedule below is ignored while this is on. Turn it off to set specific hours per day.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+              {Object.entries(operatingHours)
+                .filter(([day]) => day !== 'always_open')
+                .map(([day, hours]) => (
+                <div key={day} style={{
+                  display: 'flex', alignItems: 'center', gap: '16px',
+                  padding: '12px 16px', borderRadius: '10px',
+                  backgroundColor: '#121314',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  flexWrap: 'wrap',
+                }}>
+                  {/* Day + Toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '120px' }}>
+                    <div
+                      onClick={() => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], enabled: !hours.enabled } }))}
+                      style={{
+                        width: '40px', height: '22px', borderRadius: '999px',
+                        backgroundColor: hours.enabled ? '#4ae176' : 'rgba(255,255,255,0.1)',
+                        position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute', top: '3px',
+                        left: hours.enabled ? '21px' : '3px',
+                        width: '16px', height: '16px',
+                        borderRadius: '50%', backgroundColor: '#fff',
+                        transition: 'left 0.2s',
+                      }} />
+                    </div>
+                    <span style={{ color: hours.enabled ? '#fff' : '#555', fontSize: '13px', fontWeight: 600, textTransform: 'capitalize' }}>
+                      {day.slice(0, 3).toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Time inputs */}
+                  {hours.enabled ? (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input type="time" value={hours.open}
+                        onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], open: e.target.value } }))}
+                        style={{ ...input, width: '120px', padding: '6px 10px' }}
+                      />
+                      <span style={{ color: '#555', fontSize: '12px' }}>to</span>
+                      <input type="time" value={hours.close}
+                        onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], close: e.target.value } }))}
+                        style={{ ...input, width: '120px', padding: '6px 10px' }}
+                      />
+                    </div>
+                  ) : (
+                    <span style={{ color: '#555', fontSize: '13px' }}>Closed</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           <button onClick={handleSaveHours} disabled={savingHours} style={btn(savingHours)}>
             {savingHours ? 'Saving...' : 'Save Operating Hours'}
