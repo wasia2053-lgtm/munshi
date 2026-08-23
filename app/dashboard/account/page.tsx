@@ -87,10 +87,10 @@ export default function AccountPage() {
     window.location.href = '/login'
   }
 
+  // Paddle checkout is live on the Billing page now — send upgrades there
+  // directly instead of routing through a WhatsApp message.
   const handleUpgradeContact = () => {
-    const plan = profile?.plan || 'Growth'
-    const msg = encodeURIComponent(`Hi, I want to upgrade my Munshi plan to ${plan}.`)
-    window.open(`https://wa.me/923282847607?text=${msg}`, '_blank')
+    window.location.href = '/dashboard/billing'
   }
 
   const messagesUsed = profile?.messages_used || 0
@@ -319,7 +319,7 @@ export default function AccountPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              Contact us to Upgrade
+              Upgrade Plan
             </button>
           </div>
         </motion.div>
