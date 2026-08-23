@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
 
+function getStartDate(days: string): Date | null {
+    if (days === 'all') return null;
+    const n = Number(days) || 30;
+    const d = new Date();
+    d.setDate(d.getDate() - (n - 1)); // include today as one of the N days
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function toDateKey(d: Date): string {
+    return d.toISOString().split('T')[0];
+}
+
 export async function GET(request: Request) {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -10,71 +23,48 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const daysParam = searchParams.get('days');
-    const isAllTime = daysParam === 'all';
-    const days = isAllTime ? 0 : (Number(daysParam) || 30);
+    const days = searchParams.get('days') || '30';
     const business_id = user.id;
 
-    const { data: conversations } = await supabase
+    const { data: conversations, error } = await supabase
         .from('conversations')
-        .select('id')
+        .select('created_at')
         .eq('business_id', business_id);
 
-    const convIds = (conversations || []).map((c: any) => c.id);
+    if (error) {
+        return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
+    }
 
-    let startDate: Date;
-    if (isAllTime) {
-        // Find earliest message date
-        let earliest: any = null;
-        if (convIds.length > 0) {
-            const { data: earliestMsg } = await supabase
-                .from('messages')
-                .select('timestamp')
-                .in('conversation_id', convIds)
-                .order('timestamp', { ascending: true })
-                .limit(1)
-                .single();
-            earliest = earliestMsg;
+    const startDate = getStartDate(days);
+    const rowsData = conversations || [];
+
+    // Count new conversations per calendar day.
+    const dailyCounts: Record<string, number> = {};
+    rowsData.forEach((c: any) => {
+        if (!c.created_at) return;
+        const created = new Date(c.created_at);
+        if (startDate && created < startDate) return;
+        const key = toDateKey(created);
+        dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+    });
+
+    let rows: { date: string; conversations: number }[];
+
+    if (startDate) {
+        // Fill every day in the window (including zero-count days) so the
+        // chart shows a continuous line rather than gaps.
+        const n = Number(days) || 30;
+        rows = [];
+        for (let i = 0; i < n; i++) {
+            const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+            const key = toDateKey(d);
+            rows.push({ date: key, conversations: dailyCounts[key] || 0 });
         }
-        startDate = earliest ? new Date(earliest.timestamp) : new Date();
-        startDate.setHours(0, 0, 0, 0);
     } else {
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        startDate.setHours(0, 0, 0, 0);
-    }
-
-    let messages: any[] = [];
-    if (convIds.length > 0) {
-        const { data: msgData } = await supabase
-            .from('messages')
-            .select('id, conversation_id, timestamp')
-            .in('conversation_id', convIds)
-            .gte('timestamp', startDate.toISOString())
-            .order('timestamp', { ascending: true });
-        messages = msgData || [];
-    }
-
-    const byDay: Record<string, Set<string>> = {};
-    for (const m of messages) {
-        const day = new Date(m.timestamp).toISOString().split('T')[0];
-        if (!byDay[day]) byDay[day] = new Set();
-        byDay[day].add(m.conversation_id);
-    }
-
-    const totalDays = isAllTime
-        ? Math.max(1, Math.ceil((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
-        : days;
-
-    const rows: { date: string; conversations: number }[] = [];
-    for (let i = totalDays - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        rows.push({
-            date: dateStr,
-            conversations: byDay[dateStr]?.size || 0
-        });
+        // "all time" — just list the days that actually have data.
+        rows = Object.entries(dailyCounts)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, conversations]) => ({ date, conversations }));
     }
 
     return NextResponse.json({ rows });
