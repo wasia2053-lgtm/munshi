@@ -10,7 +10,7 @@ import {
 import { Download, TrendingUp, TrendingDown, Languages, MessagesSquare, CheckCircle2 } from "lucide-react"
 import { RecentConversations } from "@/components/recent-conversations"
 
-type RangeOption = "7d" | "1m" | "3m" | "6m"
+type RangeOption = "7d" | "1m" | "3m" | "6m" | "all"
 
 type OverviewData = {
   stats: { totalMessages: number; totalConversations: number; avgReplyMinutes: number; resolutionRate: number }
@@ -73,6 +73,7 @@ const RANGE_TABS: { value: RangeOption; label: string }[] = [
   { value: "1m", label: "1 Month" },
   { value: "3m", label: "3 Months" },
   { value: "6m", label: "6 Months" },
+  { value: "all", label: "All Time" },
 ]
 
 export default function AnalyticsPage() {
