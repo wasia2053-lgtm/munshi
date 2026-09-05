@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     const metaResponse = await fetch(`https://graph.facebook.com/v18.0/${business.whatsapp_phone_id}/messages`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
+        'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -70,20 +70,20 @@ export async function POST(req: Request) {
     if (!metaResponse.ok) {
       const errorData = await metaResponse.json()
       console.error('Meta API error:', errorData)
-      return NextResponse.json({ 
-        error: `WhatsApp API error: ${errorData.error?.message || 'Unknown error'}` 
+      return NextResponse.json({
+        error: `WhatsApp API error: ${errorData.error?.message || 'Unknown error'}`
       }, { status: 500 })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: 'Test message sent successfully'
     })
 
   } catch (error) {
     console.error('WhatsApp test error:', error)
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Internal server error' 
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Internal server error'
     }, { status: 500 })
   }
 }
