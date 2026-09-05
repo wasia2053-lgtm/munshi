@@ -13,6 +13,18 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    // Fetch subscription first — need usage_reset_at to scope the count correctly
+    const { data: subscription, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    // Same period-start logic as the webhook — was counting lifetime before, now matches
+    const periodStart = subscription?.usage_reset_at ? new Date(subscription.usage_reset_at) : new Date(0)
+
     // Step 1: get conversation IDs for this business
     const { data: convs } = await supabase
       .from('conversations')
@@ -21,7 +33,7 @@ export async function GET() {
 
     const convIds = convs?.map((c: any) => c.id) || []
 
-    // Step 2: count bot messages
+    // Step 2: count bot messages sent THIS PERIOD only (matches webhook's enforcement)
     let messagesUsed = 0
     if (convIds.length > 0) {
       const { count } = await supabase
@@ -29,16 +41,9 @@ export async function GET() {
         .select('*', { count: 'exact', head: true })
         .in('conversation_id', convIds)
         .eq('sender', 'bot')
+        .gte('timestamp', periodStart.toISOString())
       messagesUsed = count || 0
     }
-
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
 
     if (error || !subscription) {
       return NextResponse.json({

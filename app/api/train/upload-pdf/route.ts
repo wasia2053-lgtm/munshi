@@ -14,6 +14,16 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
+    // ─── Plan gate: PDF training is Basic plan and above only ───
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('plan')
+      .eq('user_id', business_id)
+      .single()
+    if (!sub || sub.plan === 'starter') {
+      return NextResponse.json({ success: false, error: 'PDF training is available on the Basic plan and above. Please upgrade to use this feature.' }, { status: 403 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
 
@@ -28,14 +38,14 @@ export async function POST(request: NextRequest) {
     // PDF se text extract karo — binary safe method
     const arrayBuffer = await file.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
-    
+
     // PDF text extraction — strings dhundo PDF binary mein
     const extractedText = extractTextFromPDFBytes(bytes)
 
     if (!extractedText || extractedText.trim().length < 20) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Could not extract text from PDF. Make sure it is a text-based PDF (not scanned image).' 
+      return NextResponse.json({
+        success: false,
+        error: 'Could not extract text from PDF. Make sure it is a text-based PDF (not scanned image).'
       }, { status: 400 })
     }
 
@@ -66,34 +76,34 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to save: ' + error.message 
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to save: ' + error.message
       }, { status: 500 })
     }
 
-// Training complete notification
-await supabase
-  .from('notifications')
-  .insert({
-    business_id,
-    type: 'training_complete',
-    title: 'PDF Training Complete! 📄',
-    message: `PDF training complete ho gayi. Bot ab is document se jawab de sakta hai.`,
-    is_read: false
-  })
+    // Training complete notification
+    await supabase
+      .from('notifications')
+      .insert({
+        business_id,
+        type: 'training_complete',
+        title: 'PDF Training Complete! 📄',
+        message: `PDF training complete ho gayi. Bot ab is document se jawab de sakta hai.`,
+        is_read: false
+      })
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       chunks,
       message: `PDF trained! ${cleanText.length} characters extracted.`
     })
 
   } catch (error: any) {
     console.error('PDF upload error:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Server error: ' + error.message 
+    return NextResponse.json({
+      success: false,
+      error: 'Server error: ' + error.message
     }, { status: 500 })
   }
 }

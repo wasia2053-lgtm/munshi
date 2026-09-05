@@ -14,6 +14,16 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
+    // ─── Plan gate: Text training is Basic plan and above only ───
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('plan')
+      .eq('user_id', business_id)
+      .single()
+    if (!sub || sub.plan === 'starter') {
+      return NextResponse.json({ success: false, error: 'Text training is available on the Basic plan and above. Please upgrade to use this feature.' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { text, title } = body
 
@@ -43,16 +53,16 @@ export async function POST(request: NextRequest) {
     }
 
 
-// Training complete notification
-await supabase
-  .from('notifications')
-  .insert({
-    business_id,
-    type: 'training_complete',
-    title: 'Text Training Complete! ✍️',
-    message: `Text training complete ho gayi. Bot ab yeh information use karega.`,
-    is_read: false
-  })
+    // Training complete notification
+    await supabase
+      .from('notifications')
+      .insert({
+        business_id,
+        type: 'training_complete',
+        title: 'Text Training Complete! ✍️',
+        message: `Text training complete ho gayi. Bot ab yeh information use karega.`,
+        is_read: false
+      })
 
     return NextResponse.json({ success: true, chunks })
 

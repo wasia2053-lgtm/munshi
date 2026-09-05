@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const PLAN_PAGE_LIMITS: Record<string, number> = {
   starter: 5,
+  basic: 10,
   growth: 15,
   pro: 20,
 }
@@ -59,7 +60,7 @@ async function isSafeUrl(urlString: string): Promise<boolean> {
   return true
 }
 
-async function fetchPage(url: string): Promise<string | null> {
+async function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -69,9 +70,25 @@ async function fetchPage(url: string): Promise<string | null> {
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
       },
-      redirect: 'follow',
+      redirect: 'manual', // don't blindly follow — a redirect could point at an internal address
       signal: AbortSignal.timeout(15000)
     })
+
+    // Manual redirect: re-validate the destination before following it (SSRF guard)
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location')
+      if (!location || redirectsLeft <= 0) {
+        console.log(`❌ Redirect blocked (no location or too many hops): ${url}`)
+        return null
+      }
+      const nextUrl = new URL(location, url).toString()
+      if (!(await isSafeUrl(nextUrl))) {
+        console.log(`❌ Redirect blocked — destination not allowed: ${nextUrl}`)
+        return null
+      }
+      return fetchPage(nextUrl, redirectsLeft - 1)
+    }
+
     console.log(`📡 Fetch ${url} → Status: ${res.status}`)
     if (!res.ok) {
       console.log(`❌ Failed: ${res.status} ${res.statusText}`)

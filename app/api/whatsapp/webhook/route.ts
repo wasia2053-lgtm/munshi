@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     const { data: waNumber, error: waNumberError } = await supabase
       .from('whatsapp_numbers')
-      .select('business_id')
+      .select('business_id, access_token')
       .eq('phone_number_id', phoneNumberId)
       .eq('status', 'connected')
       .single()
@@ -90,6 +90,9 @@ export async function POST(request: NextRequest) {
     }
 
     const BUSINESS_ID = waNumber.business_id
+    // Outbound send credentials: this number's own token if set, else fall back to the
+    // global env var (keeps today's single-number setup working while multi-number is rolled out)
+    const WA_ACCESS_TOKEN = waNumber.access_token || process.env.WHATSAPP_ACCESS_TOKEN
 
     for (const msg of messages) {
       if (msg.type !== 'text' || !msg.text?.body) continue
@@ -333,11 +336,11 @@ export async function POST(request: NextRequest) {
 
         // Send away message via WhatsApp
         const waRes = await fetch(
-          `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
           {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+              'Authorization': `Bearer ${WA_ACCESS_TOKEN}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -434,11 +437,11 @@ export async function POST(request: NextRequest) {
 
         // Send limit message via WhatsApp
         const waRes = await fetch(
-          `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
           {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+              'Authorization': `Bearer ${WA_ACCESS_TOKEN}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -568,11 +571,11 @@ ${knowledgeContext}
 
       // ─── Send WhatsApp Response ─────────────────────────
       const waRes = await fetch(
-        `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+        `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+            'Authorization': `Bearer ${WA_ACCESS_TOKEN}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
