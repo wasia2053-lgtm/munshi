@@ -12,8 +12,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const BUSINESS_ID = '1707687c-a780-4fed-a335-a0174751c6f9'
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const hubVerifyToken = searchParams.get('hub.verify_token')
@@ -42,6 +40,29 @@ export async function POST(request: NextRequest) {
     }
 
     const messages = body.entry[0].changes[0].value.messages
+
+    // ─── Resolve which business owns this WhatsApp number ──────
+    // (was hardcoded before — broke multi-tenant, every message went to one business)
+    const phoneNumberId = body.entry[0].changes[0].value.metadata?.phone_number_id
+
+    if (!phoneNumberId) {
+      console.log('❌ No phone_number_id in webhook payload, skipping')
+      return NextResponse.json({ status: 'ok' })
+    }
+
+    const { data: waNumber, error: waNumberError } = await supabase
+      .from('whatsapp_numbers')
+      .select('business_id')
+      .eq('phone_number_id', phoneNumberId)
+      .eq('status', 'connected')
+      .single()
+
+    if (waNumberError || !waNumber) {
+      console.log('❌ No connected business found for phone_number_id:', phoneNumberId)
+      return NextResponse.json({ status: 'ok' })
+    }
+
+    const BUSINESS_ID = waNumber.business_id
 
     for (const msg of messages) {
       if (msg.type !== 'text' || !msg.text?.body) continue
