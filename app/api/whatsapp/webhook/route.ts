@@ -405,7 +405,7 @@ export async function POST(request: NextRequest) {
       if (isExpired) {
         console.log('⚠️ Subscription expired on', sub!.valid_until, '— using free tier limit until renewed')
       }
-      const messagesLimit = isExpired ? FREE_TIER_LIMIT : (sub?.messages_limit || FREE_TIER_LIMIT)
+      const messagesLimit = isExpired ? 0 : (sub?.messages_limit || FREE_TIER_LIMIT)
 
       // Step 4: Count bot messages sent THIS PERIOD only (not lifetime)
       const { data: convs } = await supabase

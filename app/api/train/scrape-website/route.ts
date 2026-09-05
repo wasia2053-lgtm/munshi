@@ -8,7 +8,12 @@ import net from 'net'
 export const maxDuration = 60 // 60 second timeout
 export const dynamic = 'force-dynamic'
 
-const MAX_PAGES = 20
+const PLAN_PAGE_LIMITS: Record<string, number> = {
+  starter: 5,
+  growth: 15,
+  pro: 20,
+}
+const DEFAULT_PAGE_LIMIT = 5 // safest default if no subscription row found
 
 // ─── SSRF guard: block scraping localhost / internal / cloud-metadata addresses ───
 function isPrivateIp(ip: string): boolean {
@@ -149,6 +154,15 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🕷️ Starting crawl: ${url}`)
+
+    // ─── Page limit depends on plan — was hardcoded 20 for everyone before ───
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('plan')
+      .eq('user_id', business_id)
+      .single()
+    const MAX_PAGES = PLAN_PAGE_LIMITS[sub?.plan || ''] || DEFAULT_PAGE_LIMIT
+    console.log(`📊 Plan: ${sub?.plan || 'unknown'} — page limit: ${MAX_PAGES}`)
 
     const visited = new Set<string>()
     const queue = [url]

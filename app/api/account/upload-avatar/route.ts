@@ -25,22 +25,41 @@ export async function POST(req: Request) {
     const formData = await req.formData()
     const file = formData.get('avatar') as File
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
+
+    // ─── Validate: only real images, max 5MB ───
+    const ALLOWED_TYPES: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    }
+    const ext = ALLOWED_TYPES[file.type]
+    if (!ext) {
+      return NextResponse.json({ error: 'Only JPG, PNG, WEBP or GIF images are allowed' }, { status: 400 })
+    }
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: 'Image must be under 5MB' }, { status: 400 })
+    }
+
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const ext = file.name.split('.').pop()
-    const fileName = `avatar-${business_id}.${ext}` 
-    await supabase.storage.createBucket('avatars', { public: true }).catch(() => {})
+    const fileName = `avatar-${business_id}.${ext}`
+    await supabase.storage.createBucket('avatars', { public: true }).catch(() => { })
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, buffer, { contentType: file.type, upsert: true })
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-    await supabase.from('businesses')
-      .update({ avatar_url: publicUrl })
-      .eq('id', business_id)
+
+    // avatar_url lives on business_settings, NOT businesses — was silently failing before
+    const { error: dbError } = await supabase.from('business_settings')
+      .upsert({ business_id, avatar_url: publicUrl })
+    if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
+
     return NextResponse.json({ avatar_url: publicUrl })
   } catch (e) {
     console.error('Avatar upload error:', e)
-    return NextResponse.json({error: String(e)}, {status: 500})
+    return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }
