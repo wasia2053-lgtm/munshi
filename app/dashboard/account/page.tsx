@@ -84,7 +84,7 @@ export default function AccountPage() {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    window.location.href = '/login'
+    window.location.href = '/auth/login'
   }
 
   // Paddle checkout is live on the Billing page now — send upgrades there

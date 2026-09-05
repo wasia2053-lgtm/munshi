@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
 
   // 1. Protect dashboard routes
   if (!user && path.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
   // 2. Email confirmation guard
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 3. Prevent logged-in users from visiting auth pages
-  if (user && (path === '/login' || path === '/signup')) {
+  if (user && (path === '/auth/login' || path === '/auth/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

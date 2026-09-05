@@ -88,7 +88,7 @@ export default function VerifyEmailPage() {
             </button>
 
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/auth/login')}
               className="w-full py-2.5 sm:py-3 bg-transparent border border-[#2A4A42] text-[#F7E7CE] text-sm sm:text-base font-semibold rounded-lg hover:bg-[#2A4A42] transition-all"
             >
               Back to Login
