@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Get user details
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+
     if (userError || !user) {
       console.error('User error:', userError)
       return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         .from('businesses')
         .insert({
           id: user.id,
-          owner_id: user.id,
+          user_id: user.id,
           name: user.email || '',
         })
 
