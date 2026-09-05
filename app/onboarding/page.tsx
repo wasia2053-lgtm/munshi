@@ -73,6 +73,15 @@ export default function OnboardingPage() {
     } finally { setLoading(false) }
   }
 
+  const handleGoToWhatsApp = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true })
+      router.push('/dashboard/whatsapp')
+    } catch (e) { console.error(e) }
+  }
+
   const handleFinish = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -82,7 +91,7 @@ export default function OnboardingPage() {
     } catch (e) { console.error(e) }
   }
 
-  const stepLabels = ['Train AI', 'Connect WhatsApp', 'Go Live']
+  const stepLabels = ['Train AI', 'Connect WhatsApp']
 
   return (
     <>
@@ -563,63 +572,32 @@ export default function OnboardingPage() {
             {step === 2 && (
               <>
                 <h1 className="card-title">Connect WhatsApp</h1>
-                <p className="card-sub">Link your WhatsApp Business number to start receiving and replying to customer messages.</p>
+                <p className="card-sub">Last step — connect your WhatsApp Business number so Munshi can start replying to customers.</p>
 
                 <div className="info-box">
                   <div className="info-row">
                     <div className="info-num">1</div>
-                    <p className="info-text">Open <strong style={{ color: '#fff' }}>Meta Business Suite</strong> and go to WhatsApp → API Setup</p>
+                    <p className="info-text">Head to your WhatsApp setup page in the dashboard</p>
                   </div>
                   <div className="info-row">
                     <div className="info-num">2</div>
-                    <p className="info-text">Verify your WhatsApp Business number</p>
+                    <p className="info-text">Choose <strong style={{ color: '#fff' }}>"Connect for you"</strong> if you'd like our team to set it up, or submit your own credentials if you already have them</p>
                   </div>
                   <div className="info-row">
                     <div className="info-num">3</div>
-                    <p className="info-text">
-                      Add this Webhook URL:
-                      <div className="code-box">https://munshi-theta.vercel.app/api/webhook</div>
-                    </p>
-                  </div>
-                  <div className="info-row">
-                    <div className="info-num">4</div>
-                    <p className="info-text">Set Verify Token to: <span style={{ color: '#4ae176', fontFamily: 'monospace' }}>munshi_verify</span></p>
+                    <p className="info-text">We'll notify you the moment your number is live</p>
                   </div>
                 </div>
 
                 <div className="btn-row">
-                  <button className="btn-primary" onClick={() => setStep(3)}>
-                    Already Connected
+                  <button className="btn-primary" onClick={handleGoToWhatsApp}>
+                    Go to WhatsApp Setup
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                       <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
-                  <button className="btn-ghost" onClick={() => setStep(3)}>Skip</button>
+                  <button className="btn-ghost" onClick={handleFinish}>Skip for now</button>
                 </div>
-              </>
-            )}
-
-            {/* STEP 3 — Live */}
-            {step === 3 && (
-              <>
-                <div className="success-ring">
-                  <div className="success-ping" />
-                  <div className="success-circle">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17L4 12" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                </div>
-
-                <h1 className="card-title">System is Live.</h1>
-                <p className="card-sub">Precision-engineered automation is now active. Your AI assistant is ready to handle customer conversations.</p>
-
-                <button className="btn-finish" onClick={handleFinish}>
-                  Access Workspace
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12H19M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
               </>
             )}
 
@@ -631,8 +609,8 @@ export default function OnboardingPage() {
           <button
             className="btn-ghost"
             onClick={() => step > 1 && setStep(step - 1)}
-            disabled={step === 1 || step === 3}
-            style={{ visibility: step === 1 || step === 3 ? 'hidden' : 'visible' }}
+            disabled={step === 1}
+            style={{ visibility: step === 1 ? 'hidden' : 'visible' }}
           >
             ← Previous
           </button>
@@ -641,7 +619,7 @@ export default function OnboardingPage() {
             {step} / {stepLabels.length}
           </span>
 
-          {step < 3 ? (
+          {step < 2 ? (
             <button className="btn-ghost" onClick={() => setStep(step + 1)}>
               Skip →
             </button>
