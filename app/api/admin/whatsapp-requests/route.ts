@@ -1,15 +1,25 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server'
+import { createAdminClient } from '@/lib/supabase-server'
 
-const ADMIN_EMAIL = 'wasia2053@gmail.com';
+function isAuthorized(req: Request): boolean {
+    const authHeader = req.headers.get('authorization')
+    const validUser = process.env.ADMIN_USERNAME
+    const validPass = process.env.ADMIN_PASSWORD
+    if (!validUser || !validPass || !authHeader?.startsWith('Basic ')) return false
 
-export async function GET() {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const decoded = Buffer.from(authHeader.split(' ')[1], 'base64').toString()
+    const [user, pass] = decoded.split(':')
+    return user === validUser && pass === validPass
+}
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+export async function GET(request: Request) {
+    if (!isAuthorized(request)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    // Service-role client — was using the session-scoped client before, which meant
+    // RLS silently limited results to the admin's OWN business_id only (i.e. basically empty).
+    const supabase = createAdminClient();
 
     const { data: connectRequests } = await supabase
         .from('whatsapp_connection_requests')

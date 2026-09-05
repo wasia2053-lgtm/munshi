@@ -11,6 +11,36 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
+  // ─── Admin panel: separate WordPress-style login, no Munshi account needed ───
+  if (path.startsWith('/admin')) {
+    const authHeader = request.headers.get('authorization')
+    const validUser = process.env.ADMIN_USERNAME
+    const validPass = process.env.ADMIN_PASSWORD
+
+    const unauthorized = () =>
+      new NextResponse('Authentication required', {
+        status: 401,
+        headers: { 'WWW-Authenticate': 'Basic realm="Munshi Admin"' },
+      })
+
+    if (!validUser || !validPass) {
+      console.error('ADMIN_USERNAME / ADMIN_PASSWORD not set in env')
+      return unauthorized()
+    }
+
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      return unauthorized()
+    }
+
+    const decoded = Buffer.from(authHeader.split(' ')[1], 'base64').toString()
+    const [user, pass] = decoded.split(':')
+
+    if (user !== validUser || pass !== validPass) {
+      return unauthorized()
+    }
+    // credentials good — fall through, let the page load
+  }
+
   // ⚡️ FAST PASS: Bypass heavy middleware network calls for internal API routes
   // This prevents Turbopack concurrent connection panics and drops API response times to ms
   if (path.startsWith('/api/')) {
