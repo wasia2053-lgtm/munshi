@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
+import crypto from 'crypto'
 type Message = {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -11,6 +12,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// ─── Verify request really came from Meta (not a faker hitting our URL) ───
+function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
+  if (!signatureHeader || !process.env.META_APP_SECRET) return false
+
+  const expected = crypto
+    .createHmac('sha256', process.env.META_APP_SECRET)
+    .update(rawBody)
+    .digest('hex')
+
+  const received = signatureHeader.replace('sha256=', '')
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))
+  } catch {
+    return false // length mismatch etc — definitely not a match
+  }
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -32,7 +51,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.text()
+    const signature = request.headers.get('x-hub-signature-256')
+
+    if (!verifySignature(rawBody, signature)) {
+      console.log('❌ Invalid or missing signature — rejecting request')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
+    }
+
+    const body = JSON.parse(rawBody)
     console.log('\n📨 MESSAGE RECEIVED')
 
     if (!body?.entry?.[0]?.changes?.[0]?.value?.messages) {
@@ -66,6 +93,17 @@ export async function POST(request: NextRequest) {
 
     for (const msg of messages) {
       if (msg.type !== 'text' || !msg.text?.body) continue
+
+      // ─── Skip if Meta already sent us this exact message before ───
+      // (Meta retries webhooks on any hiccup — without this, retries = duplicate bot replies)
+      const { error: dupError } = await supabase
+        .from('webhook_processed_messages')
+        .insert({ wa_message_id: msg.id })
+
+      if (dupError) {
+        console.log('⚠️ Duplicate message, already processed — skipping:', msg.id)
+        continue
+      }
 
       const customerPhone = msg.from
       const messageText = msg.text.body
