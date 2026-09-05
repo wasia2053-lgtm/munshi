@@ -73,22 +73,32 @@ export async function POST(request: NextRequest) {
     let conversationContext = ''
 
     if (customerPhone) {
-      const { data: messages, error } = await supabase
-        .from('messages')
-        .select('message_text, message_type')
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('id')
         .eq('business_id', business_id)
         .eq('customer_phone', customerPhone)
-        .order('created_at', { ascending: false })
-        .limit(5)
+        .single()
 
-      if (!error && messages && messages.length > 0) {
-        console.log(`   ✅ Found ${messages.length} previous messages`)
-        conversationContext = messages
-          .reverse()
-          .map((m: any) => `${m.message_type === 'bot' ? 'Bot' : 'Customer'}: ${m.message_text}`)
-          .join('\n')
+      if (conv) {
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select('content, sender, timestamp')
+          .eq('conversation_id', conv.id)
+          .order('timestamp', { ascending: false })
+          .limit(5)
+
+        if (!error && messages && messages.length > 0) {
+          console.log(`   ✅ Found ${messages.length} previous messages`)
+          conversationContext = messages
+            .reverse()
+            .map((m: any) => `${m.sender === 'bot' ? 'Bot' : 'Customer'}: ${m.content}`)
+            .join('\n')
+        } else {
+          console.log('   ℹ️  No previous messages')
+        }
       } else {
-        console.log('   ℹ️  No previous messages')
+        console.log('   ℹ️  No conversation found for this customer yet')
       }
     }
 
