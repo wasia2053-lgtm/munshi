@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { PhoneIcon, KeyIcon, ShieldAlertIcon } from "lucide-react"
@@ -27,7 +26,6 @@ type CredsSubmission = {
 }
 
 export function AdminWhatsAppRequests() {
-    const supabase = createClient()
     const [authorized, setAuthorized] = useState<boolean | null>(null)
     const [connectRequests, setConnectRequests] = useState<ConnectRequest[]>([])
     const [credsSubmissions, setCredsSubmissions] = useState<CredsSubmission[]>([])
@@ -35,12 +33,8 @@ export function AdminWhatsAppRequests() {
 
     useEffect(() => {
         async function load() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                setAuthorized(false)
-                setLoading(false)
-                return
-            }
+            // Basic Auth (middleware + this API route) already gates access —
+            // no separate Munshi account/session needed here anymore.
             const res = await fetch('/api/admin/whatsapp-requests', { credentials: 'include' })
             if (res.status === 403) {
                 setAuthorized(false)
@@ -129,4 +123,4 @@ export function AdminWhatsAppRequests() {
             </div>
         </div>
     )
-}
+} 
