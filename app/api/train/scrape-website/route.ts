@@ -2,11 +2,57 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import * as cheerio from 'cheerio'
+import dns from 'dns/promises'
+import net from 'net'
 
 export const maxDuration = 60 // 60 second timeout
 export const dynamic = 'force-dynamic'
 
 const MAX_PAGES = 20
+
+// ─── SSRF guard: block scraping localhost / internal / cloud-metadata addresses ───
+function isPrivateIp(ip: string): boolean {
+  if (net.isIPv4(ip)) {
+    const p = ip.split('.').map(Number)
+    if (p[0] === 10) return true                          // private
+    if (p[0] === 127) return true                          // loopback
+    if (p[0] === 0) return true                            // "this network"
+    if (p[0] === 169 && p[1] === 254) return true          // link-local + cloud metadata (169.254.169.254)
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true // private
+    if (p[0] === 192 && p[1] === 168) return true          // private
+    return false
+  }
+  const lower = ip.toLowerCase()
+  if (lower === '::1') return true                          // loopback
+  if (lower.startsWith('fe80:')) return true                // link-local
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true // unique local
+  return false
+}
+
+async function isSafeUrl(urlString: string): Promise<boolean> {
+  let parsed: URL
+  try {
+    parsed = new URL(urlString)
+  } catch {
+    return false
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+
+  const hostname = parsed.hostname.toLowerCase()
+  if (hostname === 'localhost' || hostname.endsWith('.local')) return false
+
+  try {
+    const addresses = await dns.lookup(hostname, { all: true })
+    for (const addr of addresses) {
+      if (isPrivateIp(addr.address)) return false
+    }
+  } catch {
+    return false // can't resolve — don't trust it
+  }
+
+  return true
+}
 
 async function fetchPage(url: string): Promise<string | null> {
   try {
@@ -43,12 +89,12 @@ function extractLinks(html: string, baseUrl: string): string[] {
     if (!href) return
     try {
       const url = new URL(href, baseUrl)
-      if (url.hostname === base.hostname && 
-          !url.pathname.includes('#') &&
-          !url.pathname.match(/\.(jpg|jpeg|png|gif|pdf|zip|svg|css|js)$/i)) {
+      if (url.hostname === base.hostname &&
+        !url.pathname.includes('#') &&
+        !url.pathname.match(/\.(jpg|jpeg|png|gif|pdf|zip|svg|css|js)$/i)) {
         links.push(url.href.split('#')[0].split('?')[0])
       }
-    } catch {}
+    } catch { }
   })
 
   return [...new Set(links)]
@@ -56,17 +102,17 @@ function extractLinks(html: string, baseUrl: string): string[] {
 
 function extractContent(html: string, url: string): string {
   const $ = cheerio.load(html)
-  
+
   $('script, style, nav, footer, header, .cookie-banner, iframe').remove()
-  
+
   const title = $('title').text().trim()
   const h1 = $('h1').map((_, el) => $(el).text().trim()).get().join(' | ')
   const h2 = $('h2').map((_, el) => $(el).text().trim()).get().join(' | ')
-  
+
   // Product specific
   const prices = $('[class*="price"], [class*="Price"]')
     .map((_, el) => $(el).text().trim()).get().join(' | ')
-  
+
   const bodyText = $('main, article, .content, .product, body')
     .text()
     .replace(/\s+/g, ' ')
@@ -93,13 +139,17 @@ export async function POST(request: NextRequest) {
     const business_id = user.id
 
     const { url } = await request.json()
-    
+
     if (!url) {
       return NextResponse.json({ error: 'URL required' }, { status: 400 })
     }
 
+    if (!(await isSafeUrl(url))) {
+      return NextResponse.json({ error: 'This URL is not allowed' }, { status: 400 })
+    }
+
     console.log(`🕷️ Starting crawl: ${url}`)
-    
+
     const visited = new Set<string>()
     const queue = [url]
     const results: { url: string; content: string }[] = []
@@ -113,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     while (queue.length > 0 && visited.size < MAX_PAGES) {
       const currentUrl = queue.shift()!
-      
+
       if (visited.has(currentUrl)) continue
       visited.add(currentUrl)
 
@@ -148,16 +198,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Crawl complete! ${results.length} pages saved`)
     // Training complete notification
-await supabase
-  .from('notifications')
-  .insert({
-    business_id,
-    type: 'training_complete',
-    title: 'Website Training Complete! 🎓',
-    message: `Website training complete ho gayi. ${results.length} pages se knowledge base update hua.`,
-    is_read: false
-  })
-    return NextResponse.json({ 
+    await supabase
+      .from('notifications')
+      .insert({
+        business_id,
+        type: 'training_complete',
+        title: 'Website Training Complete! 🎓',
+        message: `Website training complete ho gayi. ${results.length} pages se knowledge base update hua.`,
+        is_read: false
+      })
+    return NextResponse.json({
       success: true,
       pages_crawled: results.length,
       urls: results.map(r => r.url)
