@@ -374,7 +374,40 @@ export async function POST(request: NextRequest) {
       }
 
       // ─── Message Limit Check ───────────────────────────
-      // Step 1: Get conversation IDs for this business
+      const FREE_TIER_LIMIT = 50
+      const now = new Date()
+
+      // Step 1: Get subscription (need this first to know the billing period)
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('id, plan, messages_limit, valid_until, usage_reset_at')
+        .eq('user_id', BUSINESS_ID)
+        .order('valid_until', { ascending: false })
+        .limit(1)
+        .single()
+
+      // Step 2: Work out the current billing-period start (monthly reset)
+      // Was: counted bot messages since the beginning of time, forever. Now: resets every 30 days.
+      let periodStart = sub?.usage_reset_at ? new Date(sub.usage_reset_at) : new Date(0)
+      const daysSinceReset = (now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)
+
+      if (sub && daysSinceReset >= 30) {
+        periodStart = now
+        await supabase
+          .from('subscriptions')
+          .update({ usage_reset_at: now.toISOString(), messages_used: 0 })
+          .eq('id', sub.id)
+        console.log('🔄 Monthly usage reset triggered for this business')
+      }
+
+      // Step 3: Subscription expired? Fall back to free-tier limit instead of the paid one.
+      const isExpired = !!(sub?.valid_until && new Date(sub.valid_until) < now)
+      if (isExpired) {
+        console.log('⚠️ Subscription expired on', sub!.valid_until, '— using free tier limit until renewed')
+      }
+      const messagesLimit = isExpired ? FREE_TIER_LIMIT : (sub?.messages_limit || FREE_TIER_LIMIT)
+
+      // Step 4: Count bot messages sent THIS PERIOD only (not lifetime)
       const { data: convs } = await supabase
         .from('conversations')
         .select('id')
@@ -389,23 +422,15 @@ export async function POST(request: NextRequest) {
           .select('*', { count: 'exact', head: true })
           .in('conversation_id', convIds)
           .eq('sender', 'bot')
+          .gte('timestamp', periodStart.toISOString())
         botMsgCount = count || 0
       }
 
-      // Step 2: Plan limit check
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('plan, messages_limit, valid_until')
-        .eq('user_id', BUSINESS_ID)
-        .order('valid_until', { ascending: false })
-        .limit(1)
-        .single()
-
-      const messagesLimit = sub?.messages_limit || 50
-
-      // Step 3: Limit exceeded - send limit message and return
+      // Step 5: Limit exceeded - send limit message and return
       if (botMsgCount >= messagesLimit) {
-        const limitMsg = `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
+        const limitMsg = isExpired
+          ? `Assalam o Alaikum! 🙏 Aapka subscription expire ho chuka hai aur free limit (${messagesLimit} messages) bhi poora ho gaya hai. Please renew karein taake bot dobara active ho jaye.`
+          : `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
 
         // Send limit message via WhatsApp
         const waRes = await fetch(
