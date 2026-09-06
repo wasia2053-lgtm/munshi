@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AppShell } from '@/components/app-shell'
-import { Check, Zap, Crown, TrendingUp, Rocket, Building2, Loader2, ArrowRight, CreditCard, Sparkles, Calendar, Mail } from 'lucide-react'
+import { Check, X, Zap, Crown, TrendingUp, Rocket, Building2, Loader2, ArrowRight, CreditCard, Sparkles, Calendar, Mail } from 'lucide-react'
 
 interface Subscription {
   plan: string
@@ -38,6 +38,7 @@ const PLANS = [
     border: 'rgba(107,114,128,0.12)',
     glow: 'rgba(0,0,0,0)',
     features: ['50 messages/month', '1 WhatsApp number', 'Basic AI bot', 'Website training (5 pages)', 'Roman Urdu support'],
+    missing: ['PDF training', 'Text training', 'Operating hours', 'Analytics dashboard', 'Conversation memory'],
     isFree: true,
     popular: false,
     isEnterprise: false,
@@ -52,7 +53,8 @@ const PLANS = [
     bg: 'rgba(74,225,118,0.04)',
     border: 'rgba(74,225,118,0.15)',
     glow: 'rgba(74,225,118,0.05)',
-    features: ['1,000 messages/month', '1 WhatsApp number', 'AI bot with memory', 'Website training (10 pages)', 'Roman Urdu + Arabic', 'Email support'],
+    features: ['1,000 messages/month', '1 WhatsApp number', 'AI bot with memory', 'Website training (10 pages)', 'PDF + Text training', 'Roman Urdu + Arabic', 'Operating hours & away message', 'Email support'],
+    missing: ['Analytics dashboard', 'Conversation memory'],
     isFree: false,
     popular: false,
     isEnterprise: false,
@@ -67,7 +69,8 @@ const PLANS = [
     bg: 'rgba(74,225,118,0.07)',
     border: 'rgba(74,225,118,0.30)',
     glow: 'rgba(74,225,118,0.10)',
-    features: ['5,000 messages/month', '1 WhatsApp number', 'Advanced AI + context memory', 'PDF & website training', 'Analytics dashboard', 'Custom bot personality', 'Priority email support'],
+    features: ['5,000 messages/month', '1 WhatsApp number', 'Advanced AI + context memory', 'Website + PDF + Text training', 'Analytics dashboard', 'Custom bot personality', 'Priority email support'],
+    missing: ['Human handoff inbox'],
     isFree: false,
     popular: true,
     isEnterprise: false,
@@ -85,13 +88,14 @@ const PLANS = [
     features: [
       '50,000 messages/month',
       '1 WhatsApp number',
-      'All training types',
+      'Website + PDF + Text training',
       'Advanced analytics',
       'Priority support',
       '3 WhatsApp numbers (coming soon)',
       'Human handoff inbox (coming soon)',
       'Instagram + Facebook DMs (coming soon)',
     ],
+    missing: [],
     isFree: false,
     popular: false,
     isEnterprise: false,
@@ -423,6 +427,19 @@ export default function BillingPage() {
                         <Check size={9} color={plan.accent} strokeWidth={3} />
                       </div>
                       <span style={{ color: '#9ca3af', fontSize: '12px', lineHeight: 1.5 }}>{f}</span>
+                    </li>
+                  ))}
+                  {(plan.missing || []).map((f) => (
+                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '9px' }}>
+                      <div style={{
+                        width: '16px', height: '16px', borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, marginTop: '1px',
+                      }}>
+                        <X size={9} color="rgba(156,163,175,0.4)" strokeWidth={3} />
+                      </div>
+                      <span style={{ color: 'rgba(156,163,175,0.4)', fontSize: '12px', lineHeight: 1.5 }}>{f}</span>
                     </li>
                   ))}
                 </ul>

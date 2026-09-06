@@ -25,7 +25,7 @@ const plans = [
       'Conversation history',
       'Basic bot settings',
     ],
-    missing: ['PDF training', 'Analytics dashboard', 'Operating hours', 'Human handoff'],
+    missing: ['PDF training', 'Text training', 'Operating hours', 'Analytics dashboard', 'Conversation memory'],
   },
   {
     name: 'Basic',
@@ -69,7 +69,7 @@ const plans = [
       'Operating hours & away msg',
       'Conversation memory',
     ],
-    missing: ['Human handoff'],
+    missing: [],
   },
   {
     name: 'Pro',
@@ -85,7 +85,7 @@ const plans = [
     features: [
       '50,000 AI replies/month',
       '1 WhatsApp number',
-      'All training types',
+      'Website + PDF + Text training',
       'All 4 languages',
       'Advanced analytics',
       'Conversation memory',
