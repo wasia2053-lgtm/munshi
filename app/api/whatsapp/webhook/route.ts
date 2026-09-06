@@ -37,8 +37,6 @@ export async function GET(request: NextRequest) {
   const hubChallenge = searchParams.get('hub.challenge')
 
   console.log('🔐 WEBHOOK VERIFICATION')
-  console.log('Expected token:', process.env.WHATSAPP_VERIFY_TOKEN)
-  console.log('Received token:', hubVerifyToken)
   console.log('Match:', hubVerifyToken === process.env.WHATSAPP_VERIFY_TOKEN)
 
   if (hubVerifyToken === process.env.WHATSAPP_VERIFY_TOKEN) {
@@ -99,13 +97,25 @@ export async function POST(request: NextRequest) {
 
       // ─── Skip if Meta already sent us this exact message before ───
       // (Meta retries webhooks on any hiccup — without this, retries = duplicate bot replies)
+      // IMPORTANT: only skip if it was actually COMPLETED. If a previous attempt crashed
+      // before sending a reply, this lets Meta's retry try again instead of losing the message.
       const { error: dupError } = await supabase
         .from('webhook_processed_messages')
-        .insert({ wa_message_id: msg.id })
+        .insert({ wa_message_id: msg.id, status: 'processing' })
 
       if (dupError) {
-        console.log('⚠️ Duplicate message, already processed — skipping:', msg.id)
-        continue
+        const { data: existing } = await supabase
+          .from('webhook_processed_messages')
+          .select('status')
+          .eq('wa_message_id', msg.id)
+          .single()
+
+        if (existing?.status === 'completed') {
+          console.log('⚠️ Duplicate message, already completed — skipping:', msg.id)
+          continue
+        }
+        console.log('🔁 Retrying a previously incomplete message:', msg.id)
+        // fall through and reprocess — don't skip
       }
 
       const customerPhone = msg.from
@@ -373,6 +383,7 @@ export async function POST(request: NextRequest) {
           console.log('✅ Away message saved to messages table')
         }
 
+        await supabase.from('webhook_processed_messages').update({ status: 'completed' }).eq('wa_message_id', msg.id)
         continue // Skip AI generation and move to next message
       }
 
@@ -474,6 +485,7 @@ export async function POST(request: NextRequest) {
           console.log('✅ Limit message saved to messages table')
         }
 
+        await supabase.from('webhook_processed_messages').update({ status: 'completed' }).eq('wa_message_id', msg.id)
         continue // Skip AI generation and move to next message
       }
 
@@ -593,6 +605,7 @@ ${knowledgeContext}
         continue
       }
       console.log('✅ WhatsApp message sent!')
+      await supabase.from('webhook_processed_messages').update({ status: 'completed' }).eq('wa_message_id', msg.id)
 
       // ─── Step 4: Save Outgoing Message ─────────────────────
       console.log('\nStep 4: Saving outgoing message...')

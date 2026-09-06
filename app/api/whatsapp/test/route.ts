@@ -21,14 +21,15 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Fetch business WhatsApp details
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('whatsapp_phone_id')
-      .eq('id', business_id)
+    // Fetch business WhatsApp details — was reading from businesses table (missing for most users)
+    const { data: waNumber } = await supabase
+      .from('whatsapp_numbers')
+      .select('phone_number_id, access_token')
+      .eq('business_id', business_id)
+      .eq('is_primary', true)
       .single()
 
-    if (!business?.whatsapp_phone_id) {
+    if (!waNumber?.phone_number_id) {
       return NextResponse.json({ error: 'WhatsApp not connected' }, { status: 400 })
     }
 
@@ -41,10 +42,10 @@ export async function POST(req: Request) {
     const formattedPhone = phoneNumber.startsWith('92') ? `+${phoneNumber}` : phoneNumber
 
     // Send test message via Meta WhatsApp API
-    const metaResponse = await fetch(`https://graph.facebook.com/v18.0/${business.whatsapp_phone_id}/messages`, {
+    const metaResponse = await fetch(`https://graph.facebook.com/v18.0/${waNumber.phone_number_id}/messages`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${waNumber.access_token || process.env.WHATSAPP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

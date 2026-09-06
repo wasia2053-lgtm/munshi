@@ -22,8 +22,8 @@ export async function GET(request: Request) {
   const range = searchParams.get('range') || '30';
   const business_id = user.id;
 
-  const [businessRes, subRes, settingsRes] = await Promise.all([
-    supabase.from('businesses').select('whatsapp_status').eq('id', business_id).single(),
+  const [waNumberRes, subRes, settingsRes] = await Promise.all([
+    supabase.from('whatsapp_numbers').select('status').eq('business_id', business_id).eq('is_primary', true).single(),
     supabase.from('subscriptions').select('plan, messages_used, messages_limit').eq('user_id', business_id).single(),
     supabase.from('business_settings').select('organization_name').eq('business_id', business_id).single()
   ]);
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     organizationName: settingsRes.data?.organization_name || 'My Business',
-    whatsappStatus: businessRes.data?.whatsapp_status || 'disconnected',
+    whatsappStatus: waNumberRes.data?.status || 'disconnected',
     plan: subRes.data?.plan || 'free',
     messagesUsed: subRes.data?.messages_used || 0,
     messagesLimit: subRes.data?.messages_limit || 50,
