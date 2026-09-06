@@ -70,7 +70,7 @@ const PLANS = [
     border: 'rgba(74,225,118,0.30)',
     glow: 'rgba(74,225,118,0.10)',
     features: ['5,000 messages/month', '1 WhatsApp number', 'Advanced AI + context memory', 'Website + PDF + Text training', 'Analytics dashboard', 'Custom bot personality', 'Priority email support'],
-    missing: ['Human handoff inbox'],
+    missing: [],
     isFree: false,
     popular: true,
     isEnterprise: false,
