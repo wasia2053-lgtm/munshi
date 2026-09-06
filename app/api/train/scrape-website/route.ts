@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { checkRateLimit } from '../../../../lib/rate-limit'
 import * as cheerio from 'cheerio'
 import dns from 'dns/promises'
 import net from 'net'
@@ -159,6 +160,10 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
+
+    if (!(await checkRateLimit(supabase, business_id, 'scrape-website', 5, 60))) {
+      return NextResponse.json({ error: 'Too many training requests — please wait a minute and try again.' }, { status: 429 })
+    }
 
     const { url } = await request.json()
 

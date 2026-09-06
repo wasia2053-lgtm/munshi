@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { checkRateLimit } from '../../../../lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,10 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
+
+    if (!(await checkRateLimit(supabase, business_id, 'upload-pdf', 5, 60))) {
+      return NextResponse.json({ error: 'Too many training requests — please wait a minute and try again.' }, { status: 429 })
+    }
 
     // ─── Plan gate: PDF training is Basic plan and above only ───
     const { data: sub } = await supabase

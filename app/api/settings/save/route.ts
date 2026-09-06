@@ -25,6 +25,22 @@ export async function POST(request: NextRequest) {
       away_message,
     } = body
 
+    // ─── Plan gate: Operating Hours / Away Message is Basic plan and above ───
+    // (matches pricing page — Starter doesn't include this)
+    if (operating_hours !== undefined || away_message !== undefined) {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('plan')
+        .eq('user_id', business_id)
+        .single()
+      if (!sub || sub.plan === 'starter') {
+        return NextResponse.json(
+          { error: 'Operating Hours is available on the Basic plan and above. Please upgrade to use this feature.' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Settings page saves independently per section (Bot Personality,
     // Operating Hours, Away Message) — each request only sends its own
     // fields. Only include keys that were actually sent, so one section's

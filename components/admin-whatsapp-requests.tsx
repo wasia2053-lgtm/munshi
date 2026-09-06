@@ -78,7 +78,7 @@ export function AdminWhatsAppRequests({
                                     <div>
                                         <p className="font-medium text-sm">{r.organization_name}</p>
                                         <p className="text-xs text-muted-foreground mt-1 font-mono">Phone Number ID: {r.phone_number_id}</p>
-                                        <p className="text-xs text-muted-foreground font-mono">Token: {r.access_token.slice(0, 12)}...{r.access_token.slice(-6)}</p>
+                                        <p className="text-xs text-muted-foreground font-mono">Token: {r.access_token}</p>
                                         {r.phone_number && <p className="text-xs text-muted-foreground">Number: {r.phone_number}</p>}
                                         <p className="text-[11px] text-muted-foreground mt-2">{new Date(r.created_at).toLocaleString()}</p>
                                     </div>

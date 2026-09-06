@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
 import { Resend } from 'resend'
+import { encrypt } from '@/lib/crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
         .insert({
             business_id,
             phone_number_id: phone_number_id.trim(),
-            access_token: access_token.trim(),
+            access_token: encrypt(access_token.trim()),
             phone_number: phone_number?.trim() || null,
             status: 'pending',
         });

@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Groq from 'groq-sdk'
 import { trainingCache } from '../../../lib/trainingCache'
+import { checkRateLimit } from '../../../lib/rate-limit'
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
+
+    if (!(await checkRateLimit(supabase, business_id, 'chat', 20, 60))) {
+      return NextResponse.json({ error: 'Too many requests — please slow down.' }, { status: 429 })
+    }
 
     const { message, customerPhone } = await request.json()
 

@@ -387,61 +387,25 @@ export async function POST(request: NextRequest) {
         continue // Skip AI generation and move to next message
       }
 
-      // ─── Message Limit Check ───────────────────────────
+      // ─── Message Limit Check (atomic — fixes race condition on concurrent messages) ───
       const FREE_TIER_LIMIT = 50
-      const now = new Date()
 
-      // Step 1: Get subscription (need this first to know the billing period)
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('id, plan, messages_limit, valid_until, usage_reset_at')
-        .eq('user_id', BUSINESS_ID)
-        .order('valid_until', { ascending: false })
-        .limit(1)
-        .single()
+      const { data: usageResult, error: usageError } = await supabase
+        .rpc('check_and_increment_usage', { p_business_id: BUSINESS_ID, p_free_limit: FREE_TIER_LIMIT })
+        .single() as { data: { allowed: boolean; messages_used: number; messages_limit: number; is_expired: boolean } | null, error: any }
 
-      // Step 2: Work out the current billing-period start (monthly reset)
-      // Was: counted bot messages since the beginning of time, forever. Now: resets every 30 days.
-      let periodStart = sub?.usage_reset_at ? new Date(sub.usage_reset_at) : new Date(0)
-      const daysSinceReset = (now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)
-
-      if (sub && daysSinceReset >= 30) {
-        periodStart = now
-        await supabase
-          .from('subscriptions')
-          .update({ usage_reset_at: now.toISOString(), messages_used: 0 })
-          .eq('id', sub.id)
-        console.log('🔄 Monthly usage reset triggered for this business')
+      if (usageError || !usageResult) {
+        console.log('❌ Usage check RPC failed:', usageError?.message)
+        continue // fail safe — don't reply if we can't verify the limit
       }
 
-      // Step 3: Subscription expired? Fall back to free-tier limit instead of the paid one.
-      const isExpired = !!(sub?.valid_until && new Date(sub.valid_until) < now)
+      const { allowed, messages_used: botMsgCount, messages_limit: messagesLimit, is_expired: isExpired } = usageResult
       if (isExpired) {
-        console.log('⚠️ Subscription expired on', sub!.valid_until, '— using free tier limit until renewed')
-      }
-      const messagesLimit = isExpired ? 0 : (sub?.messages_limit || FREE_TIER_LIMIT)
-
-      // Step 4: Count bot messages sent THIS PERIOD only (not lifetime)
-      const { data: convs } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('business_id', BUSINESS_ID)
-
-      const convIds = convs?.map((c: any) => c.id) || []
-
-      let botMsgCount = 0
-      if (convIds.length > 0) {
-        const { count } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .in('conversation_id', convIds)
-          .eq('sender', 'bot')
-          .gte('timestamp', periodStart.toISOString())
-        botMsgCount = count || 0
+        console.log('⚠️ Subscription expired — using free tier limit until renewed')
       }
 
-      // Step 5: Limit exceeded - send limit message and return
-      if (botMsgCount >= messagesLimit) {
+      // Limit exceeded - send limit message and return
+      if (!allowed) {
         const limitMsg = isExpired
           ? `Assalam o Alaikum! 🙏 Aapka subscription expire ho chuka hai aur free limit (${messagesLimit} messages) bhi poora ho gaya hai. Please renew karein taake bot dobara active ho jaye.`
           : `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
@@ -622,19 +586,8 @@ ${knowledgeContext}
         console.log('✅ Outgoing message saved to messages table')
       }
 
-      // ─── Sync usage counter for dashboard (Account/Billing pages read this
-      // column directly — the limit-check above counts messages live, but
-      // that count was never being written back here, so the UI stayed at 0) ───
-      const { error: usageError } = await supabase
-        .from('subscriptions')
-        .update({ messages_used: botMsgCount + 1 })
-        .eq('user_id', BUSINESS_ID)
-
-      if (usageError) {
-        console.log('❌ messages_used sync error:', usageError.message)
-      } else {
-        console.log(`✅ messages_used synced to ${botMsgCount + 1}`)
-      }
+      // messages_used is now incremented atomically inside check_and_increment_usage()
+      // above, at the moment the message was accepted — no separate sync needed here.
 
       console.log('\n🎉 All steps completed successfully!')
     }

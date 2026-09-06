@@ -1,5 +1,11 @@
 import { AdminWhatsAppRequests } from "@/components/admin-whatsapp-requests"
 import { createAdminClient } from "@/lib/supabase-server"
+import { decrypt } from "@/lib/crypto"
+
+function maskToken(token: string): string {
+    if (token.length <= 16) return '••••••••'
+    return `${token.slice(0, 8)}...${token.slice(-6)}`
+}
 
 // This page only ever renders after middleware's Basic Auth check has already
 // passed for this exact request — no separate client-side auth check needed.
@@ -37,10 +43,19 @@ export default async function AdminRequestsPage() {
         ...r,
         organization_name: orgNames[r.business_id] || 'Unknown',
     }))
-    const enrichedCredsSubmissions = (credentialSubmissions || []).map((r: any) => ({
-        ...r,
-        organization_name: orgNames[r.business_id] || 'Unknown',
-    }))
+    const enrichedCredsSubmissions = (credentialSubmissions || []).map((r: any) => {
+        let rawToken: string
+        try {
+            rawToken = decrypt(r.access_token)
+        } catch {
+            rawToken = r.access_token // old row from before encryption was added
+        }
+        return {
+            ...r,
+            access_token: maskToken(rawToken), // masked here — full token never leaves the server
+            organization_name: orgNames[r.business_id] || 'Unknown',
+        }
+    })
 
     return (
         <AdminWhatsAppRequests
