@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { PhoneIcon, KeyIcon, ShieldAlertIcon } from "lucide-react"
+import { PhoneIcon, KeyIcon } from "lucide-react"
 
 type ConnectRequest = {
     id: string
@@ -25,44 +24,13 @@ type CredsSubmission = {
     organization_name: string
 }
 
-export function AdminWhatsAppRequests() {
-    const [authorized, setAuthorized] = useState<boolean | null>(null)
-    const [connectRequests, setConnectRequests] = useState<ConnectRequest[]>([])
-    const [credsSubmissions, setCredsSubmissions] = useState<CredsSubmission[]>([])
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        async function load() {
-            // Basic Auth (middleware + this API route) already gates access —
-            // no separate Munshi account/session needed here anymore.
-            const res = await fetch('/api/admin/whatsapp-requests', { credentials: 'include' })
-            if (res.status === 403) {
-                setAuthorized(false)
-                setLoading(false)
-                return
-            }
-            const data = await res.json()
-            setConnectRequests(data.connectRequests || [])
-            setCredsSubmissions(data.credentialSubmissions || [])
-            setAuthorized(true)
-            setLoading(false)
-        }
-        load()
-    }, [])
-
-    if (loading) {
-        return <div className="p-8 text-sm text-muted-foreground">Loading...</div>
-    }
-
-    if (!authorized) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen gap-3">
-                <ShieldAlertIcon className="size-10 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">You do not have access to this page</p>
-            </div>
-        )
-    }
-
+export function AdminWhatsAppRequests({
+    connectRequests,
+    credsSubmissions,
+}: {
+    connectRequests: ConnectRequest[]
+    credsSubmissions: CredsSubmission[]
+}) {
     return (
         <div className="p-8 max-w-4xl mx-auto space-y-8">
             <div>
@@ -123,4 +91,4 @@ export function AdminWhatsAppRequests() {
             </div>
         </div>
     )
-} 
+}
