@@ -33,9 +33,12 @@ export async function GET() {
         }
     }
 
+    const rawLang = settings?.language || 'english_us';
+    const language = rawLang === 'english' ? 'english_us' : rawLang;
+
     return NextResponse.json({
         botName: settings?.bot_name || 'Munshi Bot',
-        language: settings?.language || 'english',
+        language,
         tone: settings?.tone || 'professional',
         onboardingComplete: settings?.onboarding_complete || false,
         isCurrentlyOpen: isOpen,

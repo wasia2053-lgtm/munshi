@@ -286,7 +286,8 @@ export async function POST(request: NextRequest) {
 
       const botName = settings?.bot_name || 'Munshi'
       const orgName = settings?.organization_name || 'Company'
-      const language = settings?.language || 'roman_urdu'
+      const rawLanguage = settings?.language || 'roman_urdu'
+      const language = rawLanguage === 'english' ? 'english_us' : rawLanguage
       const tone = settings?.tone || 'friendly'
 
       console.log(`⚙️ Settings - Name: ${botName}, Org: ${orgName}, Lang: ${language}, Tone: ${tone}`)
@@ -296,16 +297,22 @@ export async function POST(request: NextRequest) {
         if (/[\u0600-\u06FF]/.test(text)) return 'arabic';
         const romanUrduWords = /\b(hai|he|hain|kya|aur|or|nahi|mujhe|apna)\b/i;
         if (romanUrduWords.test(text)) return 'roman_urdu';
-        if (/^[A-Za-z0-9\s.,!?-]*$/.test(text)) return 'english';
+        if (/^[A-Za-z0-9\s.,!?-]*$/.test(text)) {
+          return language === 'english_uk' ? 'english_uk' : 'english_us';
+        }
         return language; // fallback to bot default
       })();
 
+      const languageInstructionMap: Record<string, string> = {
+        english: 'Reply in American English',
+        english_us: 'Reply in American English',
+        english_uk: 'Reply in British English',
+        roman_urdu: 'Reply in Roman Urdu (Urdu words in English letters)',
+        arabic: 'Reply in Arabic (العربية)',
+      };
+
       const languageInstruction =
-        detectedLanguage === 'english_us' ? 'Reply in American English' :
-          detectedLanguage === 'english_uk' ? 'Reply in British English' :
-            detectedLanguage === 'roman_urdu' ? 'Reply in Roman Urdu (Urdu words in English letters)' :
-              detectedLanguage === 'arabic' ? 'Reply in Arabic (العربية)' :
-                'Reply in English';
+        languageInstructionMap[detectedLanguage] || 'Reply in American English';
 
       const toneInstruction =
         tone === 'professional' ? 'Be formal and professional in responses.' :

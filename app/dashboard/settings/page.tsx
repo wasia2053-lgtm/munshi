@@ -37,7 +37,8 @@ export default function SettingsPage() {
       .then(r => r.json())
       .then(data => {
         setBotName(data.bot_name || '')
-        setLanguage(data.language || 'roman_urdu')
+        const rawLang = data.language || 'roman_urdu'
+        setLanguage(rawLang === 'english' ? 'english_us' : rawLang)
         setTone(data.tone || 'friendly')
         setAwayMessage(data.away_message || '')
         if (data.operating_hours) {
@@ -49,10 +50,11 @@ export default function SettingsPage() {
 
   const handleSaveBot = async () => {
     setSavingBot(true)
+    const normalizedLang = language === 'english' ? 'english_us' : language
     const res = await fetch('/api/settings/save', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bot_name: botName, language, tone }),
+      body: JSON.stringify({ bot_name: botName, language: normalizedLang, tone }),
     })
     setSavingBot(false)
     showToast(res.ok ? 'Bot settings saved! ✅' : 'Error saving ❌', res.ok ? 'success' : 'error')

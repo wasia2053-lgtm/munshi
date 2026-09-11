@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
     if (bot_name !== undefined) updatePayload.bot_name = bot_name
     if (organization_name !== undefined) updatePayload.organization_name = organization_name
-    if (language !== undefined) updatePayload.language = language
+    if (language !== undefined) updatePayload.language = language === 'english' ? 'english_us' : language
     if (tone !== undefined) updatePayload.tone = tone
     if (greeting_message !== undefined) updatePayload.greeting_message = greeting_message
     if (operating_hours !== undefined) updatePayload.operating_hours = operating_hours

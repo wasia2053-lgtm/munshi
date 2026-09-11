@@ -22,7 +22,9 @@ interface BotConfig {
 }
 
 const languageLabels: Record<string, string> = {
-	english: 'English',
+	english: 'English (US)',
+	english_us: 'English (US)',
+	english_uk: 'English (UK)',
 	roman_urdu: 'Roman Urdu',
 	arabic: 'Arabic',
 }

@@ -14,4 +14,7 @@ sharp(Buffer.from(svgCode))
   .png()
   .toFile('test-logo.png')
   .then(() => console.log('Generated test-logo.png'))
-  .catch(err => console.error(err));
+  .catch(err => {
+    console.error(err);
+    process.exitCode = 1;
+  });

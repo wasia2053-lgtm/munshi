@@ -336,6 +336,7 @@ export function ConversationsView() {
                             <button
                                 onClick={handleToggleResolve}
                                 disabled={resolving}
+                                aria-label={detail.conversation.is_resolved ? "Reopen conversation" : "Mark conversation as resolved"}
                                 className={cn(
                                     "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 shrink-0",
                                     detail.conversation.is_resolved

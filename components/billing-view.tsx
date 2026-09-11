@@ -105,13 +105,24 @@ const plans = [
 export function BillingView() {
     const [data, setData] = useState<BillingData | null>(null)
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [currency, setCurrency] = useState<Currency>("PKR")
 
     useEffect(() => {
         fetch('/api/billing', { credentials: 'include' })
-            .then(res => res.json())
-            .then(d => { setData(d); setLoading(false) })
-            .catch(() => setLoading(false))
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch billing data')
+                return res.json()
+            })
+            .then(d => {
+                if (d.error) throw new Error(d.error)
+                setData(d)
+                setLoading(false)
+            })
+            .catch(err => {
+                setError(err.message || 'Failed to load billing data')
+                setLoading(false)
+            })
     }, [])
 
     const usagePercent = data ? Math.min(100, Math.round((data.messagesUsed / data.messagesLimit) * 100)) : 0
@@ -126,8 +137,8 @@ export function BillingView() {
         if (plan.priceUSD === null) return "Custom"
         if (plan.priceUSD === 0) return "Free"
         return currency === "PKR"
-            ? `PKR ${plan.pricePKR!.toLocaleString()}`
-            : `$${plan.priceUSD}`
+            ? (plan.pricePKR != null ? `PKR ${plan.pricePKR.toLocaleString()}` : "Custom")
+            : (plan.priceUSD != null ? `$${plan.priceUSD}` : "Custom")
     }
 
     return (
@@ -155,6 +166,12 @@ export function BillingView() {
                     ))}
                 </div>
             </div>
+
+            {error && (
+                <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                    Failed to load billing data. Please refresh the page.
+                </div>
+            )}
 
             {/* Current plan + usage */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">

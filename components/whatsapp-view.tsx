@@ -188,7 +188,7 @@ export function WhatsAppView() {
                             <CardContent className="pt-6">
                                 <p className="text-sm text-muted-foreground mb-1.5">Display Name</p>
                                 <p className="text-xl font-semibold">
-                                    {data?.displayName || "Munshi Bot"}
+                                    {data?.displayName || "Not available"}
                                 </p>
                             </CardContent>
                         </Card>

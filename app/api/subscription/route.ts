@@ -21,14 +21,29 @@ export async function GET(req: NextRequest) {
         .eq('user_id', user.id)
         .single()
 
-    if (error || !data) {
-        // Return starter defaults if no subscription row
+    if (error) {
+        // Check if the error indicates that no subscription row exists
+        const isNoRow = error.message?.toLowerCase()?.includes('row not found') || error.code === 'PGRST116';
+        if (isNoRow) {
+            // Return starter defaults if no subscription row
+            return NextResponse.json({
+                plan: 'starter',
+                messages_used: 0,
+                messages_limit: 50,
+                valid_until: null,
+            });
+        }
+        // For other errors, respond with a server error
+        return NextResponse.json({ error: 'Failed to fetch subscription' }, { status: 500 });
+    }
+    if (!data) {
+        // Edge case: no data but also no error; return defaults
         return NextResponse.json({
             plan: 'starter',
             messages_used: 0,
             messages_limit: 50,
             valid_until: null,
-        })
+        });
     }
 
     return NextResponse.json(data)

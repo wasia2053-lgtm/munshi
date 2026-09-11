@@ -59,6 +59,7 @@ export default function FAQ() {
             role="button"
             tabIndex={0}
             aria-expanded={open === i}
+            aria-controls={`faq-answer-${i}`}
             onClick={() => setOpen(open === i ? null : i)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -88,7 +89,10 @@ export default function FAQ() {
               }}>+</span>
             </div>
             {open === i && (
-              <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '14px', lineHeight: 1.7, marginTop: '12px', marginBottom: 0 }}>
+              <p
+                id={`faq-answer-${i}`}
+                style={{ color: 'rgba(255,255,255,0.55)', fontSize: '14px', lineHeight: 1.7, marginTop: '12px', marginBottom: 0 }}
+              >
                 {faq.a}
               </p>
             )}
