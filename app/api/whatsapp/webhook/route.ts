@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
 import crypto from 'crypto'
+import { decrypt } from '../../../../lib/crypto'
 type Message = {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -88,34 +89,35 @@ export async function POST(request: NextRequest) {
     }
 
     const BUSINESS_ID = waNumber.business_id
-    // Outbound send credentials: this number's own token if set, else fall back to the
-    // global env var (keeps today's single-number setup working while multi-number is rolled out)
-    const WA_ACCESS_TOKEN = waNumber.access_token || process.env.WHATSAPP_ACCESS_TOKEN
+
+    // Outbound credentials: THIS number's own token only — no silent fallback to a
+    // global token. A number with no configured token is a configuration error,
+    // not something we guess our way around (that's how wrong-account sends happen).
+    if (!waNumber.access_token) {
+      console.error('❌ Configuration error: no access_token set for phone_number_id', phoneNumberId, '— refusing to send')
+      return NextResponse.json({ status: 'ok' })
+    }
+    let WA_ACCESS_TOKEN: string
+    try {
+      WA_ACCESS_TOKEN = decrypt(waNumber.access_token)
+    } catch (e) {
+      console.error('❌ Could not decrypt access_token for phone_number_id', phoneNumberId, '— refusing to send')
+      return NextResponse.json({ status: 'ok' })
+    }
 
     for (const msg of messages) {
       if (msg.type !== 'text' || !msg.text?.body) continue
 
       // ─── Skip if Meta already sent us this exact message before ───
       // (Meta retries webhooks on any hiccup — without this, retries = duplicate bot replies)
-      // IMPORTANT: only skip if it was actually COMPLETED. If a previous attempt crashed
-      // before sending a reply, this lets Meta's retry try again instead of losing the message.
-      const { error: dupError } = await supabase
-        .from('webhook_processed_messages')
-        .insert({ wa_message_id: msg.id, status: 'processing' })
+      // Atomic claim: only ONE concurrent request can ever win this, even if two
+      // deliveries arrive at the exact same instant. Genuinely-completed messages
+      // are never reclaimed; crashed/stuck ones can be retried after 30s.
+      const { data: claimed } = await supabase.rpc('claim_webhook_message', { p_wa_message_id: msg.id })
 
-      if (dupError) {
-        const { data: existing } = await supabase
-          .from('webhook_processed_messages')
-          .select('status')
-          .eq('wa_message_id', msg.id)
-          .single()
-
-        if (existing?.status === 'completed') {
-          console.log('⚠️ Duplicate message, already completed — skipping:', msg.id)
-          continue
-        }
-        console.log('🔁 Retrying a previously incomplete message:', msg.id)
-        // fall through and reprocess — don't skip
+      if (!claimed) {
+        console.log('⚠️ Duplicate message, already claimed/completed — skipping:', msg.id)
+        continue
       }
 
       const customerPhone = msg.from
@@ -595,6 +597,6 @@ ${knowledgeContext}
     return NextResponse.json({ status: 'ok' })
   } catch (error: any) {
     console.error('❌ ERROR:', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

@@ -65,13 +65,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.log('❌ Settings save error:', error.message)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }
 
     console.log('✅ Settings saved!')
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Settings save exception:', error.message)
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }
 
@@ -94,11 +95,13 @@ export async function GET() {
       .single()
 
     if (error && error.code !== 'PGRST116') {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Settings fetch error:', error.message)
+      return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, data: data || null })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Settings fetch exception:', error.message)
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }

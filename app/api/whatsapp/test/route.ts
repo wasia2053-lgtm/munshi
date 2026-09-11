@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { decrypt } from '@/lib/crypto'
 
 export async function POST(req: Request) {
   try {
@@ -29,8 +30,14 @@ export async function POST(req: Request) {
       .eq('is_primary', true)
       .single()
 
-    if (!waNumber?.phone_number_id) {
+    if (!waNumber?.phone_number_id || !waNumber?.access_token) {
       return NextResponse.json({ error: 'WhatsApp not connected' }, { status: 400 })
+    }
+    let waToken: string
+    try {
+      waToken = decrypt(waNumber.access_token)
+    } catch {
+      return NextResponse.json({ error: 'Could not decrypt stored credentials' }, { status: 500 })
     }
 
     const { phoneNumber } = await req.json()
@@ -45,7 +52,7 @@ export async function POST(req: Request) {
     const metaResponse = await fetch(`https://graph.facebook.com/v18.0/${waNumber.phone_number_id}/messages`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${waNumber.access_token || process.env.WHATSAPP_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${waToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

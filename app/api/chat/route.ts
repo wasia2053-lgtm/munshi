@@ -172,7 +172,7 @@ RULES:
   } catch (error: any) {
     console.error('🔥 [CHAT] Error:', error.message)
     return NextResponse.json(
-      { error: error.message || 'Server error' },
+      { error: 'Something went wrong. Please try again.' },
       { status: 500 }
     )
   }

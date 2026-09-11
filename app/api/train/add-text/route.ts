@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error)
-      return NextResponse.json({ success: false, error: 'Failed to save: ' + error.message }, { status: 500 })
+      return NextResponse.json({ success: false, error: 'Something went wrong. Please try again.' }, { status: 500 })
     }
 
 
@@ -73,6 +73,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error:', error)
-    return NextResponse.json({ success: false, error: 'Server error: ' + error.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }

@@ -90,6 +90,22 @@ export async function GET(request: NextRequest) {
         console.error('Business insert error:', businessInsertError)
         return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
       }
+
+      // Create Starter subscription row — was missing before, letting the
+      // usage RPC treat this user as unlimited (no row to enforce against)
+      const { error: subInsertError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          plan: 'starter',
+          messages_limit: 50,
+          messages_used: 0,
+          usage_reset_at: new Date().toISOString(),
+        })
+
+      if (subInsertError && subInsertError.code !== '23505') { // ignore "already exists"
+        console.error('Subscription insert error:', subInsertError)
+      }
     }
 
     // Check if onboarding is complete

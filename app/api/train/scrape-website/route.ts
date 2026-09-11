@@ -190,12 +190,12 @@ export async function POST(request: NextRequest) {
     const queue = [url]
     const results: { url: string; content: string }[] = []
 
-    // Delete old data for this website
+    // Clean up any orphaned pending rows from a previous crawl that crashed
     await supabase
       .from('knowledge_base')
       .delete()
       .eq('business_id', business_id)
-      .eq('source_type', 'website')
+      .eq('source_type', 'website_pending')
 
     while (queue.length > 0 && visited.size < MAX_PAGES) {
       const currentUrl = queue.shift()!
@@ -211,10 +211,11 @@ export async function POST(request: NextRequest) {
       const content = extractContent(html, currentUrl)
       results.push({ url: currentUrl, content })
 
-      // Save to Supabase
+      // Save into a PENDING bucket — old "website" knowledge is untouched
+      // until the whole crawl finishes successfully (atomic replace below)
       await supabase.from('knowledge_base').insert({
         business_id,
-        source_type: 'website',
+        source_type: 'website_pending',
         source_url: currentUrl,
         content: content,
         chunks_count: 1,
@@ -231,6 +232,18 @@ export async function POST(request: NextRequest) {
       // Small delay to not overload server
       await new Promise(r => setTimeout(r, 500))
     }
+
+    if (results.length === 0) {
+      // Nothing was crawled successfully — leave old knowledge exactly as it was
+      await supabase.from('knowledge_base').delete().eq('business_id', business_id).eq('source_type', 'website_pending')
+      return NextResponse.json({ error: 'Could not crawl this website. Old training data was kept as-is.' }, { status: 400 })
+    }
+
+    // Atomic swap: delete old website knowledge, then promote the pending
+    // batch in one go. If the crawl above had failed partway, we'd never
+    // reach this point — old knowledge stays intact.
+    await supabase.from('knowledge_base').delete().eq('business_id', business_id).eq('source_type', 'website')
+    await supabase.from('knowledge_base').update({ source_type: 'website' }).eq('business_id', business_id).eq('source_type', 'website_pending')
 
     console.log(`✅ Crawl complete! ${results.length} pages saved`)
     // Training complete notification
@@ -251,6 +264,20 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Scraper error:', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    try {
+      const cookieStore = await cookies()
+      const cleanupClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { getAll: () => cookieStore.getAll() } }
+      )
+      const { data: { user } } = await cleanupClient.auth.getUser()
+      if (user) {
+        await cleanupClient.from('knowledge_base').delete().eq('business_id', user.id).eq('source_type', 'website_pending')
+      }
+    } catch {
+      // best-effort cleanup only
+    }
+    return NextResponse.json({ error: 'Something went wrong while training. Please try again.' }, { status: 500 })
   }
 }
