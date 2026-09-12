@@ -13,13 +13,23 @@ function isAuthorized(req: Request): boolean {
 }
 
 export async function GET(request: Request) {
+    const supabase = createAdminClient();
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { data: allowed } = await supabase.rpc('check_admin_login_attempt', { p_ip: ip })
+    if (allowed === false) {
+        return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
+    }
+
     if (!isAuthorized(request)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: 'Forbidden' }, {
+            status: 401,
+            headers: { 'WWW-Authenticate': 'Basic realm="Munshi Admin"' },
+        });
     }
 
     // Service-role client — was using the session-scoped client before, which meant
     // RLS silently limited results to the admin's OWN business_id only (i.e. basically empty).
-    const supabase = createAdminClient();
 
     const { data: connectRequests } = await supabase
         .from('whatsapp_connection_requests')

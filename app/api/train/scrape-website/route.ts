@@ -5,6 +5,7 @@ import { checkRateLimit } from '../../../../lib/rate-limit'
 import * as cheerio from 'cheerio'
 import dns from 'dns/promises'
 import net from 'net'
+import crypto from 'crypto'
 
 export const maxDuration = 60 // 60 second timeout
 export const dynamic = 'force-dynamic'
@@ -150,6 +151,7 @@ Content: ${bodyText}`
 }
 
 export async function POST(request: NextRequest) {
+  let jobId: string | undefined
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -189,13 +191,18 @@ export async function POST(request: NextRequest) {
     const visited = new Set<string>()
     const queue = [url]
     const results: { url: string; content: string }[] = []
+    jobId = crypto.randomUUID() // isolates this crawl's staging rows from any other concurrent crawl
 
-    // Clean up any orphaned pending rows from a previous crawl that crashed
+    // Clean up only STALE orphaned pending rows (from a crawl that crashed
+    // a while ago) — not any other crawl that might legitimately be running
+    // right now for this same business.
+    const staleCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString()
     await supabase
       .from('knowledge_base')
       .delete()
       .eq('business_id', business_id)
       .eq('source_type', 'website_pending')
+      .lt('created_at', staleCutoff)
 
     while (queue.length > 0 && visited.size < MAX_PAGES) {
       const currentUrl = queue.shift()!
@@ -211,11 +218,14 @@ export async function POST(request: NextRequest) {
       const content = extractContent(html, currentUrl)
       results.push({ url: currentUrl, content })
 
-      // Save into a PENDING bucket — old "website" knowledge is untouched
-      // until the whole crawl finishes successfully (atomic replace below)
+      // Save into a PENDING bucket tagged with this crawl's job_id — old
+      // "website" knowledge is untouched until the whole crawl finishes
+      // successfully (atomic replace below), and other concurrent crawls
+      // for this business (different job_id) can't collide with this data.
       await supabase.from('knowledge_base').insert({
         business_id,
         source_type: 'website_pending',
+        job_id: jobId,
         source_url: currentUrl,
         content: content,
         chunks_count: 1,
@@ -235,15 +245,17 @@ export async function POST(request: NextRequest) {
 
     if (results.length === 0) {
       // Nothing was crawled successfully — leave old knowledge exactly as it was
-      await supabase.from('knowledge_base').delete().eq('business_id', business_id).eq('source_type', 'website_pending')
+      await supabase.from('knowledge_base').delete().eq('business_id', business_id).eq('source_type', 'website_pending').eq('job_id', jobId)
       return NextResponse.json({ error: 'Could not crawl this website. Old training data was kept as-is.' }, { status: 400 })
     }
 
-    // Atomic swap: delete old website knowledge, then promote the pending
-    // batch in one go. If the crawl above had failed partway, we'd never
-    // reach this point — old knowledge stays intact.
-    await supabase.from('knowledge_base').delete().eq('business_id', business_id).eq('source_type', 'website')
-    await supabase.from('knowledge_base').update({ source_type: 'website' }).eq('business_id', business_id).eq('source_type', 'website_pending')
+    // Truly atomic swap — one DB function call, one transaction. If it fails
+    // partway, Postgres rolls the whole thing back: old knowledge stays intact.
+    const { error: promoteError } = await supabase.rpc('promote_website_knowledge', { p_business_id: business_id, p_job_id: jobId })
+    if (promoteError) {
+      console.error('❌ Promotion failed:', promoteError.message)
+      return NextResponse.json({ error: 'Could not save the crawled data. Old training data was kept as-is.' }, { status: 500 })
+    }
 
     console.log(`✅ Crawl complete! ${results.length} pages saved`)
     // Training complete notification
@@ -272,8 +284,8 @@ export async function POST(request: NextRequest) {
         { cookies: { getAll: () => cookieStore.getAll() } }
       )
       const { data: { user } } = await cleanupClient.auth.getUser()
-      if (user) {
-        await cleanupClient.from('knowledge_base').delete().eq('business_id', user.id).eq('source_type', 'website_pending')
+      if (user && jobId) {
+        await cleanupClient.from('knowledge_base').delete().eq('business_id', user.id).eq('source_type', 'website_pending').eq('job_id', jobId)
       }
     } catch {
       // best-effort cleanup only

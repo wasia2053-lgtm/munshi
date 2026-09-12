@@ -55,23 +55,11 @@ export async function POST(req: NextRequest) {
     const eventId = event.event_id
     const eventType = event.event_type
 
-    // Idempotency check via payments.reference_number
-    const { data: existing } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('reference_number', eventId)
-        .maybeSingle()
-
-    if (existing) {
-        return NextResponse.json({ ok: true, duplicate: true })
-    }
-
     if (eventType === 'transaction.completed') {
         const tx = event.data
         const userId = tx.custom_data?.user_id
         const priceId = tx.items?.[0]?.price?.id
         const amount = tx.details?.totals?.total // in smallest currency unit (cents)
-        const currency = tx.currency_code
 
         const planInfo = priceId ? PRICE_TO_PLAN[priceId] : undefined
 
@@ -82,6 +70,36 @@ export async function POST(req: NextRequest) {
 
         const validUntil = new Date()
         validUntil.setDate(validUntil.getDate() + 30)
+
+        // ─── Atomic claim: only ONE concurrent delivery of this exact event can
+        // ever get a row back here. If two requests race, the loser's `data`
+        // comes back empty and it skips straight to returning ok — no double
+        // subscription update, no duplicate payment row. ───
+        const { data: claimedRows, error: claimError } = await supabase
+            .from('payments')
+            .upsert(
+                {
+                    user_id: userId,
+                    plan: planInfo.plan,
+                    amount: amount ? Number(amount) / 100 : null,
+                    status: 'completed',
+                    reference_number: eventId,
+                    gateway: 'paddle',
+                    expires_at: validUntil.toISOString(),
+                },
+                { onConflict: 'reference_number', ignoreDuplicates: true }
+            )
+            .select()
+
+        if (claimError) {
+            console.error('[Paddle Webhook] Claim error:', claimError.message)
+            return NextResponse.json({ ok: true, warning: 'claim failed' })
+        }
+
+        if (!claimedRows || claimedRows.length === 0) {
+            console.log('[Paddle Webhook] Duplicate event, already processed:', eventId)
+            return NextResponse.json({ ok: true, duplicate: true })
+        }
 
         const { data: existingSub } = await supabase
             .from('subscriptions')
@@ -110,16 +128,6 @@ export async function POST(req: NextRequest) {
                     valid_until: validUntil.toISOString(),
                 })
         }
-
-        await supabase.from('payments').insert({
-            user_id: userId,
-            plan: planInfo.plan,
-            amount: amount ? Number(amount) / 100 : null, // Paddle sends amounts in cents
-            status: 'completed',
-            reference_number: eventId,
-            gateway: 'paddle',
-            expires_at: validUntil.toISOString(),
-        })
     }
 
     // subscription.canceled — optionally downgrade at period end; left as a no-op

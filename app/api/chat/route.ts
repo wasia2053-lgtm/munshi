@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
-    if (!(await checkRateLimit(supabase, business_id, 'chat', 20, 60))) {
+    if (!(await checkRateLimit(supabase, business_id, 'chat', 20, 60, true))) {
       return NextResponse.json({ error: 'Too many requests — please slow down.' }, { status: 429 })
     }
 
