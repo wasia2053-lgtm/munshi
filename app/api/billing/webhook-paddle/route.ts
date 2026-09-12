@@ -71,62 +71,30 @@ export async function POST(req: NextRequest) {
         const validUntil = new Date()
         validUntil.setDate(validUntil.getDate() + 30)
 
-        // ─── Atomic claim: only ONE concurrent delivery of this exact event can
-        // ever get a row back here. If two requests race, the loser's `data`
-        // comes back empty and it skips straight to returning ok — no double
-        // subscription update, no duplicate payment row. ───
-        const { data: claimedRows, error: claimError } = await supabase
-            .from('payments')
-            .upsert(
-                {
-                    user_id: userId,
-                    plan: planInfo.plan,
-                    amount: amount ? Number(amount) / 100 : null,
-                    status: 'completed',
-                    reference_number: eventId,
-                    gateway: 'paddle',
-                    expires_at: validUntil.toISOString(),
-                },
-                { onConflict: 'reference_number', ignoreDuplicates: true }
-            )
-            .select()
+        // ─── Atomic: payment claim + subscription upgrade, all-or-nothing. ───
+        // If two requests race, only ONE gets claimed=true. If the subscription
+        // part fails for any reason, the WHOLE thing (including the payment
+        // claim) rolls back — so a Paddle retry can genuinely try again instead
+        // of the payment being stuck "done" while the plan never upgrades.
+        const { data: result, error: processError } = await supabase
+            .rpc('process_paddle_payment', {
+                p_event_id: eventId,
+                p_user_id: userId,
+                p_plan: planInfo.plan,
+                p_limit: planInfo.limit,
+                p_amount: amount ? Number(amount) / 100 : null,
+                p_valid_until: validUntil.toISOString(),
+            })
+            .single() as { data: { claimed: boolean } | null, error: any }
 
-        if (claimError) {
-            console.error('[Paddle Webhook] Claim error:', claimError.message)
-            return NextResponse.json({ ok: true, warning: 'claim failed' })
+        if (processError) {
+            console.error('[Paddle Webhook] Processing failed, will retry on next delivery:', processError.message)
+            return NextResponse.json({ ok: false, error: 'processing failed' }, { status: 500 })
         }
 
-        if (!claimedRows || claimedRows.length === 0) {
+        if (!result?.claimed) {
             console.log('[Paddle Webhook] Duplicate event, already processed:', eventId)
             return NextResponse.json({ ok: true, duplicate: true })
-        }
-
-        const { data: existingSub } = await supabase
-            .from('subscriptions')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle()
-
-        if (existingSub) {
-            await supabase
-                .from('subscriptions')
-                .update({
-                    plan: planInfo.plan,
-                    messages_used: 0,
-                    messages_limit: planInfo.limit,
-                    valid_until: validUntil.toISOString(),
-                })
-                .eq('user_id', userId)
-        } else {
-            await supabase
-                .from('subscriptions')
-                .insert({
-                    user_id: userId,
-                    plan: planInfo.plan,
-                    messages_used: 0,
-                    messages_limit: planInfo.limit,
-                    valid_until: validUntil.toISOString(),
-                })
         }
     }
 
