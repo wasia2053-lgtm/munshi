@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
 import { Resend } from 'resend'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -13,6 +14,11 @@ export async function POST(request: Request) {
     }
 
     const business_id = user.id;
+
+    if (!(await checkRateLimit(supabase, business_id, 'whatsapp-connect-request', 3, 300))) {
+        return NextResponse.json({ error: 'Too many requests — please wait a few minutes and try again.' }, { status: 429 })
+    }
+
     const body = await request.json();
     const { phone_number, business_name, notes } = body;
 

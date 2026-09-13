@@ -1,0 +1,55 @@
+-- Custom backend-only tables (no client access — service role only, RLS
+-- enabled with no policies, matching the service-role-only pattern).
+
+CREATE TABLE IF NOT EXISTS webhook_processed_messages (
+  wa_message_id text PRIMARY KEY,
+  processed_at timestamptz DEFAULT now(),
+  status text DEFAULT 'processing',
+  updated_at timestamptz DEFAULT now(),
+  usage_charged boolean DEFAULT false
+);
+ALTER TABLE webhook_processed_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+  business_id uuid NOT NULL,
+  route text NOT NULL,
+  window_start timestamptz NOT NULL,
+  request_count int NOT NULL DEFAULT 0,
+  PRIMARY KEY (business_id, route, window_start)
+);
+ALTER TABLE api_rate_limits ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS admin_login_attempts (
+  ip text NOT NULL,
+  window_start timestamptz NOT NULL,
+  attempt_count int NOT NULL DEFAULT 0,
+  PRIMARY KEY (ip, window_start)
+);
+ALTER TABLE admin_login_attempts ENABLE ROW LEVEL SECURITY;
+
+-- Columns added to existing tables
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS usage_reset_at timestamptz DEFAULT now();
+ALTER TABLE whatsapp_numbers ADD COLUMN IF NOT EXISTS access_token text; -- AES-256-GCM encrypted, see lib/crypto.ts
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS job_id uuid; -- isolates concurrent website crawls
+
+-- Constraints
+ALTER TABLE payments ADD CONSTRAINT IF NOT EXISTS payments_reference_number_key UNIQUE (reference_number);
+
+-- Indexes (FK columns that were missing indexes — Supabase advisor findings)
+CREATE INDEX IF NOT EXISTS idx_businesses_user_id ON businesses(user_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_business_id ON conversations(business_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_business_id ON knowledge_base(business_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_connection_requests_business_id ON whatsapp_connection_requests(business_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_credentials_submissions_business_id ON whatsapp_credentials_submissions(business_id);
+
+-- IMPORTANT ARCHITECTURE NOTE: conversations.business_id and
+-- knowledge_base.business_id previously had a foreign key to businesses.id.
+-- The app actually uses auth.users.id as business_id everywhere (no
+-- businesses row is ever created for most signups), so that FK made every
+-- new customer's first conversation/training insert fail. These FKs were
+-- DROPPED — do not re-add them:
+--   ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_business_id_fkey;
+--   ALTER TABLE knowledge_base DROP CONSTRAINT IF EXISTS knowledge_base_business_id_fkey;

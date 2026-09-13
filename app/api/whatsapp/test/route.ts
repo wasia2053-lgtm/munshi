@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { decrypt } from '@/lib/crypto'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,10 @@ export async function POST(req: Request) {
     const { data: { user } } = await authClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
+
+    if (!(await checkRateLimit(authClient, business_id, 'whatsapp-test', 5, 60))) {
+      return NextResponse.json({ error: 'Too many requests — please wait a minute and try again.' }, { status: 429 })
+    }
 
     // Admin client for business operations
     const supabase = createClient(
@@ -49,7 +54,7 @@ export async function POST(req: Request) {
     const formattedPhone = phoneNumber.startsWith('92') ? `+${phoneNumber}` : phoneNumber
 
     // Send test message via Meta WhatsApp API
-    const metaResponse = await fetch(`https://graph.facebook.com/v18.0/${waNumber.phone_number_id}/messages`, {
+    const metaResponse = await fetch(`https://graph.facebook.com/v21.0/${waNumber.phone_number_id}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${waToken}`,

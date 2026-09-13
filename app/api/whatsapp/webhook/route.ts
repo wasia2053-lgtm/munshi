@@ -361,7 +361,7 @@ export async function POST(request: NextRequest) {
 
             // Send away message via WhatsApp
             const waRes = await fetch(
-              `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
+              `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
               {
                 method: 'POST',
                 headers: {
@@ -414,7 +414,7 @@ export async function POST(request: NextRequest) {
 
             // Send limit message via WhatsApp
             const waRes = await fetch(
-              `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
+              `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
               {
                 method: 'POST',
                 headers: {
@@ -549,7 +549,7 @@ ${knowledgeContext}
 
           // ─── Send WhatsApp Response ─────────────────────────
           const waRes = await fetch(
-            `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
+            `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
             {
               method: 'POST',
               headers: {
@@ -571,6 +571,17 @@ ${knowledgeContext}
             continue
           }
           console.log('✅ WhatsApp message sent!')
+          // ─── Mark completed IMMEDIATELY after the send succeeds — this is the
+          // tightest this window can practically get. A crash between the WhatsApp
+          // API call succeeding and this single UPDATE committing (network blip,
+          // function kill, etc.) is the one scenario where Meta's retry could cause
+          // a duplicate reply. This is NOT "exactly-once" — no system coupling an
+          // external side-effect (sending to Meta) to local DB state can be truly
+          // exactly-once; this is standard "at-least-once with a minimal duplicate
+          // window", the same guarantee Stripe/Twilio-style webhook integrations
+          // give. Closing it further would require consuming WhatsApp's separate
+          // message-status webhooks (sent/delivered) as a second confirmation
+          // signal — a larger change, not done here.
           await supabase.from('webhook_processed_messages').update({ status: 'completed' }).eq('wa_message_id', msg.id)
 
           // ─── Step 4: Save Outgoing Message ─────────────────────

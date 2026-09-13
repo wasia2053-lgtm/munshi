@@ -1,0 +1,56 @@
+-- Row Level Security policies — current live state, pulled from pg_policies.
+-- Pattern used throughout: business_id (or user_id) = (select auth.uid())
+-- Wrapped in (select ...) intentionally — this is a Postgres RLS performance
+-- optimization (evaluated once per query, not once per row).
+
+-- business_settings
+CREATE POLICY "bs_insert_own" ON business_settings FOR INSERT WITH CHECK (business_id = (select auth.uid()));
+CREATE POLICY "bs_select_own" ON business_settings FOR SELECT USING (business_id = (select auth.uid()));
+CREATE POLICY "bs_update_own" ON business_settings FOR UPDATE USING (business_id = (select auth.uid())) WITH CHECK (business_id = (select auth.uid()));
+
+-- businesses (legacy/OAuth scaffolding table — not used for real ownership checks elsewhere)
+CREATE POLICY "Users can read own business" ON businesses FOR SELECT USING (((select auth.uid()) = user_id) OR ((select auth.uid()) = id));
+
+-- conversations
+CREATE POLICY "conversations_select_own" ON conversations FOR SELECT USING (business_id = (select auth.uid()));
+CREATE POLICY "Users can update own conversations" ON conversations FOR UPDATE USING (business_id = (select auth.uid())) WITH CHECK (business_id = (select auth.uid()));
+
+-- knowledge_base
+CREATE POLICY "kb_delete_own" ON knowledge_base FOR DELETE USING (business_id = (select auth.uid()));
+CREATE POLICY "kb_insert_own" ON knowledge_base FOR INSERT WITH CHECK (business_id = (select auth.uid()));
+CREATE POLICY "kb_select_own" ON knowledge_base FOR SELECT USING (business_id = (select auth.uid()));
+CREATE POLICY "kb_update_own" ON knowledge_base FOR UPDATE USING (business_id = (select auth.uid())) WITH CHECK (business_id = (select auth.uid()));
+
+-- messages (scoped via parent conversation — messages has no business_id column)
+CREATE POLICY "messages_select_own" ON messages FOR SELECT USING (
+  EXISTS (SELECT 1 FROM conversations c WHERE c.id = messages.conversation_id AND c.business_id = (select auth.uid()))
+);
+
+-- notifications
+CREATE POLICY "notifications_delete_own" ON notifications FOR DELETE USING (business_id = (select auth.uid()));
+CREATE POLICY "notifications_insert_own" ON notifications FOR INSERT WITH CHECK (business_id = (select auth.uid()));
+CREATE POLICY "notifications_select_own" ON notifications FOR SELECT USING (business_id = (select auth.uid()));
+CREATE POLICY "notifications_update_own" ON notifications FOR UPDATE USING (business_id = (select auth.uid())) WITH CHECK (business_id = (select auth.uid()));
+
+-- payments
+CREATE POLICY "payments_select_own" ON payments FOR SELECT USING (user_id = (select auth.uid()));
+
+-- subscriptions (service_role_all is scoped to the service_role DB role only —
+-- safe despite qual=true, since anon/authenticated can never connect as that role)
+CREATE POLICY "users_read_own" ON subscriptions FOR SELECT USING (user_id = (select auth.uid()));
+
+-- whatsapp_connection_requests
+CREATE POLICY "Users can insert own requests" ON whatsapp_connection_requests FOR INSERT WITH CHECK (business_id = (select auth.uid()));
+CREATE POLICY "Users can view own requests" ON whatsapp_connection_requests FOR SELECT USING (business_id = (select auth.uid()));
+
+-- whatsapp_credentials_submissions (access_token column is AES-256-GCM encrypted at the app layer)
+CREATE POLICY "Users can insert own submissions" ON whatsapp_credentials_submissions FOR INSERT WITH CHECK (business_id = (select auth.uid()));
+CREATE POLICY "Users can view own submissions" ON whatsapp_credentials_submissions FOR SELECT USING (business_id = (select auth.uid()));
+
+-- whatsapp_numbers
+CREATE POLICY "whatsapp_numbers_select_own" ON whatsapp_numbers FOR SELECT USING (business_id = (select auth.uid()));
+
+-- webhook_processed_messages, api_rate_limits, admin_login_attempts:
+-- RLS enabled, NO policies — intentional. Server (service role) only, no
+-- client ever needs direct access. Supabase advisor flags this as INFO,
+-- not a real issue.
