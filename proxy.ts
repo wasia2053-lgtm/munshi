@@ -3,16 +3,16 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Fail-open on infra hiccups — don't lock everyone out if Supabase itself is down.
-async function checkAdminLoginAttempt(ip: string): Promise<boolean> {
+async function callAdminRpc(fn: string, body: object): Promise<any> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/check_admin_login_attempt`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/${fn}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
         'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
-      body: JSON.stringify({ p_ip: ip }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) return true
     return await res.json()
@@ -20,6 +20,8 @@ async function checkAdminLoginAttempt(ip: string): Promise<boolean> {
     return true
   }
 }
+const isNotLockedOut = (ip: string) => callAdminRpc('check_admin_lockout', { p_ip: ip })
+const recordFailure = (ip: string) => callAdminRpc('record_admin_login_failure', { p_ip: ip })
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
@@ -43,10 +45,11 @@ export async function proxy(request: NextRequest) {
         headers: { 'WWW-Authenticate': 'Basic realm="Munshi Admin"' },
       })
 
-    // Brute-force lockout — max 5 attempts per IP per 5 minutes, checked
-    // before we even look at the credentials.
-    if (!(await checkAdminLoginAttempt(ip))) {
-      return new NextResponse('Too many login attempts. Please try again in a few minutes.', { status: 429 })
+    // Brute-force lockout — max 5 WRONG attempts per IP per 5 minutes.
+    // (Correct logins never count — a legitimate admin refreshing the page
+    // repeatedly should never lock themselves out.)
+    if (!(await isNotLockedOut(ip))) {
+      return new NextResponse('Too many failed login attempts. Please try again in a few minutes.', { status: 429 })
     }
 
     if (!validUser || !validPass) {
@@ -62,6 +65,7 @@ export async function proxy(request: NextRequest) {
     const [user, pass] = decoded.split(':')
 
     if (user !== validUser || pass !== validPass) {
+      await recordFailure(ip)
       return unauthorized()
     }
     // credentials good — fall through, let the page load

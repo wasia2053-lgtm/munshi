@@ -16,12 +16,13 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-    const { data: allowed } = await supabase.rpc('check_admin_login_attempt', { p_ip: ip })
-    if (allowed === false) {
-        return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
+    const { data: notLockedOut } = await supabase.rpc('check_admin_lockout', { p_ip: ip })
+    if (notLockedOut === false) {
+        return NextResponse.json({ error: 'Too many failed attempts. Please try again later.' }, { status: 429 })
     }
 
     if (!isAuthorized(request)) {
+        await supabase.rpc('record_admin_login_failure', { p_ip: ip })
         return NextResponse.json({ error: 'Forbidden' }, {
             status: 401,
             headers: { 'WWW-Authenticate': 'Basic realm="Munshi Admin"' },
