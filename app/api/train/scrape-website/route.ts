@@ -96,7 +96,26 @@ async function fetchPage(url: string, redirectsLeft = 5): Promise<string | null>
       console.log(`❌ Failed: ${res.status} ${res.statusText}`)
       return null
     }
-    return await res.text()
+
+    // ─── Cap response size — was reading unlimited bytes into memory ───
+    const MAX_BYTES = 5 * 1024 * 1024 // 5MB per page, plenty for any real webpage
+    const reader = res.body?.getReader()
+    if (!reader) return await res.text()
+
+    const chunks: Uint8Array[] = []
+    let received = 0
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      received += value.length
+      if (received > MAX_BYTES) {
+        console.log(`❌ Response too large (>${MAX_BYTES} bytes), aborting: ${url}`)
+        reader.cancel()
+        return null
+      }
+      chunks.push(value)
+    }
+    return Buffer.concat(chunks.map(c => Buffer.from(c))).toString('utf-8')
   } catch (e: any) {
     console.log(`❌ Fetch error for ${url}: ${e.message}`)
     return null
@@ -204,6 +223,9 @@ export async function POST(request: NextRequest) {
       .eq('source_type', 'website_pending')
       .lt('created_at', staleCutoff)
 
+    let totalBytes = 0
+    const MAX_TOTAL_BYTES = 25 * 1024 * 1024 // 25MB across the whole crawl
+
     while (queue.length > 0 && visited.size < MAX_PAGES) {
       const currentUrl = queue.shift()!
 
@@ -214,6 +236,12 @@ export async function POST(request: NextRequest) {
 
       const html = await fetchPage(currentUrl)
       if (!html) continue
+
+      totalBytes += Buffer.byteLength(html, 'utf-8')
+      if (totalBytes > MAX_TOTAL_BYTES) {
+        console.log(`❌ Total crawl size exceeded ${MAX_TOTAL_BYTES} bytes — stopping crawl early`)
+        break
+      }
 
       const content = extractContent(html, currentUrl)
       results.push({ url: currentUrl, content })

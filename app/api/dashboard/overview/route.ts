@@ -43,6 +43,17 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const range = searchParams.get('range') || '1m'
     const business_id = user.id
+
+    // ─── Plan gate: Analytics is Growth plan and above only ───
+    const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('plan')
+        .eq('user_id', business_id)
+        .single()
+    if (!sub || sub.plan === 'starter' || sub.plan === 'basic') {
+        return NextResponse.json({ error: 'Analytics is available on the Growth plan and above. Please upgrade to use this feature.' }, { status: 403 })
+    }
+
     const isAllTime = range === 'all'
     const days = rangeDays(range)
 
