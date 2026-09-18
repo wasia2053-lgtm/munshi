@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
 const PLAN_PAGE_LIMITS: Record<string, number> = {
   starter: 5,
   basic: 10,
-  growth: 15,
-  pro: 20,
+  growth: 20,
+  pro: 25,
 }
 const DEFAULT_PAGE_LIMIT = 5 // safest default if no subscription row found
 

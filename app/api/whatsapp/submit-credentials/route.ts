@@ -53,11 +53,11 @@ export async function POST(request: Request) {
     try {
         await resend.emails.send({
             from: 'Munshi Alerts <onboarding@resend.dev>',
-            to: 'shahmeershaikh900@gmail.com',
+            to: process.env.ADMIN_ALERT_EMAIL || 'shahmeershaikh900@gmail.com',
             subject: 'New WhatsApp Credentials Submitted',
             html: `<p>New credentials submitted for review.</p>
              <p><strong>Phone Number ID:</strong> ${phone_number_id}</p>
-             <p>Check the admin panel: munshi-theta.vercel.app/admin/requests</p>`
+             <p>Check the admin panel: ${process.env.ADMIN_URL || 'munshi-theta.vercel.app'}/admin/requests</p>`
         })
     } catch (emailError) {
         console.error('Email alert failed:', emailError)

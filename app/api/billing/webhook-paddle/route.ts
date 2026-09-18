@@ -98,8 +98,30 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    // subscription.canceled — optionally downgrade at period end; left as a no-op
-    // for now since valid_until already governs access expiry.
+    if (eventType === 'subscription.canceled') {
+        // Access still correctly expires via valid_until (already set from the
+        // last successful payment) — no DB change needed for that. But a
+        // cancellation being completely invisible to the founder is a real gap,
+        // so at minimum: log it clearly and email an alert.
+        const sub = event.data
+        const userId = sub.custom_data?.user_id
+        console.log('[Paddle Webhook] Subscription canceled for user:', userId)
+
+        try {
+            const { Resend } = await import('resend')
+            const resend = new Resend(process.env.RESEND_API_KEY)
+            await resend.emails.send({
+                from: 'Munshi Alerts <onboarding@resend.dev>',
+                to: process.env.ADMIN_ALERT_EMAIL || 'shahmeershaikh900@gmail.com',
+                subject: 'Paddle subscription canceled',
+                html: `<p>A subscription was canceled via Paddle.</p><p><strong>User ID:</strong> ${userId || 'unknown'}</p><p>Access will expire naturally at their current valid_until date — no immediate action needed, just visibility.</p>`
+            })
+        } catch (emailError) {
+            console.error('[Paddle Webhook] Cancellation alert email failed:', emailError)
+        }
+
+        return NextResponse.json({ ok: true })
+    }
 
     return NextResponse.json({ ok: true })
 }

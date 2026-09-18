@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-server'
+import crypto from 'crypto'
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+    const hashA = crypto.createHash('sha256').update(a).digest()
+    const hashB = crypto.createHash('sha256').update(b).digest()
+    return crypto.timingSafeEqual(hashA, hashB)
+}
 
 function isAuthorized(req: Request): boolean {
     const authHeader = req.headers.get('authorization')
@@ -9,7 +16,7 @@ function isAuthorized(req: Request): boolean {
 
     const decoded = Buffer.from(authHeader.split(' ')[1], 'base64').toString()
     const [user, pass] = decoded.split(':')
-    return user === validUser && pass === validPass
+    return timingSafeStringEqual(user || '', validUser) && timingSafeStringEqual(pass || '', validPass)
 }
 
 export async function GET(request: Request) {

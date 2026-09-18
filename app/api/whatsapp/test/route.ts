@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       const errorData = await metaResponse.json()
       console.error('Meta API error:', errorData)
       return NextResponse.json({
-        error: `WhatsApp API error: ${errorData.error?.message || 'Unknown error'}`
+        error: 'Failed to send test message. Please check your WhatsApp connection and try again.'
       }, { status: 500 })
     }
 

@@ -1,6 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import crypto from 'crypto'
+
+// Plain === comparison leaks timing information proportional to how many
+// characters matched — a timing attack can slowly guess the password.
+// Hash both sides to a fixed length first, then compare in constant time.
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const hashA = crypto.createHash('sha256').update(a).digest()
+  const hashB = crypto.createHash('sha256').update(b).digest()
+  return crypto.timingSafeEqual(hashA, hashB)
+}
 
 // Fail-open on infra hiccups — don't lock everyone out if Supabase itself is down.
 async function callAdminRpc(fn: string, body: object): Promise<any> {
@@ -64,7 +74,7 @@ export async function proxy(request: NextRequest) {
     const decoded = Buffer.from(authHeader.split(' ')[1], 'base64').toString()
     const [user, pass] = decoded.split(':')
 
-    if (user !== validUser || pass !== validPass) {
+    if (!timingSafeStringEqual(user, validUser) || !timingSafeStringEqual(pass, validPass)) {
       await recordFailure(ip)
       return unauthorized()
     }

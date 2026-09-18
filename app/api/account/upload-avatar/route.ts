@@ -49,13 +49,19 @@ export async function POST(req: Request) {
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, buffer, { contentType: file.type, upsert: true })
-    if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+    if (uploadError) {
+      console.error('Avatar upload error:', uploadError.message)
+      return NextResponse.json({ error: 'Something went wrong uploading your avatar. Please try again.' }, { status: 500 })
+    }
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
 
     // avatar_url lives on business_settings, NOT businesses — was silently failing before
     const { error: dbError } = await supabase.from('business_settings')
       .upsert({ business_id, avatar_url: publicUrl })
-    if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
+    if (dbError) {
+      console.error('Avatar db save error:', dbError.message)
+      return NextResponse.json({ error: 'Something went wrong saving your avatar. Please try again.' }, { status: 500 })
+    }
 
     return NextResponse.json({ avatar_url: publicUrl })
   } catch (e) {
