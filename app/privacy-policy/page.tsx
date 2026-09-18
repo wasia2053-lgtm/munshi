@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
       title: 'Introduction',
       content: (
         <p>
-          Munshi AI ("we", "us", "our") operates munshi-theta.vercel.app — a WhatsApp AI automation platform for small and medium businesses.
+          Munshi AI ("we", "us", "our") operates {(process.env.NEXT_PUBLIC_SITE_URL || 'https://munshi-theta.vercel.app').replace(/^https?:\/\//, '')} — a WhatsApp AI automation platform for small and medium businesses.
           This Privacy Policy explains what data we collect, how we use it, and your rights regarding that data.
           By using our services, you agree to the practices described here.
         </p>

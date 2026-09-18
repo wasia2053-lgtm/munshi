@@ -11,7 +11,7 @@ export default function TermsOfService() {
       title: 'Agreement to Terms',
       content: (
         <p>
-          By accessing or using Munshi AI ("Service") at munshi-theta.vercel.app, you agree to be bound by these Terms of Service.
+          By accessing or using Munshi AI ("Service") at {(process.env.NEXT_PUBLIC_SITE_URL || 'https://munshi-theta.vercel.app').replace(/^https?:\/\//, '')}, you agree to be bound by these Terms of Service.
           If you do not agree, do not use the Service. These terms apply to all users, including businesses and individuals.
         </p>
       )
