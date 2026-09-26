@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
         const userId = tx.custom_data?.user_id
         const priceId = tx.items?.[0]?.price?.id
         const amount = tx.details?.totals?.total // in smallest currency unit (cents)
+        const paddleSubId = tx.subscription_id ?? null
 
         const planInfo = priceId ? PRICE_TO_PLAN[priceId] : undefined
 
@@ -68,8 +69,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, warning: 'user_id or plan unresolved' })
         }
 
-        const validUntil = new Date()
-        validUntil.setDate(validUntil.getDate() + 30)
+        // Prefer Paddle's real billing period end over a guessed +30 days.
+        // billing_period is present on subscription-renewal transactions; the
+        // very first transaction on some setups may not have it yet, so keep
+        // the +30 day fallback for that edge case only.
+        const periodEnd = tx.billing_period?.ends_at
+        const validUntil = periodEnd ? new Date(periodEnd) : new Date()
+        if (!periodEnd) validUntil.setDate(validUntil.getDate() + 30)
 
         // ─── Atomic: payment claim + subscription upgrade, all-or-nothing. ───
         // If two requests race, only ONE gets claimed=true. If the subscription
@@ -84,6 +90,7 @@ export async function POST(req: NextRequest) {
                 p_limit: planInfo.limit,
                 p_amount: amount ? Number(amount) / 100 : null,
                 p_valid_until: validUntil.toISOString(),
+                p_paddle_subscription_id: paddleSubId,
             })
             .single() as { data: { claimed: boolean } | null, error: any }
 
@@ -98,14 +105,109 @@ export async function POST(req: NextRequest) {
         }
     }
 
+    if (eventType === 'transaction.payment_failed') {
+        // No valid_until change here — access simply lapses naturally at the
+        // existing valid_until if no new transaction.completed extends it.
+        // This branch is purely: flag status for visibility + warn the user
+        // so they can fix their card before access actually lapses.
+        const tx = event.data
+        const userId = tx.custom_data?.user_id
+
+        if (!userId) {
+            console.error('[Paddle Webhook] payment_failed with no user_id')
+            return NextResponse.json({ ok: true, warning: 'user_id unresolved' })
+        }
+
+        const { error: statusError } = await supabase
+            .from('subscriptions')
+            .update({ status: 'past_due' })
+            .eq('user_id', userId)
+
+        if (statusError) {
+            console.error('[Paddle Webhook] Failed to set past_due status:', statusError.message)
+        }
+
+        const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('valid_until')
+            .eq('user_id', userId)
+            .single()
+
+        await supabase.from('notifications').insert({
+            business_id: userId,
+            type: 'billing',
+            title: 'Payment failed',
+            message: sub?.valid_until
+                ? `Your last payment didn't go through. Please update your payment method before ${new Date(sub.valid_until).toLocaleDateString()} to keep your bot active.`
+                : `Your last payment didn't go through. Please update your payment method to keep your bot active.`,
+        })
+
+        try {
+            const { Resend } = await import('resend')
+            const resend = new Resend(process.env.RESEND_API_KEY)
+            await resend.emails.send({
+                from: 'Munshi Alerts <onboarding@resend.dev>',
+                to: process.env.ADMIN_ALERT_EMAIL || 'shahmeershaikh900@gmail.com',
+                subject: 'Paddle payment failed',
+                html: `<p>A payment failed via Paddle.</p><p><strong>User ID:</strong> ${userId}</p>`,
+            })
+        } catch (emailError) {
+            console.error('[Paddle Webhook] payment_failed alert email failed:', emailError)
+        }
+
+        return NextResponse.json({ ok: true })
+    }
+
+    if (eventType === 'subscription.updated') {
+        // Syncs status for visibility (active / past_due / paused / trialing).
+        // Does not touch valid_until — that only changes on a real
+        // transaction.completed, so a status flip here can never extend or
+        // shorten actual access by itself.
+        const sub = event.data
+        const userId = sub.custom_data?.user_id
+        const status = sub.status // paddle: active | past_due | paused | trialing | canceled
+
+        if (!userId || !status) {
+            return NextResponse.json({ ok: true, warning: 'user_id or status unresolved' })
+        }
+
+        const { error } = await supabase
+            .from('subscriptions')
+            .update({ status })
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('[Paddle Webhook] subscription.updated sync failed:', error.message)
+        }
+
+        return NextResponse.json({ ok: true })
+    }
+
     if (eventType === 'subscription.canceled') {
         // Access still correctly expires via valid_until (already set from the
-        // last successful payment) — no DB change needed for that. But a
-        // cancellation being completely invisible to the founder is a real gap,
-        // so at minimum: log it clearly and email an alert.
+        // last successful payment) — but the founder-visible status must
+        // reflect reality now, not just get an email that's easy to miss.
         const sub = event.data
         const userId = sub.custom_data?.user_id
         console.log('[Paddle Webhook] Subscription canceled for user:', userId)
+
+        if (userId) {
+            const { error } = await supabase
+                .from('subscriptions')
+                .update({ status: 'canceled' })
+                .eq('user_id', userId)
+
+            if (error) {
+                console.error('[Paddle Webhook] Failed to set canceled status:', error.message)
+            }
+
+            await supabase.from('notifications').insert({
+                business_id: userId,
+                type: 'billing',
+                title: 'Subscription canceled',
+                message: 'Your subscription has been canceled. Your bot will remain active until your current billing period ends.',
+            })
+        }
 
         try {
             const { Resend } = await import('resend')
