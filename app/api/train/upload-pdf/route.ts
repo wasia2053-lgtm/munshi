@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
+import { PDFParse } from 'pdf-parse'
+
+// pdf-parse uses pdfjs under the hood — needs real Node APIs, not the Edge runtime.
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,12 +44,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'File too large (max 10MB)' }, { status: 400 })
     }
 
-    // PDF se text extract karo — binary safe method
+    // PDF se text extract karo — real parser (pdf-parse v2 / pdfjs), regex-guessing nahi
     const arrayBuffer = await file.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
+    const buffer = Buffer.from(arrayBuffer)
 
-    // PDF text extraction — strings dhundo PDF binary mein
-    const extractedText = extractTextFromPDFBytes(bytes)
+    let extractedText = ''
+    let parser: InstanceType<typeof PDFParse> | null = null
+    try {
+      parser = new PDFParse({ data: buffer })
+      const result = await parser.getText()
+      extractedText = result.text || ''
+    } catch (parseError: any) {
+      console.error('[PDF Upload] Parse error:', parseError?.message || parseError)
+      // Password-protected / corrupt / genuinely unparsable PDF — clear message,
+      // not a generic 500, so the user knows it's the file not the server.
+      return NextResponse.json({
+        success: false,
+        error: 'Could not read this PDF. It may be password-protected or corrupted — please try a different file.'
+      }, { status: 400 })
+    } finally {
+      if (parser) await parser.destroy()
+    }
 
     if (!extractedText || extractedText.trim().length < 20) {
       return NextResponse.json({
@@ -111,72 +130,4 @@ export async function POST(request: NextRequest) {
       error: 'Something went wrong. Please try again.'
     }, { status: 500 })
   }
-}
-
-// ── PDF bytes se readable text extract karo ──
-function extractTextFromPDFBytes(bytes: Uint8Array): string {
-  // PDF binary ko Latin-1 string mein convert karo
-  let pdfString = ''
-  for (let i = 0; i < bytes.length; i++) {
-    pdfString += String.fromCharCode(bytes[i])
-  }
-
-  const texts: string[] = []
-
-  // Method 1: BT...ET blocks (standard PDF text)
-  const btEtRegex = /BT\s*([\s\S]*?)\s*ET/g
-  let btMatch
-  while ((btMatch = btEtRegex.exec(pdfString)) !== null) {
-    const block = btMatch[1]
-    // Extract strings from Tj, TJ, ' operators
-    const strRegex = /\(([^)]*)\)\s*(?:Tj|'|")/g
-    let strMatch
-    while ((strMatch = strRegex.exec(block)) !== null) {
-      const decoded = decodePDFString(strMatch[1])
-      if (decoded.trim()) texts.push(decoded)
-    }
-    // TJ arrays
-    const tjArrayRegex = /\[([^\]]*)\]\s*TJ/g
-    let tjMatch
-    while ((tjMatch = tjArrayRegex.exec(block)) !== null) {
-      const arrayContent = tjMatch[1]
-      const innerStrRegex = /\(([^)]*)\)/g
-      let innerMatch
-      while ((innerMatch = innerStrRegex.exec(arrayContent)) !== null) {
-        const decoded = decodePDFString(innerMatch[1])
-        if (decoded.trim()) texts.push(decoded)
-      }
-    }
-  }
-
-  // Method 2: stream blocks (fallback)
-  if (texts.length === 0) {
-    const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g
-    let streamMatch
-    while ((streamMatch = streamRegex.exec(pdfString)) !== null) {
-      const streamContent = streamMatch[1]
-      const printable = streamContent
-        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      if (printable.length > 30) {
-        const words = printable.split(' ').filter(w => w.length > 2 && /[a-zA-Z]/.test(w))
-        if (words.length > 10) texts.push(words.join(' '))
-      }
-    }
-  }
-
-  return texts.join(' ')
-}
-
-// ── PDF string escapes decode karo ──
-function decodePDFString(str: string): string {
-  return str
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
-    .replace(/\\\(/g, '(')
-    .replace(/\\\)/g, ')')
-    .replace(/\\\\/g, '\\')
-    .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
 }
