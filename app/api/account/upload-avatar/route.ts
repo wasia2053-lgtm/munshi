@@ -44,6 +44,31 @@ export async function POST(req: Request) {
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+
+    // ─── Magic-byte check: file.type is just a client-sent label, easy to
+    // spoof (rename a .html/.svg/anything to .jpg). Verify the actual first
+    // bytes of the file match a real image of the claimed type before we
+    // trust it and store it. ───
+    function matchesImageSignature(buf: Buffer, declaredType: string): boolean {
+      if (buf.length < 12) return false
+      switch (declaredType) {
+        case 'image/jpeg':
+          return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff
+        case 'image/png':
+          return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+            buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a
+        case 'image/gif':
+          return buf.toString('ascii', 0, 6) === 'GIF87a' || buf.toString('ascii', 0, 6) === 'GIF89a'
+        case 'image/webp':
+          return buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP'
+        default:
+          return false
+      }
+    }
+    if (!matchesImageSignature(buffer, file.type)) {
+      return NextResponse.json({ error: 'This file does not look like a valid image. Please upload a real JPG, PNG, WEBP or GIF.' }, { status: 400 })
+    }
+
     const fileName = `avatar-${business_id}.${ext}`
     await supabase.storage.createBucket('avatars', { public: true }).catch(() => { })
     const { error: uploadError } = await supabase.storage
