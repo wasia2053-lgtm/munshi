@@ -7,6 +7,9 @@ import * as cheerio from 'cheerio'
 import dns from 'dns/promises'
 import net from 'net'
 import crypto from 'crypto'
+import https from 'https'
+import http from 'http'
+import zlib from 'zlib'
 
 export const maxDuration = 60 // 60 second timeout
 export const dynamic = 'force-dynamic'
@@ -63,64 +66,135 @@ async function isSafeUrl(urlString: string): Promise<boolean> {
   return true
 }
 
-async function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
+// ─── Resolve + validate in one step, then hand back the actual IP to connect
+// to. This closes the DNS-rebinding TOCTOU gap: previously isSafeUrl() did a
+// DNS lookup to validate the hostname, and THEN fetch() did its own separate
+// DNS lookup to actually connect — an attacker controlling DNS for their
+// domain could return a safe IP for the first lookup and a private/internal
+// IP for the second, slipping past validation entirely. Resolving once here
+// and connecting directly to that exact IP (see fetchPage below) means there
+// is no second, unvalidated lookup for an attacker to race. ───
+async function resolveValidatedIp(hostname: string): Promise<string | null> {
   try {
-    const res = await fetch(url, {
+    const addresses = await dns.lookup(hostname, { all: true })
+    if (addresses.length === 0) return null
+    for (const addr of addresses) {
+      if (isPrivateIp(addr.address)) return null
+    }
+    return addresses[0].address
+  } catch {
+    return null // can't resolve — don't trust it
+  }
+}
+
+function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
+  return new Promise(async (resolvePromise) => {
+    let parsed: URL
+    try {
+      parsed = new URL(url)
+    } catch {
+      return resolvePromise(null)
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return resolvePromise(null)
+
+    const hostname = parsed.hostname.toLowerCase()
+    if (hostname === 'localhost' || hostname.endsWith('.local')) return resolvePromise(null)
+
+    const ip = await resolveValidatedIp(hostname)
+    if (!ip) {
+      console.log(`❌ DNS validation failed or resolved to a disallowed address: ${hostname}`)
+      return resolvePromise(null)
+    }
+
+    const isHttps = parsed.protocol === 'https:'
+    const lib = isHttps ? https : http
+
+    const req = lib.request({
+      host: ip, // connect to the pre-validated IP directly — not the hostname —
+      // so nothing re-resolves DNS between validation and connection
+      port: parsed.port || (isHttps ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: 'GET',
       headers: {
+        'Host': hostname, // preserve virtual-hosting
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
+        'Connection': 'close',
       },
-      redirect: 'manual', // don't blindly follow — a redirect could point at an internal address
-      signal: AbortSignal.timeout(15000)
+      servername: isHttps ? hostname : undefined, // correct TLS SNI + cert check against the real hostname, not the IP
+      signal: AbortSignal.timeout(15000),
+    }, (res) => {
+      // Manual redirect handling — the recursive fetchPage() call re-runs the
+      // full resolve+validate+pin flow for the new destination.
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+        const location = res.headers.location
+        res.resume()
+        if (!location || redirectsLeft <= 0) {
+          console.log(`❌ Redirect blocked (no location or too many hops): ${url}`)
+          return resolvePromise(null)
+        }
+        let nextUrl: string
+        try {
+          nextUrl = new URL(location, url).toString()
+        } catch {
+          return resolvePromise(null)
+        }
+        return resolvePromise(fetchPage(nextUrl, redirectsLeft - 1))
+      }
+
+      console.log(`📡 Fetch ${url} → Status: ${res.statusCode}`)
+      if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+        res.resume()
+        console.log(`❌ Failed: ${res.statusCode}`)
+        return resolvePromise(null)
+      }
+
+      // ─── Cap response size — was reading unlimited bytes into memory ───
+      const MAX_BYTES = 5 * 1024 * 1024 // 5MB per page, plenty for any real webpage
+      const chunks: Buffer[] = []
+      let received = 0
+      let aborted = false
+
+      res.on('data', (chunk: Buffer) => {
+        received += chunk.length
+        if (received > MAX_BYTES) {
+          console.log(`❌ Response too large (>${MAX_BYTES} bytes), aborting: ${url}`)
+          aborted = true
+          req.destroy()
+          resolvePromise(null)
+        } else {
+          chunks.push(chunk)
+        }
+      })
+
+      res.on('end', () => {
+        if (aborted) return
+        const raw = Buffer.concat(chunks)
+        // fetch() used to decompress automatically — doing it ourselves now
+        // since we're on the raw http/https module.
+        const encoding = res.headers['content-encoding']
+        try {
+          let out: Buffer
+          if (encoding === 'gzip') out = zlib.gunzipSync(raw)
+          else if (encoding === 'br') out = zlib.brotliDecompressSync(raw)
+          else if (encoding === 'deflate') out = zlib.inflateSync(raw)
+          else out = raw
+          resolvePromise(out.toString('utf-8'))
+        } catch (e: any) {
+          console.log(`❌ Decompression failed for ${url}: ${e.message}`)
+          resolvePromise(null)
+        }
+      })
     })
 
-    // Manual redirect: re-validate the destination before following it (SSRF guard)
-    if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get('location')
-      if (!location || redirectsLeft <= 0) {
-        console.log(`❌ Redirect blocked (no location or too many hops): ${url}`)
-        return null
-      }
-      const nextUrl = new URL(location, url).toString()
-      if (!(await isSafeUrl(nextUrl))) {
-        console.log(`❌ Redirect blocked — destination not allowed: ${nextUrl}`)
-        return null
-      }
-      return fetchPage(nextUrl, redirectsLeft - 1)
-    }
-
-    console.log(`📡 Fetch ${url} → Status: ${res.status}`)
-    if (!res.ok) {
-      console.log(`❌ Failed: ${res.status} ${res.statusText}`)
-      return null
-    }
-
-    // ─── Cap response size — was reading unlimited bytes into memory ───
-    const MAX_BYTES = 5 * 1024 * 1024 // 5MB per page, plenty for any real webpage
-    const reader = res.body?.getReader()
-    if (!reader) return await res.text()
-
-    const chunks: Uint8Array[] = []
-    let received = 0
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      received += value.length
-      if (received > MAX_BYTES) {
-        console.log(`❌ Response too large (>${MAX_BYTES} bytes), aborting: ${url}`)
-        reader.cancel()
-        return null
-      }
-      chunks.push(value)
-    }
-    return Buffer.concat(chunks.map(c => Buffer.from(c))).toString('utf-8')
-  } catch (e: any) {
-    console.log(`❌ Fetch error for ${url}: ${e.message}`)
-    return null
-  }
+    req.on('error', (e: any) => {
+      console.log(`❌ Fetch error for ${url}: ${e.message}`)
+      resolvePromise(null)
+    })
+    req.end()
+  })
 }
 
 function extractLinks(html: string, baseUrl: string): string[] {
