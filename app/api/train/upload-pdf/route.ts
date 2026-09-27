@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
+import { createAdminClient } from '../../../../lib/supabase-server'
 import { PDFParse } from 'pdf-parse'
 
 // pdf-parse uses pdfjs under the hood — needs real Node APIs, not the Edge runtime.
@@ -19,7 +20,8 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
-    if (!(await checkRateLimit(supabase, business_id, 'upload-pdf', 5, 60))) {
+    const admin = createAdminClient()
+    if (!(await checkRateLimit(admin, business_id, 'upload-pdf', 5, 60))) {
       return NextResponse.json({ error: 'Too many training requests — please wait a minute and try again.' }, { status: 429 })
     }
 
@@ -56,8 +58,6 @@ export async function POST(request: NextRequest) {
       extractedText = result.text || ''
     } catch (parseError: any) {
       console.error('[PDF Upload] Parse error:', parseError?.message || parseError)
-      // Password-protected / corrupt / genuinely unparsable PDF — clear message,
-      // not a generic 500, so the user knows it's the file not the server.
       return NextResponse.json({
         success: false,
         error: 'Could not read this PDF. It may be password-protected or corrupted — please try a different file.'

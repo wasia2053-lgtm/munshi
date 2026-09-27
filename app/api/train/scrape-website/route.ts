@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
+import { createAdminClient } from '../../../../lib/supabase-server'
 import * as cheerio from 'cheerio'
 import dns from 'dns/promises'
 import net from 'net'
@@ -182,7 +183,14 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
-    if (!(await checkRateLimit(supabase, business_id, 'scrape-website', 5, 60))) {
+    // NOTE: `supabase` above runs as role 'authenticated' (not service_role)
+    // once a real user session exists from cookies, even though it was built
+    // with the service key — @supabase/ssr swaps in the user's own JWT.
+    // check_rate_limit and promote_website_knowledge are locked to
+    // service_role only, so both need a real admin client (below), not this one.
+    const admin = createAdminClient()
+
+    if (!(await checkRateLimit(admin, business_id, 'scrape-website', 5, 60))) {
       return NextResponse.json({ error: 'Too many training requests — please wait a minute and try again.' }, { status: 429 })
     }
 
@@ -279,7 +287,7 @@ export async function POST(request: NextRequest) {
 
     // Truly atomic swap — one DB function call, one transaction. If it fails
     // partway, Postgres rolls the whole thing back: old knowledge stays intact.
-    const { error: promoteError } = await supabase.rpc('promote_website_knowledge', { p_business_id: business_id, p_job_id: jobId })
+    const { error: promoteError } = await admin.rpc('promote_website_knowledge', { p_business_id: business_id, p_job_id: jobId })
     if (promoteError) {
       console.error('❌ Promotion failed:', promoteError.message)
       return NextResponse.json({ error: 'Could not save the crawled data. Old training data was kept as-is.' }, { status: 500 })

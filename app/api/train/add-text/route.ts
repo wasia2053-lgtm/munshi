@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
+import { createAdminClient } from '../../../../lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +16,11 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
-    if (!(await checkRateLimit(supabase, business_id, 'add-text', 5, 60))) {
+    const admin = createAdminClient()
+    if (!(await checkRateLimit(admin, business_id, 'add-text', 5, 60))) {
       return NextResponse.json({ error: 'Too many training requests — please wait a minute and try again.' }, { status: 429 })
     }
 
-    // ─── Plan gate: Text training is Basic plan and above only ───
     const { data: sub } = await supabase
       .from('subscriptions')
       .select('plan')
@@ -57,8 +58,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Something went wrong. Please try again.' }, { status: 500 })
     }
 
-
-    // Training complete notification
     await supabase
       .from('notifications')
       .insert({
