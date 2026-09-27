@@ -25,12 +25,12 @@ import {
 } from "lucide-react"
 
 type TrainingItem = {
+    id: string
     source_type: string
     source_url: string
     chunks_count: number | null
     created_at: string
 }
-
 type Tab = "website" | "pdf" | "text"
 
 const progressSteps = [
@@ -195,14 +195,14 @@ export function TrainingView() {
         }
     }
 
-    async function handleDelete(sourceUrl: string) {
+    async function handleDelete(id: string) {
         if (!confirm('Delete this training source?')) return
         try {
             const res = await fetch('/api/train/delete', {
                 method: 'DELETE',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: sourceUrl })
+                body: JSON.stringify({ id })
             })
             const { error } = await res.json()
             if (!error) {
@@ -407,8 +407,8 @@ export function TrainingView() {
                             </div>
                         ) : (
                             <div className="space-y-2 max-h-[420px] overflow-y-auto">
-                                {history.map((item, i) => (
-                                    <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 border border-border rounded-lg">
+                                {history.map((item) => (
+                                    <div key={item.id} className="flex items-start gap-3 p-3 bg-muted/50 border border-border rounded-lg">
                                         <div className="size-8 rounded-lg bg-[var(--chart-1)]/10 text-[var(--chart-1)] flex items-center justify-center shrink-0">
                                             {sourceIcon(item.source_type)}
                                         </div>
@@ -421,7 +421,7 @@ export function TrainingView() {
                                             </p>
                                         </div>
                                         <button
-                                            onClick={() => handleDelete(item.source_url)}
+                                            onClick={() => handleDelete(item.id)}
                                             className="text-muted-foreground hover:text-destructive transition-colors p-1"
                                             title="Delete"
                                         >
