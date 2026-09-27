@@ -77,20 +77,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
       }
 
-      // Insert into businesses table
-      const { error: businessInsertError } = await supabase
-        .from('businesses')
-        .insert({
-          id: user.id,
-          user_id: user.id,
-          name: user.email || '',
-        })
-
-      if (businessInsertError) {
-        console.error('Business insert error:', businessInsertError)
-        return NextResponse.redirect(`${requestUrl.origin}/auth/login?error=auth`)
-      }
-
       // Create Starter subscription row — was missing before, letting the
       // usage RPC treat this user as unlimited (no row to enforce against)
       const { error: subInsertError } = await supabase
