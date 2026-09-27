@@ -22,7 +22,7 @@ function isAuthorized(req: Request): boolean {
 export async function GET(request: Request) {
     const supabase = createAdminClient();
 
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     const { data: notLockedOut } = await supabase.rpc('check_admin_lockout', { p_ip: ip })
     if (notLockedOut === false) {
         return NextResponse.json({ error: 'Too many failed attempts. Please try again later.' }, { status: 429 })
