@@ -197,6 +197,53 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
   })
 }
 
+// ─── Shopify stores route ALL storefront traffic through Cloudflare's bot
+// protection, which blocks non-browser/server-side requests (this is a
+// Shopify platform default, not something the merchant configured). Most
+// Shopify stores still leave `/products.json` publicly readable though — it's
+// an official, documented public endpoint meant for exactly this kind of
+// integration — and on stores without heavier (paid, enterprise) bot
+// protection it often gets through even when the HTML pages don't. Try it
+// first; if it's blocked too or the site isn't Shopify, we fall back to the
+// normal HTML crawl below untouched. ───
+async function tryShopifyProductsJson(baseUrl: string, maxPages: number): Promise<{ url: string; content: string }[] | null> {
+  try {
+    const origin = new URL(baseUrl).origin
+    const raw = await fetchPage(`${origin}/products.json?limit=250`)
+    if (!raw) return null
+
+    let data: any
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      return null // not JSON — not a Shopify store, or the endpoint returned an HTML block page
+    }
+
+    if (!data || !Array.isArray(data.products) || data.products.length === 0) return null
+
+    const results: { url: string; content: string }[] = []
+    for (const p of data.products.slice(0, maxPages)) {
+      const price = p.variants?.[0]?.price ? `${p.variants[0].price}` : ''
+      const description = String(p.body_html || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 1500)
+      const productUrl = `${origin}/products/${p.handle}`
+      const content = `URL: ${productUrl}
+Title: ${p.title}
+Price: ${price}
+Type: ${p.product_type || ''}
+Tags: ${Array.isArray(p.tags) ? p.tags.join(', ') : p.tags || ''}
+Content: ${description}`
+      results.push({ url: productUrl, content })
+    }
+    return results
+  } catch {
+    return null
+  }
+}
+
 function extractLinks(html: string, baseUrl: string): string[] {
   const $ = cheerio.load(html)
   const links: string[] = []
@@ -308,7 +355,28 @@ export async function POST(request: NextRequest) {
     let totalBytes = 0
     const MAX_TOTAL_BYTES = 25 * 1024 * 1024 // 25MB across the whole crawl
 
-    while (queue.length > 0 && visited.size < MAX_PAGES) {
+    // ─── Try Shopify's public products.json first — see comment on
+    // tryShopifyProductsJson above for why. ───
+    const shopifyResults = await tryShopifyProductsJson(url, MAX_PAGES)
+    if (shopifyResults && shopifyResults.length > 0) {
+      console.log(`🛍️ Shopify products.json worked — ${shopifyResults.length} products, skipping HTML crawl`)
+      for (const r of shopifyResults) {
+        visited.add(r.url)
+        results.push(r)
+        await supabase.from('knowledge_base').insert({
+          business_id,
+          source_type: 'website_pending',
+          job_id: jobId,
+          source_url: r.url,
+          content: r.content,
+          chunks_count: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      }
+    }
+
+    while (results.length === 0 && queue.length > 0 && visited.size < MAX_PAGES) {
       const currentUrl = queue.shift()!
 
       if (visited.has(currentUrl)) continue
