@@ -10,6 +10,7 @@ import crypto from 'crypto'
 import https from 'https'
 import http from 'http'
 import zlib from 'zlib'
+import { Agent as UndiciAgent, fetch as undiciFetch } from 'undici'
 
 export const maxDuration = 60 // 60 second timeout
 export const dynamic = 'force-dynamic'
@@ -96,6 +97,63 @@ async function resolveValidatedIp(hostname: string): Promise<string | null> {
   }
 }
 
+// ─── Fallback transport: HTTP/2 via undici, still IP-pinned. Some CDNs (Shopify's
+// Cloudflare layer) reject the HTTP/1.1 handshake of Node's raw https module but
+// accept a browser-like HTTP/2 connection. The custom `lookup` always returns the
+// already-validated IP, so the DNS-rebinding protection is preserved. ───
+async function fetchViaHttp2(url: string, ip: string): Promise<{ status: number; body: string | null; location?: string }> {
+  const family = net.isIPv6(ip) ? 6 : 4
+  const agent = new UndiciAgent({
+    allowH2: true,
+    connect: {
+      lookup: (_host: string, opts: any, cb: any) => {
+        if (opts && opts.all) cb(null, [{ address: ip, family }])
+        else cb(null, ip, family)
+      },
+    },
+  })
+  try {
+    const res = await undiciFetch(url, {
+      dispatcher: agent,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+      },
+    })
+    const location = res.headers.get('location') || undefined
+    if (res.status < 200 || res.status >= 300) {
+      await res.body?.cancel()
+      return { status: res.status, body: null, location }
+    }
+    const MAX_BYTES = 5 * 1024 * 1024
+    const reader = res.body?.getReader()
+    if (!reader) return { status: res.status, body: await res.text() }
+    const chunks: Buffer[] = []
+    let received = 0
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      received += value.length
+      if (received > MAX_BYTES) { await reader.cancel(); return { status: res.status, body: null } }
+      chunks.push(Buffer.from(value))
+    }
+    return { status: res.status, body: Buffer.concat(chunks).toString('utf-8') }
+  } catch (e: any) {
+    console.log(`❌ HTTP/2 fallback error for ${url}: ${e.message}`)
+    return { status: 0, body: null }
+  } finally {
+    await agent.close().catch(() => { })
+  }
+}
+
 function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
   return new Promise(async (resolvePromise) => {
     let parsed: URL
@@ -155,8 +213,19 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
 
       console.log(`📡 Fetch ${url} → Status: ${res.statusCode}`)
       if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+        // Diagnostics: which layer is blocking us? (server / cf-ray / cf-mitigated = Cloudflare)
+        console.log(`❌ Failed: ${res.statusCode} | server=${res.headers['server'] || '-'} cf-ray=${res.headers['cf-ray'] || '-'} cf-mitigated=${res.headers['cf-mitigated'] || '-'}`)
         res.resume()
-        console.log(`❌ Failed: ${res.statusCode}`)
+        if (res.statusCode === 403 || res.statusCode === 429 || res.statusCode === 503) {
+          console.log(`🔁 Retrying ${url} over HTTP/2 (IP-pinned)`)
+          return fetchViaHttp2(url, ip).then((r) => {
+            console.log(`📡 HTTP/2 retry ${url} → Status: ${r.status}`)
+            if (r.status >= 300 && r.status < 400 && r.location && redirectsLeft > 0) {
+              try { return fetchPage(new URL(r.location, url).toString(), redirectsLeft - 1) } catch { return null }
+            }
+            return r.body
+          }).then(resolvePromise)
+        }
         return resolvePromise(null)
       }
 
