@@ -130,7 +130,9 @@ async function fetchViaHttp2(url: string, ip: string): Promise<{ status: number;
     })
     const location = res.headers.get('location') || undefined
     if (res.status < 200 || res.status >= 300) {
-      await res.body?.cancel()
+      let snippet = ''
+      try { snippet = (await res.text()).replace(/\s+/g, ' ').slice(0, 300) } catch { }
+      console.log(`❌ HTTP/2 ${res.status} | server=${res.headers.get('server') || '-'} www-authenticate=${res.headers.get('www-authenticate') || '-'} ct=${res.headers.get('content-type') || '-'} | body: ${snippet}`)
       return { status: res.status, body: null, location }
     }
     const MAX_BYTES = 5 * 1024 * 1024
@@ -214,8 +216,21 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
       console.log(`📡 Fetch ${url} → Status: ${res.statusCode}`)
       if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
         // Diagnostics: which layer is blocking us? (server / cf-ray / cf-mitigated = Cloudflare)
-        console.log(`❌ Failed: ${res.statusCode} | server=${res.headers['server'] || '-'} cf-ray=${res.headers['cf-ray'] || '-'} cf-mitigated=${res.headers['cf-mitigated'] || '-'}`)
-        res.resume()
+        const errStatus = res.statusCode
+        const errHeaders = `server=${res.headers['server'] || '-'} www-authenticate=${res.headers['www-authenticate'] || '-'} cf-ray=${res.headers['cf-ray'] || '-'} ct=${res.headers['content-type'] || '-'}`
+        const errChunks: Buffer[] = []
+        let errLen = 0
+        res.on('data', (c: Buffer) => { if (errLen < 2048) { errChunks.push(c); errLen += c.length } })
+        res.on('end', () => {
+          let snippet = ''
+          try {
+            const raw = Buffer.concat(errChunks)
+            const enc = res.headers['content-encoding']
+            const txt = enc === 'gzip' ? zlib.gunzipSync(raw).toString() : enc === 'br' ? zlib.brotliDecompressSync(raw).toString() : raw.toString()
+            snippet = txt.replace(/\s+/g, ' ').slice(0, 300)
+          } catch { snippet = '(unreadable body)' }
+          console.log(`❌ Failed: ${errStatus} | ${errHeaders} | body: ${snippet}`)
+        })
         if (res.statusCode === 403 || res.statusCode === 429 || res.statusCode === 503) {
           console.log(`🔁 Retrying ${url} over HTTP/2 (IP-pinned)`)
           return fetchViaHttp2(url, ip).then((r) => {
