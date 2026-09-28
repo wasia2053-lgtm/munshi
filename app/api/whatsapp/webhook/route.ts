@@ -56,31 +56,52 @@ function isBusinessOpen(operatingHours: any): boolean {
   if (!operatingHours) return true // default open
   if (operatingHours.always_open) return true // "Always Open (24/7)" toggle in settings
 
-  const now = new Date()
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-
-  function checkDay(date: Date): boolean {
-    const dayName = days[date.getDay()]
-    const dayConfig = operatingHours[dayName]
-    if (!dayConfig || !dayConfig.enabled || !dayConfig.open || !dayConfig.close) return false
-
-    const [openH, openM] = dayConfig.open.split(':').map(Number)
-    const [closeH, closeM] = dayConfig.close.split(':').map(Number)
-    const openMinutes = openH * 60 + openM
-    const closeMinutes = closeH * 60 + closeM
-    const nowMinutes = date.getHours() * 60 + date.getMinutes()
-
-    if (closeMinutes < openMinutes) {
-      // Overnight window (e.g. 9AM-3AM) — spans midnight
-      return nowMinutes >= openMinutes || nowMinutes < closeMinutes
-    }
-    return nowMinutes >= openMinutes && nowMinutes < closeMinutes
+  // Vercel servers run in UTC, so evaluating hours with getHours() would be
+  // off by the business's UTC offset (Pakistan = UTC+5). Read the current
+  // weekday/time in the business's timezone instead. Defaults to Pakistan time
+  // until a per-business timezone setting exists.
+  const timeZone: string = operatingHours.timezone || 'Asia/Karachi'
+  let weekday = ''
+  let nowMinutes = 0
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone, weekday: 'long', hour: 'numeric', minute: 'numeric', hour12: false,
+    }).formatToParts(new Date())
+    weekday = (parts.find(p => p.type === 'weekday')?.value || '').toLowerCase()
+    const h = Number(parts.find(p => p.type === 'hour')?.value) % 24 // "24" can appear at midnight
+    const m = Number(parts.find(p => p.type === 'minute')?.value)
+    nowMinutes = h * 60 + m
+  } catch {
+    return true // invalid timezone string — fail open rather than block customers
   }
 
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  const todayIdx = days.indexOf(weekday)
+  if (todayIdx === -1) return true
+  const yesterdayName = days[(todayIdx + 6) % 7]
 
-  return checkDay(now) || checkDay(yesterday)
+  function parse(cfg: any) {
+    if (!cfg || !cfg.enabled || !cfg.open || !cfg.close) return null
+    const [oh, om] = cfg.open.split(':').map(Number)
+    const [ch, cm] = cfg.close.split(':').map(Number)
+    return { open: oh * 60 + om, close: ch * 60 + cm }
+  }
+
+  // Today's own window: normal (9-18) or overnight start (22-03 → open from 22:00 today)
+  const today = parse(operatingHours[weekday])
+  if (today) {
+    if (today.close < today.open) {
+      if (nowMinutes >= today.open) return true
+    } else if (nowMinutes >= today.open && nowMinutes < today.close) {
+      return true
+    }
+  }
+
+  // Yesterday only matters if it was an overnight window spilling into today's early hours
+  const yest = parse(operatingHours[yesterdayName])
+  if (yest && yest.close < yest.open && nowMinutes < yest.close) return true
+
+  return false
 }
 
 export async function POST(request: NextRequest) {
@@ -271,7 +292,7 @@ export async function POST(request: NextRequest) {
           if (!isBusinessOpen(settings?.operating_hours)) {
             const awayMsg = settings?.away_message || 'Assalam o alaikum! Abhi hum available nahi hain. Kal business hours mein reply karenge. Shukriya!'
 
-            await fetch(
+            const sendRes = await fetch(
               `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
               {
                 method: 'POST',
@@ -286,6 +307,13 @@ export async function POST(request: NextRequest) {
                 }),
               }
             )
+
+            if (!sendRes.ok) {
+              // Send failed — don't mark completed, let Meta retry (same as the AI reply path)
+              console.log('❌ WhatsApp send failed (away message):', await sendRes.text())
+              hadTransientFailure = true
+              continue
+            }
 
             const { error: awayError } = await supabase.from('messages').insert({
               conversation_id: conversationId,
@@ -312,7 +340,7 @@ export async function POST(request: NextRequest) {
               ? `Assalam o Alaikum! 🙏 Aapka subscription expire ho chuka hai aur free limit (${messagesLimit} messages) bhi poora ho gaya hai. Please renew karein taake bot dobara active ho jaye.`
               : `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
 
-            await fetch(
+            const sendRes = await fetch(
               `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
               {
                 method: 'POST',
@@ -327,6 +355,13 @@ export async function POST(request: NextRequest) {
                 }),
               }
             )
+
+            if (!sendRes.ok) {
+              // Send failed — don't mark completed, let Meta retry (same as the AI reply path)
+              console.log('❌ WhatsApp send failed (limit message):', await sendRes.text())
+              hadTransientFailure = true
+              continue
+            }
 
             const { error: limitError } = await supabase.from('messages').insert({
               conversation_id: conversationId,

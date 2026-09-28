@@ -22,6 +22,7 @@ import {
     CheckCircle2Icon,
     Loader2Icon,
     DatabaseIcon,
+    LockIcon,
 } from "lucide-react"
 
 type TrainingItem = {
@@ -32,6 +33,9 @@ type TrainingItem = {
     created_at: string
 }
 type Tab = "website" | "pdf" | "text"
+
+// Mirrors the backend limits in app/api/train/scrape-website/route.ts
+const PLAN_PAGE_LIMITS: Record<string, number> = { starter: 5, basic: 10, growth: 20, pro: 25 }
 
 const progressSteps = [
     { label: "Connecting to website...", threshold: 15 },
@@ -46,6 +50,11 @@ export function TrainingView() {
     const [history, setHistory] = useState<TrainingItem[]>([])
     const [activeTab, setActiveTab] = useState<Tab>("website")
     const [loading, setLoading] = useState(true)
+    const [plan, setPlan] = useState<string | null>(null)
+
+    // PDF + Text training are Basic plan and above (enforced server-side too)
+    const pdfTextLocked = plan === "starter"
+    const pageLimit = PLAN_PAGE_LIMITS[plan || "starter"] || 5
 
     // Website
     const [websiteUrl, setWebsiteUrl] = useState("")
@@ -74,6 +83,13 @@ export function TrainingView() {
     useEffect(() => {
         if (businessId) fetchHistory()
     }, [businessId])
+
+    useEffect(() => {
+        fetch("/api/subscription", { credentials: "include" })
+            .then(r => r.json())
+            .then(d => setPlan(d?.plan || "starter"))
+            .catch(() => setPlan("starter"))
+    }, [])
 
     useEffect(() => {
         if (!toast) return
@@ -282,7 +298,7 @@ export function TrainingView() {
                                     activeTab === "pdf" ? "bg-background shadow-sm" : "text-muted-foreground"
                                 )}
                             >
-                                <FileTextIcon className="size-3.5" /> PDF
+                                <FileTextIcon className="size-3.5" /> PDF{pdfTextLocked && <LockIcon className="size-3 opacity-60" />}
                             </button>
                             <button
                                 onClick={() => setActiveTab("text")}
@@ -291,7 +307,7 @@ export function TrainingView() {
                                     activeTab === "text" ? "bg-background shadow-sm" : "text-muted-foreground"
                                 )}
                             >
-                                <PenLineIcon className="size-3.5" /> Text
+                                <PenLineIcon className="size-3.5" /> Text{pdfTextLocked && <LockIcon className="size-3 opacity-60" />}
                             </button>
                         </div>
                     </CardHeader>
@@ -300,7 +316,7 @@ export function TrainingView() {
                             <>
                                 <div>
                                     <CardTitle className="text-base mb-1">Train from Website</CardTitle>
-                                    <CardDescription>Paste a URL — we'll crawl up to 20 pages automatically.</CardDescription>
+                                    <CardDescription>Paste a URL — we'll crawl up to {pageLimit} pages automatically.</CardDescription>
                                 </div>
                                 <div className="flex gap-2">
                                     <input
@@ -333,7 +349,24 @@ export function TrainingView() {
                             </>
                         )}
 
-                        {activeTab === "pdf" && (
+                        {pdfTextLocked && (activeTab === "pdf" || activeTab === "text") && (
+                            <div className="relative rounded-xl border border-border p-8 text-center space-y-3 bg-muted/40">
+                                <div className="mx-auto size-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <LockIcon className="size-5 text-muted-foreground" />
+                                </div>
+                                <p className="text-sm font-semibold">
+                                    {activeTab === "pdf" ? "PDF training" : "Text training"} is locked
+                                </p>
+                                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                                    Available on the Basic plan and above. Upgrade to train your bot from {activeTab === "pdf" ? "PDF documents" : "your own text, FAQs and policies"}.
+                                </p>
+                                <a href="/dashboard/billing" className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[var(--chart-1)] text-black text-xs font-semibold">
+                                    Upgrade plan
+                                </a>
+                            </div>
+                        )}
+
+                        {!pdfTextLocked && activeTab === "pdf" && (
                             <>
                                 <div>
                                     <CardTitle className="text-base mb-1">Upload PDF Document</CardTitle>
@@ -352,7 +385,7 @@ export function TrainingView() {
                             </>
                         )}
 
-                        {activeTab === "text" && (
+                        {!pdfTextLocked && activeTab === "text" && (
                             <>
                                 <div>
                                     <CardTitle className="text-base mb-1">Add Manual Text</CardTitle>

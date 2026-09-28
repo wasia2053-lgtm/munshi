@@ -82,12 +82,22 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exported, setExported] = useState(false)
+  const [locked, setLocked] = useState(false)
+  const [lockMessage, setLockMessage] = useState("")
 
   useEffect(() => {
     setLoading(true)
     fetch(`/api/dashboard/overview?range=${range}`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((json) => {
+      .then(async (res) => {
+        const json = await res.json()
+        if (res.status === 403) {
+          setLocked(true)
+          setLockMessage(json?.error || "This feature requires a higher plan.")
+          setLoading(false)
+          return
+        }
+        if (!res.ok) throw new Error(json?.error || "Failed to load analytics")
+        setLocked(false)
         setData(json)
         setLoading(false)
       })
@@ -122,6 +132,59 @@ export default function AnalyticsPage() {
     backgroundColor: "#1a1b1c",
     border: "1px solid rgba(255,255,255,0.06)",
     borderRadius: "16px",
+  }
+
+  if (!loading && locked) {
+    return (
+      <AppShell>
+        <div style={{ width: "100%", fontFamily: "Geist, sans-serif", position: "relative" }}>
+          <div>
+            <h1 style={{ color: "#fff", fontSize: "26px", fontWeight: 700 }}>Analytics</h1>
+            <p style={{ color: "#888", fontSize: "14px", marginTop: "4px" }}>Every conversation, decoded.</p>
+          </div>
+          <div style={{ position: "relative", marginTop: "24px" }}>
+            {/* Blurred, non-interactive preview so the shape of the feature is visible */}
+            <div style={{ filter: "blur(6px)", opacity: 0.5, pointerEvents: "none", userSelect: "none" }} aria-hidden="true">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "16px" }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{ ...card, padding: "20px", height: "90px" }} />
+                ))}
+              </div>
+              <div style={{ ...card, height: "280px" }} />
+            </div>
+            <div
+              style={{
+                position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: "12px", textAlign: "center",
+                padding: "24px",
+              }}
+            >
+              <div style={{
+                width: "48px", height: "48px", borderRadius: "12px",
+                background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <h3 style={{ color: "#fff", fontSize: "18px", fontWeight: 700, margin: 0 }}>Analytics is locked</h3>
+              <p style={{ color: "#999", fontSize: "14px", maxWidth: "360px", margin: 0 }}>{lockMessage}</p>
+              <a
+                href="/dashboard/billing"
+                style={{
+                  marginTop: "8px", display: "inline-flex", alignItems: "center", gap: "6px",
+                  padding: "10px 20px", borderRadius: "10px", background: "#4ae176", color: "#0a0a0a",
+                  fontWeight: 700, fontSize: "14px", textDecoration: "none",
+                }}
+              >
+                Upgrade plan
+              </a>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    )
   }
 
   return (

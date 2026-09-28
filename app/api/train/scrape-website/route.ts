@@ -35,7 +35,16 @@ function isPrivateIp(ip: string): boolean {
     return false
   }
   const lower = ip.toLowerCase()
-  if (lower === '::1') return true                          // loopback
+  // IPv4-mapped IPv6 (::ffff:127.0.0.1 or ::ffff:7f00:1) — unwrap and re-check as IPv4,
+  // otherwise a private IPv4 hidden inside an IPv6 literal slips past the checks above
+  const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
+  if (mapped) return isPrivateIp(mapped[1])
+  const mappedHex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/)
+  if (mappedHex) {
+    const hi = parseInt(mappedHex[1], 16), lo = parseInt(mappedHex[2], 16)
+    return isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`)
+  }
+  if (lower === '::' || lower === '::1') return true        // unspecified + loopback
   if (lower.startsWith('fe80:')) return true                // link-local
   if (lower.startsWith('fc') || lower.startsWith('fd')) return true // unique local
   return false
