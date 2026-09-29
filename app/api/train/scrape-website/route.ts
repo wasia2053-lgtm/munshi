@@ -152,7 +152,7 @@ async function fetchViaHttp2(url: string, ip: string): Promise<{ status: number;
     console.log(`❌ HTTP/2 fallback error for ${url}: ${e.message}`)
     return { status: 0, body: null }
   } finally {
-    await agent.close().catch(() => { })
+    await agent.close().catch(() => {})
   }
 }
 
@@ -486,6 +486,9 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      const links = extractLinks(html, url)
+      console.log(`🔗 ${currentUrl} → html ${html.length} chars, ${links.length} same-host links found | head: ${html.replace(/\s+/g, ' ').slice(0, 150)}`)
+
       const content = extractContent(html, currentUrl)
       results.push({ url: currentUrl, content })
 
@@ -505,7 +508,6 @@ export async function POST(request: NextRequest) {
       })
 
       // Add new links to queue
-      const links = extractLinks(html, url)
       for (const link of links) {
         if (!visited.has(link)) queue.push(link)
       }
