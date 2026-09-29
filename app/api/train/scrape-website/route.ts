@@ -152,7 +152,7 @@ async function fetchViaHttp2(url: string, ip: string): Promise<{ status: number;
     console.log(`❌ HTTP/2 fallback error for ${url}: ${e.message}`)
     return { status: 0, body: null }
   } finally {
-    await agent.close().catch(() => {})
+    await agent.close().catch(() => { })
   }
 }
 
@@ -450,8 +450,10 @@ export async function POST(request: NextRequest) {
 
     // ─── Try Shopify's public products.json first — see comment on
     // tryShopifyProductsJson above for why. ───
+    let usedShopifyJson = false
     const shopifyResults = await tryShopifyProductsJson(url, MAX_PAGES)
     if (shopifyResults && shopifyResults.length > 0) {
+      usedShopifyJson = true
       console.log(`🛍️ Shopify products.json worked — ${shopifyResults.length} products, skipping HTML crawl`)
       for (const r of shopifyResults) {
         visited.add(r.url)
@@ -469,7 +471,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    while (results.length === 0 && queue.length > 0 && visited.size < MAX_PAGES) {
+    while (!usedShopifyJson && queue.length > 0 && visited.size < MAX_PAGES) {
       const currentUrl = queue.shift()!
 
       if (visited.has(currentUrl)) continue
@@ -565,4 +567,4 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: 'Something went wrong while training. Please try again.' }, { status: 500 })
   }
-}
+}   
