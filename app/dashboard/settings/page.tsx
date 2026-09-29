@@ -4,8 +4,34 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/app-shell'
 import { motion } from 'framer-motion'
-import { Bot, Clock, MessageSquare } from 'lucide-react'
+import { Bot, Clock, MessageSquare, Lock } from 'lucide-react'
 import Toast from '@/components/Toast'
+
+function LockedPanel({ feature }: { feature: string }) {
+  return (
+    <div style={{
+      borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)',
+      backgroundColor: '#121314', padding: '28px 20px', textAlign: 'center',
+    }}>
+      <div style={{
+        width: '40px', height: '40px', borderRadius: '10px', margin: '0 auto 12px',
+        backgroundColor: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Lock size={18} color="#888" />
+      </div>
+      <p style={{ color: '#fff', fontSize: '14px', fontWeight: 600, margin: 0 }}>{feature} is locked</p>
+      <p style={{ color: '#888', fontSize: '12px', margin: '6px 0 16px', maxWidth: '340px', marginLeft: 'auto', marginRight: 'auto' }}>
+        Available on the Basic plan and above.
+      </p>
+      <a href="/dashboard/billing" style={{
+        display: 'inline-flex', alignItems: 'center', padding: '8px 18px', borderRadius: '8px',
+        backgroundColor: '#4ae176', color: '#0a0a0a', fontWeight: 700, fontSize: '13px', textDecoration: 'none',
+      }}>
+        Upgrade plan
+      </a>
+    </div>
+  )
+}
 
 export default function SettingsPage() {
   const [botName, setBotName] = useState('')
@@ -26,6 +52,8 @@ export default function SettingsPage() {
     saturday: { enabled: false, open: '09:00', close: '18:00' },
     sunday: { enabled: false, open: '09:00', close: '18:00' },
   })
+  const [plan, setPlan] = useState<string | null>(null)
+  const hoursLocked = plan === 'starter'
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
@@ -46,6 +74,10 @@ export default function SettingsPage() {
           setAlwaysOpen(!!data.operating_hours.always_open)
         }
       })
+    fetch('/api/subscription', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setPlan(d?.plan || 'starter'))
+      .catch(() => setPlan('starter'))
   }, [])
 
   const handleSaveBot = async () => {
@@ -251,7 +283,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {alwaysOpen ? (
+          {hoursLocked ? <LockedPanel feature="Operating Hours" /> : alwaysOpen ? (
             <div style={{
               padding: '16px', borderRadius: '10px', marginBottom: '24px',
               backgroundColor: 'rgba(74,225,118,0.05)', border: '1px solid rgba(74,225,118,0.15)',
@@ -264,60 +296,62 @@ export default function SettingsPage() {
               {Object.entries(operatingHours)
                 .filter(([day]) => day !== 'always_open')
                 .map(([day, hours]) => (
-                <div key={day} style={{
-                  display: 'flex', alignItems: 'center', gap: '16px',
-                  padding: '12px 16px', borderRadius: '10px',
-                  backgroundColor: '#121314',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  flexWrap: 'wrap',
-                }}>
-                  {/* Day + Toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '120px' }}>
-                    <div
-                      onClick={() => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], enabled: !hours.enabled } }))}
-                      style={{
-                        width: '40px', height: '22px', borderRadius: '999px',
-                        backgroundColor: hours.enabled ? '#4ae176' : 'rgba(255,255,255,0.1)',
-                        position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
-                      }}
-                    >
-                      <div style={{
-                        position: 'absolute', top: '3px',
-                        left: hours.enabled ? '21px' : '3px',
-                        width: '16px', height: '16px',
-                        borderRadius: '50%', backgroundColor: '#fff',
-                        transition: 'left 0.2s',
-                      }} />
+                  <div key={day} style={{
+                    display: 'flex', alignItems: 'center', gap: '16px',
+                    padding: '12px 16px', borderRadius: '10px',
+                    backgroundColor: '#121314',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    flexWrap: 'wrap',
+                  }}>
+                    {/* Day + Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '120px' }}>
+                      <div
+                        onClick={() => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], enabled: !hours.enabled } }))}
+                        style={{
+                          width: '40px', height: '22px', borderRadius: '999px',
+                          backgroundColor: hours.enabled ? '#4ae176' : 'rgba(255,255,255,0.1)',
+                          position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute', top: '3px',
+                          left: hours.enabled ? '21px' : '3px',
+                          width: '16px', height: '16px',
+                          borderRadius: '50%', backgroundColor: '#fff',
+                          transition: 'left 0.2s',
+                        }} />
+                      </div>
+                      <span style={{ color: hours.enabled ? '#fff' : '#555', fontSize: '13px', fontWeight: 600, textTransform: 'capitalize' }}>
+                        {day.slice(0, 3).toUpperCase()}
+                      </span>
                     </div>
-                    <span style={{ color: hours.enabled ? '#fff' : '#555', fontSize: '13px', fontWeight: 600, textTransform: 'capitalize' }}>
-                      {day.slice(0, 3).toUpperCase()}
-                    </span>
-                  </div>
 
-                  {/* Time inputs */}
-                  {hours.enabled ? (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <input type="time" value={hours.open}
-                        onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], open: e.target.value } }))}
-                        style={{ ...input, width: '120px', padding: '6px 10px' }}
-                      />
-                      <span style={{ color: '#555', fontSize: '12px' }}>to</span>
-                      <input type="time" value={hours.close}
-                        onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], close: e.target.value } }))}
-                        style={{ ...input, width: '120px', padding: '6px 10px' }}
-                      />
-                    </div>
-                  ) : (
-                    <span style={{ color: '#555', fontSize: '13px' }}>Closed</span>
-                  )}
-                </div>
-              ))}
+                    {/* Time inputs */}
+                    {hours.enabled ? (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input type="time" value={hours.open}
+                          onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], open: e.target.value } }))}
+                          style={{ ...input, width: '120px', padding: '6px 10px' }}
+                        />
+                        <span style={{ color: '#555', fontSize: '12px' }}>to</span>
+                        <input type="time" value={hours.close}
+                          onChange={e => setOperatingHours(prev => ({ ...prev, [day]: { ...prev[day as keyof typeof prev], close: e.target.value } }))}
+                          style={{ ...input, width: '120px', padding: '6px 10px' }}
+                        />
+                      </div>
+                    ) : (
+                      <span style={{ color: '#555', fontSize: '13px' }}>Closed</span>
+                    )}
+                  </div>
+                ))}
             </div>
           )}
 
-          <button onClick={handleSaveHours} disabled={savingHours} style={btn(savingHours)}>
-            {savingHours ? 'Saving...' : 'Save Operating Hours'}
-          </button>
+          {!hoursLocked && (
+            <button onClick={handleSaveHours} disabled={savingHours} style={btn(savingHours)}>
+              {savingHours ? 'Saving...' : 'Save Operating Hours'}
+            </button>
+          )}
         </motion.div>
 
         {/* Away Message */}
@@ -327,23 +361,27 @@ export default function SettingsPage() {
             <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Away Message</h3>
           </div>
 
-          <div style={{ marginBottom: '8px' }}>
-            <label style={label}>Message sent outside operating hours</label>
-            <textarea
-              value={awayMessage}
-              onChange={e => setAwayMessage(e.target.value)}
-              rows={3}
-              placeholder="Abhi available nahi hain. Thori der baad contact karein..."
-              style={{ ...input, resize: 'vertical', minHeight: '90px' }}
-            />
-          </div>
-          <p style={{ color: '#555', fontSize: '12px', marginBottom: '20px' }}>
-            Bot operating hours ke bahar ye message send karega automatically.
-          </p>
+          {hoursLocked ? <LockedPanel feature="Away Message" /> : (
+            <>
+              <div style={{ marginBottom: '8px' }}>
+                <label style={label}>Message sent outside operating hours</label>
+                <textarea
+                  value={awayMessage}
+                  onChange={e => setAwayMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Abhi available nahi hain. Thori der baad contact karein..."
+                  style={{ ...input, resize: 'vertical', minHeight: '90px' }}
+                />
+              </div>
+              <p style={{ color: '#555', fontSize: '12px', marginBottom: '20px' }}>
+                Bot operating hours ke bahar ye message send karega automatically.
+              </p>
 
-          <button onClick={handleSaveAway} disabled={savingAway} style={btn(savingAway)}>
-            {savingAway ? 'Saving...' : 'Save Away Message'}
-          </button>
+              <button onClick={handleSaveAway} disabled={savingAway} style={btn(savingAway)}>
+                {savingAway ? 'Saving...' : 'Save Away Message'}
+              </button>
+            </>
+          )}
         </motion.div>
 
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
