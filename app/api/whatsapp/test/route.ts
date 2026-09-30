@@ -17,15 +17,17 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
-    if (!(await checkRateLimit(authClient, business_id, 'whatsapp-test', 5, 60))) {
-      return NextResponse.json({ error: 'Too many requests — please wait a minute and try again.' }, { status: 429 })
-    }
-
-    // Admin client for business operations
+    // Admin client for business operations — also needed for check_rate_limit,
+    // which is service_role-only (authClient above runs as the logged-in
+    // user once a session exists, not service_role, despite its cookies setup)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+
+    if (!(await checkRateLimit(supabase, business_id, 'whatsapp-test', 5, 60))) {
+      return NextResponse.json({ error: 'Too many requests — please wait a minute and try again.' }, { status: 429 })
+    }
 
     // Fetch business WhatsApp details — was reading from businesses table (missing for most users)
     const { data: waNumber } = await supabase

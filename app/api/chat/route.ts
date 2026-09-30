@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Groq from 'groq-sdk'
 import { trainingCache } from '../../../lib/trainingCache'
 import { checkRateLimit } from '../../../lib/rate-limit'
+import { createAdminClient } from '../../../lib/supabase-server'
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -23,7 +24,13 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const business_id = user.id
 
-    if (!(await checkRateLimit(supabase, business_id, 'chat', 20, 60, true))) {
+    // `supabase` above runs as role 'authenticated' (not service_role) once a
+    // real session exists from cookies, so check_rate_limit (service_role-only)
+    // needs a real admin client. Also switched fail-open (true) to fail-closed
+    // (false) — this endpoint calls the Groq API directly, so a rate-limiter
+    // outage shouldn't mean unlimited AI calls.
+    const admin = createAdminClient()
+    if (!(await checkRateLimit(admin, business_id, 'chat', 20, 60, false))) {
       return NextResponse.json({ error: 'Too many requests — please slow down.' }, { status: 429 })
     }
 

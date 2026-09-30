@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server'
 import { Resend } from 'resend'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase-server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -15,7 +16,11 @@ export async function POST(request: Request) {
 
     const business_id = user.id;
 
-    if (!(await checkRateLimit(supabase, business_id, 'whatsapp-connect-request', 3, 300))) {
+    // check_rate_limit RPC is service_role-only; `supabase` above runs as the
+    // logged-in user (authenticated role) once a session exists from cookies,
+    // so it needs a real admin client for this specific call.
+    const admin = createAdminClient()
+    if (!(await checkRateLimit(admin, business_id, 'whatsapp-connect-request', 3, 300))) {
         return NextResponse.json({ error: 'Too many requests — please wait a few minutes and try again.' }, { status: 429 })
     }
 

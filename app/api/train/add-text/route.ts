@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
 import { createAdminClient } from '../../../../lib/supabase-server'
+import { trainingCache } from '../../../../lib/trainingCache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
         is_read: false
       })
 
+    trainingCache.invalidate(business_id)
     return NextResponse.json({ success: true, chunks })
 
   } catch (error: any) {

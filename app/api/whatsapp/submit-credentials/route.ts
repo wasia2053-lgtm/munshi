@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import { Resend } from 'resend'
 import { encrypt } from '@/lib/crypto'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase-server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -16,7 +17,8 @@ export async function POST(request: Request) {
 
     const business_id = user.id;
 
-    if (!(await checkRateLimit(supabase, business_id, 'whatsapp-submit-credentials', 3, 300))) {
+    const admin = createAdminClient()
+    if (!(await checkRateLimit(admin, business_id, 'whatsapp-submit-credentials', 3, 300))) {
         return NextResponse.json({ error: 'Too many requests — please wait a few minutes and try again.' }, { status: 429 })
     }
 

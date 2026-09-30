@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { trainingCache } from '../../../../lib/trainingCache'
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -31,6 +32,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete' }, { status: 500 })
     }
 
+    trainingCache.invalidate(business_id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error:', error)

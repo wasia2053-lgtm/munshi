@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
 import { createAdminClient } from '../../../../lib/supabase-server'
+import { trainingCache } from '../../../../lib/trainingCache'
 import * as cheerio from 'cheerio'
 import dns from 'dns/promises'
 import net from 'net'
@@ -488,7 +489,7 @@ export async function POST(request: NextRequest) {
         break
       }
 
-      const links = extractLinks(html, url)
+      const links = extractLinks(html, currentUrl)
       console.log(`🔗 ${currentUrl} → html ${html.length} chars, ${links.length} same-host links found | head: ${html.replace(/\s+/g, ' ').slice(0, 150)}`)
 
       const content = extractContent(html, currentUrl)
@@ -533,6 +534,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`✅ Crawl complete! ${results.length} pages saved`)
+    trainingCache.invalidate(business_id)
     // Training complete notification
     await supabase
       .from('notifications')
@@ -567,4 +569,4 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: 'Something went wrong while training. Please try again.' }, { status: 500 })
   }
-}   
+}
