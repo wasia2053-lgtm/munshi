@@ -384,10 +384,27 @@ export async function POST(request: NextRequest) {
             .select('content')
             .eq('business_id', BUSINESS_ID)
             .in('source_type', ['website', 'pdf', 'text'])
-            .limit(15)
+            .limit(60)
 
-          const knowledgeContext = knowledgeRows && knowledgeRows.length > 0
-            ? knowledgeRows.map(k => k.content).join('\n\n').substring(0, 6000)
+          // Rank by keyword overlap with the customer's actual question instead
+          // of taking an arbitrary first-15 slice — on a bigger trained site/PDF
+          // the most relevant page could otherwise never make it into context.
+          // Lightweight on purpose (no embeddings/vector DB) — fine for MVP scale.
+          const STOPWORDS = new Set(['the', 'is', 'are', 'and', 'for', 'with', 'what', 'how', 'much', 'many', 'kya', 'hai', 'hain', 'ka', 'ki', 'ke', 'ko', 'mein', 'se', 'aur', 'hey', 'hi', 'salam', 'assalam', 'please', 'you', 'your'])
+          const queryWords: string[] = (messageText.toLowerCase().match(/[a-z0-9\u0600-\u06FF]+/g) || [])
+            .filter((w: string) => w.length > 2 && !STOPWORDS.has(w))
+
+          let rankedRows = knowledgeRows || []
+          if (queryWords.length > 0 && rankedRows.length > 1) {
+            const score = (text: string) => {
+              const lower = text.toLowerCase()
+              return queryWords.reduce((n: number, w: string) => n + (lower.includes(w) ? 1 : 0), 0)
+            }
+            rankedRows = [...rankedRows].sort((a, b) => score(b.content) - score(a.content))
+          }
+
+          const knowledgeContext = rankedRows.length > 0
+            ? rankedRows.map(k => k.content).join('\n\n').substring(0, 6000)
             : 'Koi specific business information available nahi hai abhi.'
 
           const { data: memPlanRow } = await supabase
