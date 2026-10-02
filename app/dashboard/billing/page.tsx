@@ -6,6 +6,7 @@ import { Check, X, Zap, Crown, TrendingUp, Rocket, Building2, Loader2, ArrowRigh
 
 interface Subscription {
   plan: string
+  status?: string
   messages_used: number
   messages_limit: number
   valid_until: string | null

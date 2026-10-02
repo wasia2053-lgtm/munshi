@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
         .from('subscriptions')
-        .select('plan, messages_used, messages_limit, valid_until')
+        .select('plan, messages_used, messages_limit, valid_until, status')
         .eq('user_id', user.id)
         .single()
 
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
                 messages_used: 0,
                 messages_limit: 50,
                 valid_until: null,
+                status: 'active',
             });
         }
         // For other errors, respond with a server error
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
             messages_used: 0,
             messages_limit: 50,
             valid_until: null,
+            status: 'active',
         });
     }
 
