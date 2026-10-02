@@ -394,17 +394,41 @@ export async function POST(request: NextRequest) {
           const queryWords: string[] = (messageText.toLowerCase().match(/[a-z0-9\u0600-\u06FF]+/g) || [])
             .filter((w: string) => w.length > 2 && !STOPWORDS.has(w))
 
-          let rankedRows = knowledgeRows || []
-          if (queryWords.length > 0 && rankedRows.length > 1) {
+          // Split each row into ~900-char paragraph-aware chunks before ranking —
+          // storage stays exactly as-is (no schema/UI change, counts/history
+          // unaffected), but now a single large PDF/text row can't dominate or
+          // get buried as one block: its own most-relevant paragraph competes
+          // individually against every other chunk from every other row.
+          function chunkText(text: string, maxLen = 900): string[] {
+            const paras = text.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+            const out: string[] = []
+            let cur = ''
+            for (const para of paras) {
+              const piece = para.length > maxLen ? para.slice(0, maxLen) : para
+              if ((cur + '\n\n' + piece).length > maxLen && cur) {
+                out.push(cur)
+                cur = piece
+              } else {
+                cur = cur ? cur + '\n\n' + piece : piece
+              }
+            }
+            if (cur) out.push(cur)
+            return out.length > 0 ? out : [text.slice(0, maxLen)]
+          }
+
+          const allChunks = (knowledgeRows || []).flatMap(k => chunkText(k.content))
+
+          let rankedChunks = allChunks
+          if (queryWords.length > 0 && rankedChunks.length > 1) {
             const score = (text: string) => {
               const lower = text.toLowerCase()
               return queryWords.reduce((n: number, w: string) => n + (lower.includes(w) ? 1 : 0), 0)
             }
-            rankedRows = [...rankedRows].sort((a, b) => score(b.content) - score(a.content))
+            rankedChunks = [...rankedChunks].sort((a, b) => score(b) - score(a))
           }
 
-          const knowledgeContext = rankedRows.length > 0
-            ? rankedRows.map(k => k.content).join('\n\n').substring(0, 6000)
+          const knowledgeContext = rankedChunks.length > 0
+            ? rankedChunks.join('\n\n').substring(0, 6000)
             : 'Koi specific business information available nahi hai abhi.'
 
           const { data: memPlanRow } = await supabase
