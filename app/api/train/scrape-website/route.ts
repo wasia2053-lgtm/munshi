@@ -269,15 +269,21 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
         // fetch() used to decompress automatically — doing it ourselves now
         // since we're on the raw http/https module.
         const encoding = res.headers['content-encoding']
+        // MAX_BYTES above only caps the COMPRESSED download — a small malicious
+        // payload can decompress into something huge (zip-bomb style). Node's
+        // sync zlib functions support maxOutputLength directly: they throw
+        // instead of allocating past this, so the cap applies during
+        // decompression itself, not after the fact.
+        const MAX_DECOMPRESSED_BYTES = 20 * 1024 * 1024 // 20MB per page, generous for any real HTML
         try {
           let out: Buffer
-          if (encoding === 'gzip') out = zlib.gunzipSync(raw)
-          else if (encoding === 'br') out = zlib.brotliDecompressSync(raw)
-          else if (encoding === 'deflate') out = zlib.inflateSync(raw)
+          if (encoding === 'gzip') out = zlib.gunzipSync(raw, { maxOutputLength: MAX_DECOMPRESSED_BYTES })
+          else if (encoding === 'br') out = zlib.brotliDecompressSync(raw, { maxOutputLength: MAX_DECOMPRESSED_BYTES })
+          else if (encoding === 'deflate') out = zlib.inflateSync(raw, { maxOutputLength: MAX_DECOMPRESSED_BYTES })
           else out = raw
           resolvePromise(out.toString('utf-8'))
         } catch (e: any) {
-          console.log(`❌ Decompression failed for ${url}: ${e.message}`)
+          console.log(`❌ Decompression failed/too large for ${url}: ${e.message}`)
           resolvePromise(null)
         }
       })

@@ -54,7 +54,7 @@ const PLANS = [
     bg: 'rgba(74,225,118,0.04)',
     border: 'rgba(74,225,118,0.15)',
     glow: 'rgba(74,225,118,0.05)',
-    features: ['1,000 messages/month', '1 WhatsApp number', 'AI bot with memory', 'Website training (10 pages)', 'PDF + Text training', 'Roman Urdu + Arabic', 'Operating hours & away message', 'Email support'],
+    features: ['1,000 messages/month', '1 WhatsApp number', 'Basic AI bot', 'Website training (10 pages)', 'PDF + Text training', 'Roman Urdu + Arabic', 'Operating hours & away message', 'Email support'],
     missing: ['Analytics dashboard', 'Conversation memory'],
     isFree: false,
     popular: false,
