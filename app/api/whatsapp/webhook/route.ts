@@ -453,9 +453,14 @@ export async function POST(request: NextRequest) {
             })) : []
           }
 
-          const languageInstruction = language === 'english' ? 'English mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
-            : language === 'arabic' ? 'Arabic mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
-              : 'Roman Urdu mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
+          // Settings saves 'english_us' / 'english_uk' (not bare 'english') — this
+          // was only checking `=== 'english'`, which never matched, so every
+          // English selection silently fell through to the Roman Urdu default.
+          const languageInstruction = (language === 'english_us' || language === 'english')
+            ? 'English (US spelling) mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
+            : language === 'english_uk' ? 'English (UK spelling, e.g. "colour", "favourite") mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
+              : language === 'arabic' ? 'Arabic mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
+                : 'Roman Urdu mein jawab do (jab tak customer kisi aur zabaan mein na likhe).'
 
           const systemPrompt = `Tum ${botName} ho, ek WhatsApp business assistant.
 

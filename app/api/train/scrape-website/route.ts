@@ -457,9 +457,12 @@ export async function POST(request: NextRequest) {
       usedShopifyJson = true
       console.log(`🛍️ Shopify products.json worked — ${shopifyResults.length} products, skipping HTML crawl`)
       for (const r of shopifyResults) {
-        visited.add(r.url)
-        results.push(r)
-        await supabase.from('knowledge_base').insert({
+        // Only count this page as "staged" once the insert actually succeeds —
+        // previously the insert error was discarded, so a silent DB failure
+        // here could mean promote_website_knowledge later swaps in LESS data
+        // than the crawl reported (or none at all) while old knowledge is
+        // already gone.
+        const { error: stageError } = await supabase.from('knowledge_base').insert({
           business_id,
           source_type: 'website_pending',
           job_id: jobId,
@@ -469,6 +472,12 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
+        if (stageError) {
+          console.error(`❌ Staging insert failed for ${r.url}:`, stageError.message)
+          continue
+        }
+        visited.add(r.url)
+        results.push(r)
       }
     }
 
@@ -493,13 +502,16 @@ export async function POST(request: NextRequest) {
       console.log(`🔗 ${currentUrl} → html ${html.length} chars, ${links.length} same-host links found | head: ${html.replace(/\s+/g, ' ').slice(0, 150)}`)
 
       const content = extractContent(html, currentUrl)
-      results.push({ url: currentUrl, content })
 
       // Save into a PENDING bucket tagged with this crawl's job_id — old
       // "website" knowledge is untouched until the whole crawl finishes
       // successfully (atomic replace below), and other concurrent crawls
       // for this business (different job_id) can't collide with this data.
-      await supabase.from('knowledge_base').insert({
+      // Only counted as a successful page (results.push) once the insert is
+      // confirmed — an unchecked insert error here was the real risk: it
+      // could make promote_website_knowledge replace old knowledge with an
+      // incomplete (or empty) staged set.
+      const { error: stageError } = await supabase.from('knowledge_base').insert({
         business_id,
         source_type: 'website_pending',
         job_id: jobId,
@@ -509,6 +521,11 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
+      if (stageError) {
+        console.error(`❌ Staging insert failed for ${currentUrl}:`, stageError.message)
+        continue
+      }
+      results.push({ url: currentUrl, content })
 
       // Add new links to queue
       for (const link of links) {

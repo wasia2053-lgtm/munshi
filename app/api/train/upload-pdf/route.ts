@@ -81,15 +81,12 @@ export async function POST(request: NextRequest) {
 
     const chunks = Math.ceil(cleanText.length / 1000)
 
-    // Purana delete karo
-    await supabase
-      .from('knowledge_base')
-      .delete()
-      .eq('business_id', business_id)
-      .eq('source_url', file.name)
-      .eq('source_type', 'pdf')
-
-    const { error } = await supabase
+    // Insert the NEW content first, confirm it actually saved, THEN delete the
+    // old PDF knowledge — previously this deleted first, so an insert failure
+    // right after would have left the customer with no trained PDF data at
+    // all. Worst case now (delete fails) is a harmless leftover duplicate,
+    // not data loss.
+    const { data: inserted, error } = await supabase
       .from('knowledge_base')
       .insert([{
         business_id,
@@ -98,13 +95,27 @@ export async function POST(request: NextRequest) {
         content: cleanText,
         chunks_count: chunks,
       }])
+      .select('id')
+      .single()
 
-    if (error) {
+    if (error || !inserted) {
       console.error('Supabase error:', error)
       return NextResponse.json({
         success: false,
         error: 'Something went wrong. Please try again.'
       }, { status: 500 })
+    }
+
+    const { error: cleanupError } = await supabase
+      .from('knowledge_base')
+      .delete()
+      .eq('business_id', business_id)
+      .eq('source_url', file.name)
+      .eq('source_type', 'pdf')
+      .neq('id', inserted.id)
+
+    if (cleanupError) {
+      console.error('Old PDF cleanup failed (non-fatal, new data is safe):', cleanupError.message)
     }
 
     // Training complete notification
