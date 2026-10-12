@@ -253,8 +253,8 @@ export default function SettingsPage() {
               <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Operating Hours</h3>
             </div>
 
-            {/* Always Open toggle */}
-            <div
+            {/* Always Open toggle — hidden while the section is locked (a dead control is worse than none) */}
+            {!hoursLocked && <div
               onClick={() => setAlwaysOpen(v => !v)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -280,7 +280,7 @@ export default function SettingsPage() {
               <span style={{ color: alwaysOpen ? '#4ae176' : '#aaa', fontSize: '13px', fontWeight: 600 }}>
                 Always Open (24/7)
               </span>
-            </div>
+            </div>}
           </div>
 
           {hoursLocked ? <LockedPanel feature="Operating Hours" /> : alwaysOpen ? (

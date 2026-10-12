@@ -4,9 +4,10 @@ import { cookies } from 'next/headers'
 import { checkRateLimit } from '../../../../lib/rate-limit'
 import { createAdminClient } from '../../../../lib/supabase-server'
 import { trainingCache } from '../../../../lib/trainingCache'
-import { PDFParse } from 'pdf-parse'
+import { extractText, getDocumentProxy } from 'unpdf'
 
-// pdf-parse uses pdfjs under the hood — needs real Node APIs, not the Edge runtime.
+// unpdf = serverless-friendly PDF.js build (no native canvas / DOMMatrix needs).
+// The previous parser (pdf-parse v2) crashed at import time on Vercel.
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
@@ -43,28 +44,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 })
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: 'File too large (max 10MB)' }, { status: 400 })
+    // Vercel serverless functions reject request bodies over ~4.5MB before our code
+    // even runs, so the real usable limit is 4MB (the UI enforces this too).
+    if (file.size > 4 * 1024 * 1024) {
+      return NextResponse.json({ success: false, error: 'PDF too large (max 4MB). Please compress it or split it into parts.' }, { status: 400 })
     }
 
-    // PDF se text extract karo — real parser (pdf-parse v2 / pdfjs), regex-guessing nahi
+    // PDF se text extract karo (unpdf / PDF.js)
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
 
     let extractedText = ''
-    let parser: InstanceType<typeof PDFParse> | null = null
     try {
-      parser = new PDFParse({ data: buffer })
-      const result = await parser.getText()
-      extractedText = result.text || ''
+      const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
+      const { text } = await extractText(pdf, { mergePages: true })
+      extractedText = text || ''
     } catch (parseError: any) {
       console.error('[PDF Upload] Parse error:', parseError?.message || parseError)
       return NextResponse.json({
         success: false,
         error: 'Could not read this PDF. It may be password-protected or corrupted — please try a different file.'
       }, { status: 400 })
-    } finally {
-      if (parser) await parser.destroy()
     }
 
     if (!extractedText || extractedText.trim().length < 20) {

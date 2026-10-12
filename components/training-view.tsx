@@ -162,18 +162,29 @@ export function TrainingView() {
     async function handlePDFUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
         if (!file) return
+        // Vercel rejects request bodies over ~4.5MB before our API even runs, and the
+        // platform's error page isn't JSON — so check size up front with a clear message.
+        if (file.size > 4 * 1024 * 1024) {
+            setToast({ message: "PDF too large — max 4MB. Compress it or split it into parts.", type: "error" })
+            e.target.value = ""
+            return
+        }
         setUploading(true)
         try {
             const formData = new FormData()
             formData.append('file', file)
             const res = await fetch('/api/train/upload-pdf', { method: 'POST', credentials: 'include', body: formData })
-            const result = await res.json()
-            if (result.success) {
+            // Read as text first: platform/server errors can be plain text or HTML, not JSON.
+            const raw = await res.text()
+            let result: any = null
+            try { result = JSON.parse(raw) } catch { /* non-JSON error body */ }
+            if (result?.success) {
                 setToast({ message: `PDF trained — ${result.chunks} chunks`, type: "success" })
                 await fetchHistory()
                 e.target.value = ""
             } else {
-                setToast({ message: result.error || "Upload failed", type: "error" })
+                setToast({ message: result?.error || `Upload failed (server error ${res.status}). Please try again.`, type: "error" })
+                e.target.value = ""
             }
         } catch (err: any) {
             setToast({ message: `Error: ${err.message}`, type: "error" })
@@ -379,7 +390,7 @@ export function TrainingView() {
                                         <p className="text-sm font-medium mb-1">
                                             {uploading ? "Uploading..." : "Click to upload PDF"}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">Max 10MB · PDF only</p>
+                                        <p className="text-xs text-muted-foreground">Max 4MB · PDF only</p>
                                     </div>
                                 </label>
                             </>

@@ -187,6 +187,9 @@ export default function BillingPage() {
   const currentPlanIndex = PLAN_ORDER.indexOf(currentPlan)
   const usedPct = subscription ? Math.min(100, Math.round((subscription.messages_used / subscription.messages_limit) * 100)) : 0
   const isNearLimit = usedPct >= 80
+  // A paid plan whose valid_until has passed is expired — the bot is paused server-side,
+  // so the UI must say so instead of showing a stale ACTIVE badge.
+  const isExpired = !!subscription?.valid_until && currentPlan !== 'starter' && new Date(subscription.valid_until).getTime() < Date.now()
 
   return (
     <AppShell>
@@ -280,17 +283,29 @@ export default function BillingPage() {
                   <span style={{ fontSize: '24px', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px' }}>
                     {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
                   </span>
-                  <span style={{
-                    background: 'rgba(74,225,118,0.1)', color: '#4ae176',
-                    fontSize: '10px', fontWeight: 700, padding: '2px 8px',
-                    borderRadius: '99px', border: '1px solid rgba(74,225,118,0.2)',
-                    letterSpacing: '0.06em',
-                  }}>ACTIVE</span>
+                  {(() => {
+                    const st = subscription.status || 'active'
+                    const badge = isExpired
+                      ? { bg: 'rgba(239,68,68,0.1)', fg: '#ef4444', border: 'rgba(239,68,68,0.2)', label: 'EXPIRED' }
+                      : st === 'past_due'
+                        ? { bg: 'rgba(245,158,11,0.1)', fg: '#f59e0b', border: 'rgba(245,158,11,0.2)', label: 'PAYMENT DUE' }
+                        : st === 'canceled'
+                          ? { bg: 'rgba(239,68,68,0.1)', fg: '#ef4444', border: 'rgba(239,68,68,0.2)', label: 'CANCELED' }
+                          : { bg: 'rgba(74,225,118,0.1)', fg: '#4ae176', border: 'rgba(74,225,118,0.2)', label: 'ACTIVE' }
+                    return (
+                      <span style={{
+                        background: badge.bg, color: badge.fg,
+                        fontSize: '10px', fontWeight: 700, padding: '2px 8px',
+                        borderRadius: '99px', border: `1px solid ${badge.border}`,
+                        letterSpacing: '0.06em',
+                      }}>{badge.label}</span>
+                    )
+                  })()}
                 </div>
                 {subscription.valid_until && (
                   <p style={{ color: '#4b5563', fontSize: '12px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Calendar size={10} />
-                    Renews {new Date(subscription.valid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {isExpired ? 'Expired on' : subscription.status === 'canceled' ? 'Ends' : 'Renews'} {new Date(subscription.valid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 )}
               </div>
@@ -319,8 +334,8 @@ export default function BillingPage() {
                     }} />
                   </div>
                 </div>
-                <p style={{ color: isNearLimit ? '#ef4444' : '#4b5563', fontSize: '12px', marginTop: '6px' }}>
-                  {isNearLimit ? '⚠️ Almost at limit — upgrade to keep serving customers' : `${usedPct}% used this billing cycle`}
+                <p style={{ color: (isNearLimit || isExpired) ? '#ef4444' : '#4b5563', fontSize: '12px', marginTop: '6px' }}>
+                  {isExpired ? 'Your plan has expired — your bot is paused. Renew below to reactivate it.' : isNearLimit ? '⚠️ Almost at limit — upgrade to keep serving customers' : `${usedPct}% used this billing cycle`}
                 </p>
               </div>
             </div>
@@ -445,7 +460,23 @@ export default function BillingPage() {
                   ))}
                 </ul>
 
-                {isCurrent ? (
+                {isCurrent && isExpired && !plan.isFree && !plan.isEnterprise ? (
+                  <button
+                    className="upgrade-btn"
+                    onClick={() => handleUpgrade(plan.id)}
+                    disabled={!!upgrading}
+                    style={{
+                      background: 'linear-gradient(135deg,#4ae176,#22c55e)', color: '#000', border: 'none',
+                      boxShadow: '0 4px 20px rgba(74,225,118,0.25)',
+                    }}
+                  >
+                    {upgrading === plan.id
+                      ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                      : <ArrowRight size={13} />
+                    }
+                    {upgrading === plan.id ? 'Redirecting...' : 'Renew plan'}
+                  </button>
+                ) : isCurrent ? (
                   <div style={{
                     background: plan.accent + '10', border: `1px solid ${plan.accent}20`,
                     borderRadius: '12px', padding: '12px', textAlign: 'center',

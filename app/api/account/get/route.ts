@@ -21,7 +21,7 @@ export async function GET() {
 
     const { data: sub, error: subError } = await supabase
       .from('subscriptions')
-      .select('plan, messages_limit, messages_used')
+      .select('plan, messages_limit, messages_used, valid_until, status')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -35,6 +35,8 @@ export async function GET() {
       plan: sub?.plan || 'starter',
       messages_limit: sub?.messages_limit || 50,
       messages_used: sub?.messages_used || 0,
+      valid_until: sub?.valid_until || null,
+      status: sub?.status || 'active',
     })
   } catch (err) {
     console.error('Account get error:', err)

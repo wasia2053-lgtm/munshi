@@ -38,28 +38,56 @@ export default function AccountPage() {
   }, [])
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const input = e.target
+    const file = input.files?.[0]
     if (!file) return
-    setUploading(true)
-    const formData = new FormData()
-    formData.append('avatar', file)
-    const res = await fetch('/api/account/upload-avatar', { method: 'POST', credentials: 'include', body: formData })
-    const data = await res.json()
-    if (data.avatar_url) {
-      setAvatarUrl(data.avatar_url)
-      await fetch('/api/account/update', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatar_url: data.avatar_url }),
-      })
-      localStorage.setItem('munshi_profile', JSON.stringify({ name: orgName, avatar_url: data.avatar_url }))
-      localStorage.setItem('avatarUrl', data.avatar_url)
-      window.dispatchEvent(new Event('avatarUpdated'))
-      window.dispatchEvent(new Event('munshi_profile_updated'))
-      window.dispatchEvent(new CustomEvent('account-updated'))
+    const showError = (message: string) => {
+      setToast({ message, type: 'error' })
+      setTimeout(() => setToast(null), 4000)
     }
-    setUploading(false)
+    // Validate up front — Vercel rejects big bodies with a non-JSON error page, which
+    // used to throw inside res.json() and leave the UI stuck on "Uploading..." forever.
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      showError('Sirf JPG ya PNG image upload karo.')
+      input.value = ''
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showError('Image 2MB se choti honi chahiye.')
+      input.value = ''
+      return
+    }
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await fetch('/api/account/upload-avatar', { method: 'POST', credentials: 'include', body: formData })
+      const raw = await res.text()
+      let data: any = null
+      try { data = JSON.parse(raw) } catch { /* non-JSON error body */ }
+      if (!data?.avatar_url) {
+        showError(data?.error || `Upload fail ho gaya (${res.status}). Dobara try karo.`)
+      }
+      if (data?.avatar_url) {
+        setAvatarUrl(data.avatar_url)
+        await fetch('/api/account/update', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar_url: data.avatar_url }),
+        })
+        localStorage.setItem('munshi_profile', JSON.stringify({ name: orgName, avatar_url: data.avatar_url }))
+        localStorage.setItem('avatarUrl', data.avatar_url)
+        window.dispatchEvent(new Event('avatarUpdated'))
+        window.dispatchEvent(new Event('munshi_profile_updated'))
+        window.dispatchEvent(new CustomEvent('account-updated'))
+      }
+    } catch {
+      showError('Upload fail ho gaya. Internet check karke dobara try karo.')
+    } finally {
+      setUploading(false)
+      input.value = ''
+    }
   }
 
   const handleSave = async () => {
@@ -97,6 +125,7 @@ export default function AccountPage() {
   const messagesLimit = profile?.messages_limit || 50
   const messagesPercent = Math.min((messagesUsed / messagesLimit) * 100, 100)
   const planName = profile?.plan ? profile.plan.toUpperCase() : 'FREE'
+  const isExpired = !!profile?.valid_until && profile?.plan && profile.plan !== 'starter' && new Date(profile.valid_until).getTime() < Date.now()
 
   return (
     <AppShell>
@@ -242,15 +271,15 @@ export default function AccountPage() {
             <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 600 }}>Plan & Usage</h3>
             <span
               style={{
-                backgroundColor: 'rgba(74, 225, 118, 0.1)',
-                color: '#4ae176',
+                backgroundColor: isExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(74, 225, 118, 0.1)',
+                color: isExpired ? '#ef4444' : '#4ae176',
                 padding: '4px 12px',
                 borderRadius: '999px',
                 fontSize: '11px',
                 fontWeight: 600,
               }}
             >
-              {planName} PLAN
+              {isExpired ? `${planName} PLAN EXPIRED` : `${planName} PLAN`}
             </span>
           </div>
 
@@ -270,7 +299,7 @@ export default function AccountPage() {
               />
             </div>
             <p style={{ color: '#888', fontSize: '12px', marginTop: '6px' }}>
-              {Math.max(messagesLimit - messagesUsed, 0)} messages remaining
+              {isExpired ? 'Plan expired — bot is paused until you renew.' : `${Math.max(messagesLimit - messagesUsed, 0)} messages remaining`}
             </p>
           </div>
 
