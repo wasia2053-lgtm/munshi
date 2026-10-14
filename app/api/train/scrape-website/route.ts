@@ -157,7 +157,11 @@ async function fetchViaHttp2(url: string, ip: string): Promise<{ status: number;
   }
 }
 
-function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
+// Filled in by fetchPage on failure so the caller can tell the user WHY a crawl failed
+// (blocked vs not found vs DNS vs network) instead of a generic error.
+type CrawlDiag = { lastStatus?: number; lastError?: string }
+
+function fetchPage(url: string, redirectsLeft = 5, diag?: CrawlDiag): Promise<string | null> {
   return new Promise(async (resolvePromise) => {
     let parsed: URL
     try {
@@ -173,6 +177,7 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
     const ip = await resolveValidatedIp(hostname)
     if (!ip) {
       console.log(`❌ DNS validation failed or resolved to a disallowed address: ${hostname}`)
+      if (diag) diag.lastError = 'dns'
       return resolvePromise(null)
     }
 
@@ -211,13 +216,14 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
         } catch {
           return resolvePromise(null)
         }
-        return resolvePromise(fetchPage(nextUrl, redirectsLeft - 1))
+        return resolvePromise(fetchPage(nextUrl, redirectsLeft - 1, diag))
       }
 
       console.log(`📡 Fetch ${url} → Status: ${res.statusCode}`)
       if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
         // Diagnostics: which layer is blocking us? (server / cf-ray / cf-mitigated = Cloudflare)
         const errStatus = res.statusCode
+        if (diag) diag.lastStatus = res.statusCode
         const errHeaders = `server=${res.headers['server'] || '-'} www-authenticate=${res.headers['www-authenticate'] || '-'} cf-ray=${res.headers['cf-ray'] || '-'} ct=${res.headers['content-type'] || '-'}`
         const errChunks: Buffer[] = []
         let errLen = 0
@@ -236,8 +242,12 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
           console.log(`🔁 Retrying ${url} over HTTP/2 (IP-pinned)`)
           return fetchViaHttp2(url, ip).then((r) => {
             console.log(`📡 HTTP/2 retry ${url} → Status: ${r.status}`)
+            if (diag && (r.status < 200 || r.status >= 300)) {
+              if (r.status) diag.lastStatus = r.status
+              else diag.lastError = 'http2'
+            }
             if (r.status >= 300 && r.status < 400 && r.location && redirectsLeft > 0) {
-              try { return fetchPage(new URL(r.location, url).toString(), redirectsLeft - 1) } catch { return null }
+              try { return fetchPage(new URL(r.location, url).toString(), redirectsLeft - 1, diag) } catch { return null }
             }
             return r.body
           }).then(resolvePromise)
@@ -284,6 +294,7 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
           resolvePromise(out.toString('utf-8'))
         } catch (e: any) {
           console.log(`❌ Decompression failed/too large for ${url}: ${e.message}`)
+          if (diag) diag.lastError = 'decompress'
           resolvePromise(null)
         }
       })
@@ -291,6 +302,7 @@ function fetchPage(url: string, redirectsLeft = 5): Promise<string | null> {
 
     req.on('error', (e: any) => {
       console.log(`❌ Fetch error for ${url}: ${e.message}`)
+      if (diag) diag.lastError = e.message || 'network'
       resolvePromise(null)
     })
     req.end()
@@ -439,6 +451,8 @@ export async function POST(request: NextRequest) {
     const visited = new Set<string>()
     const queue = [url]
     const results: { url: string; content: string }[] = []
+    const diag: CrawlDiag = {}
+    let stageFailures = 0
     jobId = crypto.randomUUID() // isolates this crawl's staging rows from any other concurrent crawl
 
     // Clean up only STALE orphaned pending rows (from a crawl that crashed
@@ -480,6 +494,7 @@ export async function POST(request: NextRequest) {
         })
         if (stageError) {
           console.error(`❌ Staging insert failed for ${r.url}:`, stageError.message)
+          stageFailures++
           continue
         }
         visited.add(r.url)
@@ -495,7 +510,7 @@ export async function POST(request: NextRequest) {
 
       console.log(`📄 Crawling (${visited.size}/${MAX_PAGES}): ${currentUrl}`)
 
-      const html = await fetchPage(currentUrl)
+      const html = await fetchPage(currentUrl, 5, diag)
       if (!html) continue
 
       totalBytes += Buffer.byteLength(html, 'utf-8')
@@ -529,6 +544,7 @@ export async function POST(request: NextRequest) {
       })
       if (stageError) {
         console.error(`❌ Staging insert failed for ${currentUrl}:`, stageError.message)
+        stageFailures++
         continue
       }
       results.push({ url: currentUrl, content })
@@ -545,7 +561,28 @@ export async function POST(request: NextRequest) {
     if (results.length === 0) {
       // Nothing was crawled successfully — leave old knowledge exactly as it was
       await supabase.from('knowledge_base').delete().eq('business_id', business_id).eq('source_type', 'website_pending').eq('job_id', jobId)
-      return NextResponse.json({ error: 'Could not crawl this website. Old training data was kept as-is.' }, { status: 400 })
+      // Tell the user WHY — a generic "could not crawl" gives them nothing to act on.
+      let reason = 'Could not read any page from this website.'
+      let code = 'fetch_failed'
+      const st = diag.lastStatus
+      if (stageFailures > 0) {
+        reason = 'Pages were read but could not be saved (temporary database error). Please try again in a minute.'
+        code = 'stage_failed'
+      } else if (st === 401 || st === 403 || st === 429 || st === 503) {
+        reason = `This website is blocking automated access (HTTP ${st}). Ask the site owner to allow it, or add the content via PDF/Text training instead.`
+        code = 'blocked'
+      } else if (st === 404) {
+        reason = 'This page was not found (HTTP 404). Please check the URL.'
+        code = 'not_found'
+      } else if (diag.lastError === 'dns') {
+        reason = 'Could not find this website (DNS lookup failed). Please check the URL.'
+        code = 'dns'
+      } else if (diag.lastError || st) {
+        reason = 'Could not connect to this website — it may be down or too slow to respond.'
+        code = 'network'
+      }
+      console.log(`❌ Crawl produced 0 pages — code=${code} lastStatus=${st ?? '-'} lastError=${diag.lastError ?? '-'} stageFailures=${stageFailures}`)
+      return NextResponse.json({ error: `${reason} Your existing training data was kept as-is.`, code }, { status: 400 })
     }
 
     // Truly atomic swap — one DB function call, one transaction. If it fails

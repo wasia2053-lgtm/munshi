@@ -60,7 +60,7 @@ export default function OnboardingPage() {
       if (result.success) {
         setTrainingProgress(100)
         setProgressLabel('Training complete!')
-        await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true })
+        await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true }, { onConflict: 'business_id' })
         setTimeout(() => { setStep(2); setTrainingProgress(0); setProgressLabel('') }, 1500)
       } else {
         setProgressError(result.error || 'Training failed')
@@ -77,7 +77,7 @@ export default function OnboardingPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true })
+      await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true }, { onConflict: 'business_id' })
       router.push('/dashboard/whatsapp')
     } catch (e) { console.error(e) }
   }
@@ -86,7 +86,7 @@ export default function OnboardingPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true })
+      await supabase.from('business_settings').upsert({ business_id: user.id, onboarding_complete: true }, { onConflict: 'business_id' })
       router.push('/dashboard')
     } catch (e) { console.error(e) }
   }
