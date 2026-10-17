@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
       .from('knowledge_base')
       .select('*')
       .eq('business_id', business_id)
+      .neq('source_type', 'website_pending') // in-progress/orphaned crawl staging rows are not real sources
       .order('created_at', { ascending: false })
 
     if (error) {

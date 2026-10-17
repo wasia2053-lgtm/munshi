@@ -370,7 +370,7 @@ async function fetchViaReader(url: string): Promise<{ text: string; links: strin
     if (process.env.JINA_API_KEY) headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`
     const res = await fetch(`https://r.jina.ai/${url}`, {
       headers,
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(15000),
     })
     if (!res.ok) {
       console.log(`❌ Reader fallback HTTP ${res.status} for ${url}`)
@@ -557,7 +557,7 @@ export async function POST(request: NextRequest) {
 
     // Vercel kills the function at maxDuration (60s) — stop early and SAVE what we have.
     const crawlStartedAt = Date.now()
-    const TIME_BUDGET_MS = 48_000
+    const TIME_BUDGET_MS = 34_000 // + worst-case 15s reader call + 3s gap + promote must stay < 60s
     let readerMode = false // flips on once a direct fetch is blocked
 
     while (!usedShopifyJson && queue.length > 0 && visited.size < MAX_PAGES) {

@@ -82,6 +82,15 @@ export async function GET(request: Request) {
         sent++
     }
 
+    // ---- Step 1b: sweep orphaned crawl staging rows (crawl that died before promote) ----
+    const staleCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { error: sweepError } = await admin
+        .from('knowledge_base')
+        .delete()
+        .eq('source_type', 'website_pending')
+        .lt('created_at', staleCutoff)
+    if (sweepError) console.error('[Expiry Cron] Pending sweep failed:', sweepError.message)
+
     // ---- Step 2: downgrade lapsed paid plans to Starter (50 free msgs) ----
     // Covers accounts with no WhatsApp traffic (webhook path downgrades lazily).
     const { error: downgradeError } = await admin.rpc('downgrade_expired_subscriptions', { p_user_id: null })
