@@ -1,15 +1,12 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import Link from 'next/link'
-
-type Currency = 'PKR' | 'USD'
 
 const plans = [
   {
     name: 'Starter',
     badge: null,
-    pricePKR: 0,
     priceUSD: 0,
     period: '/month',
     desc: 'Try Munshi free. No card required.',
@@ -20,17 +17,16 @@ const plans = [
     features: [
       '50 AI replies/month',
       '1 WhatsApp number',
+      'Basic AI bot',
       'Website training (5 pages)',
-      'Roman Urdu + English',
+      'English, Roman Urdu & Arabic',
       'Conversation history',
-      'Basic bot settings',
     ],
     missing: ['PDF training', 'Text training', 'Operating hours', 'Analytics dashboard', 'Conversation memory'],
   },
   {
     name: 'Basic',
     badge: null,
-    pricePKR: 1000,
     priceUSD: 4,
     period: '/month',
     desc: 'Perfect first step for small businesses.',
@@ -41,17 +37,18 @@ const plans = [
     features: [
       '1,000 AI replies/month',
       '1 WhatsApp number',
+      'Basic AI bot',
       'Website training (10 pages)',
       'PDF + Text training',
-      'All 4 languages',
-      'Operating hours & away msg',
+      'English, Roman Urdu & Arabic',
+      'Operating hours & away message',
+      'Email support',
     ],
-    missing: ['Analytics dashboard', 'Conversation memory', 'Human handoff'],
+    missing: ['Analytics dashboard', 'Conversation memory'],
   },
   {
     name: 'Growth',
     badge: 'Most Popular',
-    pricePKR: 7000,
     priceUSD: 25,
     period: '/month',
     desc: 'For growing businesses ready to scale.',
@@ -62,19 +59,20 @@ const plans = [
     features: [
       '5,000 AI replies/month',
       '1 WhatsApp number',
+      'Advanced AI + context memory',
       'Website training (20 pages)',
       'PDF + Text training',
-      'All 4 languages',
+      'English, Roman Urdu & Arabic',
+      'Operating hours & away message',
       'Analytics dashboard',
-      'Operating hours & away msg',
-      'Conversation memory',
+      'Custom bot personality',
+      'Priority email support',
     ],
     missing: [],
   },
   {
     name: 'Pro',
     badge: null,
-    pricePKR: 30000,
     priceUSD: 99,
     period: '/month',
     desc: 'For teams and high-volume businesses.',
@@ -85,14 +83,15 @@ const plans = [
     features: [
       '50,000 AI replies/month',
       '1 WhatsApp number',
-      'Website + PDF + Text training',
-      'All 4 languages',
+      'Advanced AI + context memory',
+      'Website training (25 pages)',
+      'PDF + Text training',
+      'English, Roman Urdu & Arabic',
       'Advanced analytics',
-      'Conversation memory',
       'Priority support',
       '3 WhatsApp numbers (coming soon)',
       'Human handoff inbox (coming soon)',
-      'Instagram DMs (coming soon)',
+      'Instagram + Facebook DMs (coming soon)',
     ],
     missing: [],
   },
@@ -102,7 +101,6 @@ export default function Pricing() {
   const headerRef = useRef<HTMLDivElement>(null)
   const cardsRef = useRef<(HTMLDivElement | null)[]>([])
   const enterpriseRef = useRef<HTMLDivElement>(null)
-  const [currency, setCurrency] = useState<Currency>('PKR')
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -116,8 +114,7 @@ export default function Pricing() {
   }, [])
 
   const fmt = (plan: typeof plans[0]) => {
-    if (plan.pricePKR === 0) return 'Free'
-    if (currency === 'PKR') return `PKR ${plan.pricePKR.toLocaleString()}`
+    if (plan.priceUSD === 0) return 'Free'
     return `$${plan.priceUSD}`
   }
 
@@ -147,20 +144,7 @@ export default function Pricing() {
           font-size: clamp(32px, 5vw, 52px); font-weight: 700;
           color: #fff; letter-spacing: -0.04em; line-height: 1.1; margin: 0 0 12px;
         }
-        .price-sub { font-size: 16px; color: rgba(196,199,200,0.6); margin: 0 auto 32px; max-width: 440px; }
-
-        .currency-toggle {
-          display: inline-flex; align-items: center;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 9999px; padding: 4px; gap: 2px;
-        }
-        .currency-btn {
-          padding: 7px 18px; border-radius: 9999px; font-size: 13px; font-weight: 700;
-          cursor: pointer; border: none; background: transparent;
-          color: rgba(196,199,200,0.5); font-family: 'Geist', sans-serif; transition: all 0.25s;
-        }
-        .currency-btn.active { background: #fff; color: #000; }
+        .price-sub { font-size: 16px; color: rgba(196,199,200,0.6); margin: 0 auto; max-width: 440px; }
 
         /* 4-column grid */
         .price-grid {
@@ -314,11 +298,7 @@ export default function Pricing() {
               Pricing
             </div>
             <h2 className="price-title">Simple, Honest Pricing</h2>
-            <p className="price-sub">Start free. Upgrade when you're ready.</p>
-            <div className="currency-toggle">
-              <button className={`currency-btn ${currency === 'PKR' ? 'active' : ''}`} onClick={() => setCurrency('PKR')}>🇵🇰 PKR</button>
-              <button className={`currency-btn ${currency === 'USD' ? 'active' : ''}`} onClick={() => setCurrency('USD')}>🌍 USD</button>
-            </div>
+            <p className="price-sub">Start free. Upgrade when you're ready. Prices in USD.</p>
           </div>
 
           {/* 4 Plans */}
@@ -330,7 +310,7 @@ export default function Pricing() {
                 <div className="plan-name">{plan.name}</div>
                 <div className="plan-price">
                   <span className="plan-price-num">{fmt(plan)}</span>
-                  {plan.pricePKR > 0 && <span className="plan-price-period">{plan.period}</span>}
+                  {plan.priceUSD > 0 && <span className="plan-price-period">{plan.period}</span>}
                 </div>
                 <div className="plan-msgs">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 11.5C21 16.7 16.7 21 11.5 21C9.6 21 7.8 20.5 6.3 19.5L3 21L4.5 17.7C3.5 16.2 3 14.4 3 12.5C3 7.3 7.3 3 12.5 3C17.7 3 21 7.3 21 11.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>

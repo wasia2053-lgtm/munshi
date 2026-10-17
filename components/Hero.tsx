@@ -370,7 +370,7 @@ export default function Hero() {
                 </div>
                 <span style={{ fontSize: 10, color: '#4ae176', fontFamily: 'monospace' }}>typing...</span>
               </div>
-              <div className="bubble-ai">Yes! White Civic 2022, 1.5L, automatic — Rs 65 lakh. Want me to book a viewing this week?</div>
+              <div className="bubble-ai">Yes! White Civic 2022, 1.5L, automatic — $24,500. Want me to book a viewing this week?</div>
             </div>
 
             {/* Customer Interested / Lead Captured */}

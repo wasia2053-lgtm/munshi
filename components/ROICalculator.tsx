@@ -4,17 +4,17 @@ import { useState } from 'react'
 export default function ROICalculator() {
   const [msgs, setMsgs] = useState(200)
   const [rate, setRate] = useState(30)
-  const [avg, setAvg] = useState(5000)
+  const [avg, setAvg] = useState(100)
 
   const leads = Math.round(msgs * (rate / 100))
   const revenue = leads * avg
-  const cost = 7000
+  const cost = 25
   const roi = Math.round(((revenue - cost) / cost) * 100)
 
   const fmt = (n: number) => {
-    if (n >= 1000000) return `PKR ${(n / 1000000).toFixed(1)}M`
-    if (n >= 100000) return `PKR ${(n / 1000).toFixed(0)}K`
-    return `PKR ${n.toLocaleString()}`
+    if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`
+    if (n >= 100000) return `$${(n / 1000).toFixed(0)}K`
+    return `$${n.toLocaleString()}`
   }
 
   return (
@@ -84,10 +84,10 @@ export default function ROICalculator() {
             onChange={setRate}
           />
           <SliderRow
-            label="Average order value (PKR)"
+            label="Average order value (USD)"
             value={avg}
-            min={500} max={50000} step={500}
-            display={`PKR ${avg.toLocaleString()}`}
+            min={10} max={2000} step={10}
+            display={`$${avg.toLocaleString()}`}
             onChange={setAvg}
           />
         </div>
@@ -103,7 +103,7 @@ export default function ROICalculator() {
         }}>
           <ResultCard label="Potential leads / month" value={`${leads}`} />
           <ResultCard label="Potential revenue" value={fmt(revenue)} highlight />
-          <ResultCard label="Munshi Growth plan" value="PKR 7,000" dim />
+          <ResultCard label="Munshi Growth plan" value="$25" dim />
           <div style={{
             background: roi > 0 ? 'rgba(74,225,118,0.08)' : 'rgba(255,80,80,0.08)',
             border: `1px solid ${roi > 0 ? 'rgba(74,225,118,0.2)' : 'rgba(255,80,80,0.2)'}`,
@@ -131,7 +131,7 @@ export default function ROICalculator() {
               margin: 0,
               fontFamily: 'inherit'
             }}>
-              {roi > 0 ? '+' : ''}{roi > 9999 ? `${(roi/1000).toFixed(0)}K` : roi.toLocaleString()}%
+              {roi > 0 ? '+' : ''}{roi > 9999 ? `${(roi / 1000).toFixed(0)}K` : roi.toLocaleString()}%
             </p>
           </div>
         </div>

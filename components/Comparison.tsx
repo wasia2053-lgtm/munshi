@@ -5,8 +5,8 @@ import { BrandLogo } from "@/components/brand-logo"
 const rows = [
   {
     feature: 'Monthly Cost',
-    human: 'PKR 40,000–80,000+',
-    munshi: 'From PKR 0',
+    human: '$150–$300+',
+    munshi: 'From $0',
     humanIcon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="currentColor" opacity="0.4" /></svg>
     ),

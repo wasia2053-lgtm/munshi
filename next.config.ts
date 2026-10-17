@@ -2,7 +2,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return [
+      { source: '/pricing', destination: '/#pricing', permanent: true },
+    ]
+  },
 };
 
 export default withSentryConfig(nextConfig, {
