@@ -356,6 +356,59 @@ Content: ${description}`
   }
 }
 
+// ─── Fallback for sites that block our server IPs (HTTP 401/403/429/503) ───
+// Some hosts/WAFs reject datacenter IPs (Vercel) no matter what headers we send.
+// A public "reader" service fetches the page from ITS own network and returns
+// clean markdown. Only used AFTER a direct fetch was blocked. The target URL was
+// already DNS-validated by fetchPage, and the reader fetches it — not our servers —
+// so no internal-network (SSRF) exposure. Optional JINA_API_KEY raises its rate limit.
+const BLOCKED_STATUSES = [401, 403, 429, 503]
+
+async function fetchViaReader(url: string): Promise<{ text: string; links: string[] } | null> {
+  try {
+    const headers: Record<string, string> = { 'Accept': 'text/plain', 'X-Return-Format': 'markdown' }
+    if (process.env.JINA_API_KEY) headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers,
+      signal: AbortSignal.timeout(20000),
+    })
+    if (!res.ok) {
+      console.log(`❌ Reader fallback HTTP ${res.status} for ${url}`)
+      return null
+    }
+    const text = (await res.text()).slice(0, 2_000_000)
+    if (text.trim().length < 80) return null
+
+    const base = new URL(url)
+    const links: string[] = []
+    for (const m of text.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)) {
+      try {
+        const u = new URL(m[1])
+        if (u.hostname === base.hostname &&
+          !u.pathname.match(/\.(jpg|jpeg|png|gif|webp|pdf|zip|svg|css|js)$/i)) {
+          links.push(u.href.split('#')[0].split('?')[0])
+        }
+      } catch { }
+    }
+    return { text, links: [...new Set(links)] }
+  } catch (e: any) {
+    console.log(`❌ Reader fallback failed for ${url}: ${e?.message}`)
+    return null
+  }
+}
+
+function extractReaderContent(text: string, url: string): string {
+  const title = (text.match(/^Title:\s*(.+)$/m)?.[1] || '').trim()
+  const body = text
+    .replace(/^(Title|URL Source|Published Time|Markdown Content):.*$/gm, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')        // drop images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')        // links -> text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 2000)
+  return `URL: ${url}\nTitle: ${title}\nContent: ${body}`
+}
+
 function extractLinks(html: string, baseUrl: string): string[] {
   const $ = cheerio.load(html)
   const links: string[] = []
@@ -502,7 +555,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Vercel kills the function at maxDuration (60s) — stop early and SAVE what we have.
+    const crawlStartedAt = Date.now()
+    const TIME_BUDGET_MS = 48_000
+    let readerMode = false // flips on once a direct fetch is blocked
+
     while (!usedShopifyJson && queue.length > 0 && visited.size < MAX_PAGES) {
+      if (Date.now() - crawlStartedAt > TIME_BUDGET_MS) {
+        console.log('⏱️ Time budget reached — stopping crawl and saving pages so far')
+        break
+      }
       const currentUrl = queue.shift()!
 
       if (visited.has(currentUrl)) continue
@@ -510,19 +572,33 @@ export async function POST(request: NextRequest) {
 
       console.log(`📄 Crawling (${visited.size}/${MAX_PAGES}): ${currentUrl}`)
 
-      const html = await fetchPage(currentUrl, 5, diag)
-      if (!html) continue
+      let html: string | null = null
+      let links: string[] = []
+      let content = ''
 
-      totalBytes += Buffer.byteLength(html, 'utf-8')
-      if (totalBytes > MAX_TOTAL_BYTES) {
-        console.log(`❌ Total crawl size exceeded ${MAX_TOTAL_BYTES} bytes — stopping crawl early`)
-        break
+      if (!readerMode) html = await fetchPage(currentUrl, 5, diag)
+
+      if (html) {
+        totalBytes += Buffer.byteLength(html, 'utf-8')
+        if (totalBytes > MAX_TOTAL_BYTES) {
+          console.log(`❌ Total crawl size exceeded ${MAX_TOTAL_BYTES} bytes — stopping crawl early`)
+          break
+        }
+        links = extractLinks(html, currentUrl)
+        console.log(`🔗 ${currentUrl} → html ${html.length} chars, ${links.length} same-host links found | head: ${html.replace(/\s+/g, ' ').slice(0, 150)}`)
+        content = extractContent(html, currentUrl)
+      } else if (readerMode || (diag.lastStatus !== undefined && BLOCKED_STATUSES.includes(diag.lastStatus))) {
+        // Direct fetch blocked → try the reader fallback (and stay in reader mode for this crawl)
+        readerMode = true
+        const page = await fetchViaReader(currentUrl)
+        if (!page) continue
+        totalBytes += Buffer.byteLength(page.text, 'utf-8')
+        links = page.links
+        content = extractReaderContent(page.text, currentUrl)
+        console.log(`📖 Reader fallback OK ${currentUrl} → ${page.text.length} chars, ${links.length} links`)
+      } else {
+        continue
       }
-
-      const links = extractLinks(html, currentUrl)
-      console.log(`🔗 ${currentUrl} → html ${html.length} chars, ${links.length} same-host links found | head: ${html.replace(/\s+/g, ' ').slice(0, 150)}`)
-
-      const content = extractContent(html, currentUrl)
 
       // Save into a PENDING bucket tagged with this crawl's job_id — old
       // "website" knowledge is untouched until the whole crawl finishes
@@ -555,7 +631,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Small delay to not overload server
-      await new Promise(r => setTimeout(r, 500))
+      // Reader free tier is ~20 req/min → ~3s spacing; direct crawl stays 0.5s
+      await new Promise(r => setTimeout(r, readerMode ? (process.env.JINA_API_KEY ? 500 : 3000) : 500))
     }
 
     if (results.length === 0) {
