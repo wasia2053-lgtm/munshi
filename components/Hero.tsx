@@ -10,10 +10,12 @@ export default function Hero() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const { clientX, clientY } = e
+      const isPhone = window.innerWidth <= 640 // cards are stacked on phones — no tilt effect
       if (spotlightRef.current) {
         spotlightRef.current.style.left = `${clientX}px`
         spotlightRef.current.style.top = `${clientY}px`
       }
+      if (isPhone) return
       cardsRef.current.forEach(card => {
         if (!card) return
         const rect = card.getBoundingClientRect()
@@ -259,6 +261,28 @@ export default function Hero() {
           filter: blur(0.5px);
         }
         @media (max-width: 480px) { .card-growth { width: 140px; } }
+        /* Phones: absolute-positioned floating cards overlap on narrow screens.
+           Stack them as a clean chat-style column instead. */
+        @media (max-width: 640px) {
+          .hero-right {
+            height: auto;
+            margin-top: 8px;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            gap: 16px;
+          }
+          .glass-card.floating { animation: none; }
+          .card-customer, .card-ai, .card-lead, .card-calendar {
+            position: relative;
+            top: auto; right: auto; bottom: auto; left: auto;
+            width: 88%;
+            max-width: 340px;
+          }
+          .card-customer, .card-lead { align-self: flex-start; }
+          .card-ai, .card-calendar { align-self: flex-end; }
+          .card-growth { display: none; }
+        }
         .mini-label {
           font-size: 10px;
           font-weight: 700;
