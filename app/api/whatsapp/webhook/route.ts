@@ -332,13 +332,14 @@ export async function POST(request: NextRequest) {
           }
 
           if (isExpired) {
-            console.log('⚠️ Subscription expired — using free tier limit until renewed')
+            // Expired paid plans are auto-downgraded to Starter inside check_and_increment_usage,
+            // so this is only a safety log now.
+            console.log('⚠️ Subscription expired flag set')
           }
 
           if (!allowed) {
-            const limitMsg = isExpired
-              ? `Assalam o Alaikum! 🙏 Aapka subscription expire ho chuka hai aur free limit (${messagesLimit} messages) bhi poora ho gaya hai. Please renew karein taake bot dobara active ho jaye.`
-              : `Asslam o Alaikum! 🙏 Hamara free plan ka limit (${messagesLimit} messages) poora ho gaya hai. Jaldi hi wapas aayenge! Abhi ke liye please directly contact karein.`
+            // End-customer facing: must NOT mention subscription/limits (that is the owner's business).
+            const limitMsg = `Assalam o Alaikum! 🙏 Is waqt hum aap ke message ka jawab nahi de pa rahe. Please thori der baad dobara try karein ya directly humse rabta karein. Shukriya!`
 
             const sendRes = await fetch(
               `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,

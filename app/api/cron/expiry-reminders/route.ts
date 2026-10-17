@@ -82,6 +82,78 @@ export async function GET(request: Request) {
         sent++
     }
 
+    // ---- Step 2: downgrade lapsed paid plans to Starter (50 free msgs) ----
+    // Covers accounts with no WhatsApp traffic (webhook path downgrades lazily).
+    const { error: downgradeError } = await admin.rpc('downgrade_expired_subscriptions', { p_user_id: null })
+    if (downgradeError) {
+        console.error('[Expiry Cron] Downgrade RPC failed:', downgradeError.message)
+    }
+
+    // ---- Step 3: "plan expired" notice (once per lapsed cycle) ----
+    // Only plan='starter' rows: if owner already renewed, skip the stale notice.
+    const { data: lapsed, error: lapsedError } = await admin
+        .from('subscriptions')
+        .select('user_id, downgraded_from, downgraded_valid_until, expired_notice_for')
+        .eq('plan', 'starter')
+        .not('downgraded_valid_until', 'is', null)
+
+    let expiredSent = 0
+    if (lapsedError) {
+        console.error('[Expiry Cron] Lapsed query failed:', lapsedError.message)
+    } else {
+        const pending = (lapsed || []).filter((s) => {
+            const lapsedAt = new Date(s.downgraded_valid_until).getTime()
+            const noticedAt = s.expired_notice_for ? new Date(s.expired_notice_for).getTime() : null
+            return noticedAt !== lapsedAt
+        })
+
+        for (const sub of pending) {
+            const planName = sub.downgraded_from || 'paid'
+            const expiredOn = new Date(sub.downgraded_valid_until).toLocaleDateString('en-GB', {
+                day: 'numeric', month: 'short', year: 'numeric',
+            })
+
+            const { error: notifError } = await admin.from('notifications').insert({
+                business_id: sub.user_id,
+                type: 'billing',
+                title: 'Plan expired',
+                message: `Your ${planName} plan expired on ${expiredOn}. You are now on the free Starter plan (50 messages). Renew to restore your full features.`,
+                is_read: false,
+            })
+            if (notifError) {
+                console.error(`[Expiry Cron] Notification failed for ${sub.user_id}:`, notifError.message)
+                continue // not marked -> retried next run
+            }
+
+            try {
+                const { data: authUser } = await admin.auth.admin.getUserById(sub.user_id)
+                const email = authUser?.user?.email
+                if (email) {
+                    await resend.emails.send({
+                        from: 'Munshi Alerts <onboarding@resend.dev>',
+                        to: email,
+                        subject: 'Your Munshi plan has expired',
+                        html: `<p>Your <strong>${planName}</strong> plan expired on <strong>${expiredOn}</strong>.</p>
+                     <p>Your account is now on the free Starter plan with 50 messages. When those are used, your WhatsApp bot will stop replying.</p>
+                     <p>Renew from your Billing page to restore all features.</p>`,
+                    })
+                }
+            } catch (emailError: any) {
+                console.error(`[Expiry Cron] Expired email failed for ${sub.user_id}:`, emailError?.message)
+            }
+
+            const { error: markError } = await admin
+                .from('subscriptions')
+                .update({ expired_notice_for: sub.downgraded_valid_until })
+                .eq('user_id', sub.user_id)
+            if (markError) {
+                console.error(`[Expiry Cron] Failed to mark expired notice for ${sub.user_id}:`, markError.message)
+                continue
+            }
+            expiredSent++
+        }
+    }
+
     console.log(`[Expiry Reminder Cron] Checked ${dueSubs?.length || 0} due subscriptions, sent ${sent} reminders`)
-    return NextResponse.json({ checked: dueSubs?.length || 0, sent })
+    return NextResponse.json({ checked: dueSubs?.length || 0, sent, expiredNoticesSent: expiredSent })
 }
