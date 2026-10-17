@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [agreed, setAgreed] = useState(false)
 
 
   const glow1Ref = useRef<HTMLDivElement>(null)
@@ -33,6 +34,10 @@ export default function SignupPage() {
   }, [])
 
   const handleGoogleSignUp = async () => {
+    if (!agreed) {
+      setError('Please accept the Terms of Service and Privacy Policy to continue')
+      return
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` }
@@ -45,6 +50,12 @@ export default function SignupPage() {
     setLoading(true)
     setError('')
 
+    if (!agreed) {
+      setError('Please accept the Terms of Service and Privacy Policy to continue')
+      setLoading(false)
+      return
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       setLoading(false)
@@ -55,7 +66,7 @@ export default function SignupPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name } }
+        options: { data: { name, terms_accepted_at: new Date().toISOString() } }
       })
 
       if (error) {
@@ -229,6 +240,37 @@ export default function SignupPage() {
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
+        .terms-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          min-height: 44px;
+          padding: 4px 0;
+          margin-bottom: 16px;
+          cursor: pointer;
+        }
+        .terms-row input[type='checkbox'] {
+          width: 20px;
+          height: 20px;
+          margin: 2px 0 0;
+          flex-shrink: 0;
+          accent-color: #4ae176;
+          cursor: pointer;
+        }
+        .terms-row span {
+          font-size: 14px;
+          line-height: 1.5;
+          color: rgba(196,199,200,0.85);
+        }
+        .terms-row a { color: #ffffff; text-decoration: underline; text-underline-offset: 2px; }
+        .field-hint {
+          margin: 6px 0 0;
+          font-size: 12px;
+          line-height: 1.5;
+          color: rgba(196,199,200,0.6);
+        }
+        .btn-google:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .divider {
           display: flex;
           align-items: center;
@@ -340,8 +382,24 @@ export default function SignupPage() {
 
         {/* Glass Card */}
         <div className="glass-card" style={{ position: 'relative', zIndex: 1 }}>
+          {/* Terms consent (applies to Google + email signup) */}
+          <label className="terms-row" htmlFor="terms-consent">
+            <input
+              id="terms-consent"
+              type="checkbox"
+              checked={agreed}
+              onChange={e => { setAgreed(e.target.checked); if (e.target.checked) setError('') }}
+            />
+            <span>
+              I agree to the{' '}
+              <Link href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</Link>
+              {' '}and{' '}
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>.
+            </span>
+          </label>
+
           {/* Google */}
-          <button className="btn-google" onClick={handleGoogleSignUp}>
+          <button className="btn-google" onClick={handleGoogleSignUp} disabled={!agreed} type="button">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -456,18 +514,16 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '8px' }}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading || !agreed || !name.trim() || !email.trim() || password.length < 6 || !confirmPassword}
+              style={{ marginTop: '8px' }}
+            >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 
-          {/* Terms */}
-          <p style={{ marginTop: '32px', textAlign: 'center', fontFamily: 'Geist', fontSize: '12px', color: 'rgba(196,199,200,0.5)', padding: '0 16px' }}>
-            By signing up, you agree to our{' '}
-            <Link href="/terms" style={{ color: 'rgba(196,199,200,0.8)', textDecoration: 'underline' }}>Terms of Service</Link>
-            {' '}and{' '}
-            <Link href="/privacy-policy" style={{ color: 'rgba(196,199,200,0.8)', textDecoration: 'underline' }}>Privacy Policy</Link>.
-          </p>
         </div>
 
         {/* Footer link */}

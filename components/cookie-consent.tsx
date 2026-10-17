@@ -4,6 +4,23 @@ import { useEffect, useState } from 'react'
 import { Cookie, X } from 'lucide-react'
 
 const CONSENT_KEY = 'munshi_cookie_consent'
+const ONE_YEAR = 60 * 60 * 24 * 365
+
+// Persist in BOTH localStorage and a first-party cookie so the choice survives
+// storage-blocked browsers and can also be read server-side.
+function readChoice(): string | null {
+    try {
+        const v = localStorage.getItem(CONSENT_KEY)
+        if (v) return v
+    } catch { }
+    const m = document.cookie.match(new RegExp('(?:^|; )' + CONSENT_KEY + '=([^;]*)'))
+    return m ? decodeURIComponent(m[1]) : null
+}
+
+function writeChoice(choice: 'accepted' | 'declined') {
+    try { localStorage.setItem(CONSENT_KEY, choice) } catch { }
+    document.cookie = `${CONSENT_KEY}=${choice}; Max-Age=${ONE_YEAR}; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
+}
 
 export default function CookieConsent() {
     const [visible, setVisible] = useState(false)
@@ -11,24 +28,15 @@ export default function CookieConsent() {
 
     useEffect(() => {
         setMounted(true)
-        try {
-            const existing = localStorage.getItem(CONSENT_KEY)
-            if (!existing) {
-                // slight delay so it slides in after page paints, not jarring on load
-                const t = setTimeout(() => setVisible(true), 600)
-                return () => clearTimeout(t)
-            }
-        } catch {
-            // localStorage unavailable (e.g. private browsing) — don't block the page
+        if (!readChoice()) {
+            // slight delay so it slides in after page paints, not jarring on load
+            const t = setTimeout(() => setVisible(true), 600)
+            return () => clearTimeout(t)
         }
     }, [])
 
     function handleChoice(choice: 'accepted' | 'declined') {
-        try {
-            localStorage.setItem(CONSENT_KEY, choice)
-        } catch {
-            // ignore storage errors — still hide the banner for this session
-        }
+        writeChoice(choice)
         setVisible(false)
     }
 
@@ -38,6 +46,7 @@ export default function CookieConsent() {
         <div
             role="dialog"
             aria-live="polite"
+            aria-hidden={!visible}
             aria-label="Cookie consent"
             style={{
                 position: 'fixed',
@@ -52,7 +61,8 @@ export default function CookieConsent() {
                 borderRadius: '16px',
                 padding: '20px 22px',
                 boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
-                transition: 'bottom 0.4s cubic-bezier(0.4,0,0.2,1)',
+                visibility: visible ? 'visible' : 'hidden', // offscreen buttons must not be tabbable
+                transition: 'bottom 0.4s cubic-bezier(0.4,0,0.2,1), visibility 0.4s',
                 boxSizing: 'border-box',
             }}
         >
