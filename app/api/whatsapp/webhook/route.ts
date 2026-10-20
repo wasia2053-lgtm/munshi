@@ -493,6 +493,7 @@ PERSONALITY:
           ]
 
           let aiReply: string | undefined
+          let aiUsage: any
           try {
             const chatCompletion = await groq.chat.completions.create({
               messages: messages as any,
@@ -502,8 +503,26 @@ PERSONALITY:
               reasoning_effort: 'medium'
             })
             aiReply = chatCompletion.choices[0]?.message?.content ?? undefined
+            aiUsage = (chatCompletion as any).usage
           } catch (e: any) {
             console.log('❌ Groq error:', e.message)
+          }
+
+          // Log real token usage (cost measurement). Never blocks or fails the reply.
+          if (aiUsage) {
+            try {
+              const { error: usageError } = await supabase.from('ai_usage').insert({
+                business_id: BUSINESS_ID,
+                model: 'openai/gpt-oss-120b',
+                prompt_tokens: aiUsage.prompt_tokens ?? 0,
+                completion_tokens: aiUsage.completion_tokens ?? 0,
+                reasoning_tokens: aiUsage.completion_tokens_details?.reasoning_tokens ?? 0,
+                cached_tokens: aiUsage.prompt_tokens_details?.cached_tokens ?? 0,
+              })
+              if (usageError) console.error('⚠️ ai_usage insert failed:', usageError.message)
+            } catch (e: any) {
+              console.error('⚠️ ai_usage insert threw:', e?.message)
+            }
           }
 
           if (!aiReply) {
