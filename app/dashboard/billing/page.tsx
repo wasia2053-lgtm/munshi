@@ -80,14 +80,14 @@ const PLANS = [
     id: 'pro',
     name: 'Pro',
     price_usd: 99,
-    messages: 50000,
+    messages: 20000,
     icon: Crown,
     accent: '#f59e0b',
     bg: 'rgba(245,158,11,0.05)',
     border: 'rgba(245,158,11,0.20)',
     glow: 'rgba(245,158,11,0.07)',
     features: [
-      '50,000 messages/month',
+      '20,000 messages/month',
       '1 WhatsApp number',
       'Website + PDF + Text training',
       'Advanced analytics',
@@ -341,6 +341,16 @@ export default function BillingPage() {
             </div>
           </div>
         )}
+
+        <div style={{
+          marginBottom: '20px', padding: '14px 18px', borderRadius: '12px',
+          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.20)',
+          color: '#d1d5db', fontSize: '13px', lineHeight: 1.6,
+        }}>
+          <strong style={{ color: '#fff' }}>Two separate bills.</strong> You pay Munshi's fee here. Meta&apos;s WhatsApp charges are billed separately by Meta to your own WhatsApp Business account. They are not included in Munshi&apos;s price.{' '}
+          Meta charges per message beyond a monthly free allowance per number. Rates are set by Meta, depend on your customer&apos;s country and can change. Munshi never collects, marks up or pays these charges.{' '}
+          <a href="https://developers.facebook.com/docs/whatsapp/pricing" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'underline' }}>See Meta's current rates</a>.
+        </div>
 
         <div className={`plans-grid fade-up ${visible ? 'in' : ''}`} style={{
           transitionDelay: '0.14s',

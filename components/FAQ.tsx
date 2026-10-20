@@ -4,7 +4,7 @@ import { useState } from 'react';
 const faqs = [
   {
     q: "Do I need a Meta Business account to use Munshi?",
-    a: "Yes. You'll need a WhatsApp Business API account via Meta. We walk you through the entire setup during onboarding — it takes about 5 minutes."
+    a: "Yes. You'll need a WhatsApp Business API account via Meta. Your WhatsApp number lives in your own Meta account, so Meta's approval steps apply. We guide you through the setup during onboarding."
   },
   {
     q: "What happens when I hit my message limit?",
@@ -12,11 +12,15 @@ const faqs = [
   },
   {
     q: "Can the bot reply in Roman Urdu?",
-    a: "Yes — Munshi is the only WhatsApp AI that natively supports Roman Urdu. It also auto-detects the customer's language and switches mid-conversation."
+    a: "Yes. Roman Urdu is a supported reply language, and the bot follows the customer's language if they write in a different one."
   },
   {
     q: "How does the AI learn my business?",
     a: "You can train it three ways: paste your website URL (we scrape up to 20 pages), upload PDFs (menus, brochures, pricing), or type information manually. The bot answers based only on what you've trained it on."
+  },
+  {
+    q: "Why do I get a separate bill from Meta?",
+    a: "Your WhatsApp number belongs to you, so Meta bills your WhatsApp messaging usage directly to your own WhatsApp Business account. Munshi never collects, marks up or pays Meta's charges, and they are not part of any Munshi plan. As of October 2026, Meta includes a monthly free allowance per number and charges per message beyond it; the rate depends on your customer's country and Meta can change it. Check Meta's pricing page for current rates, and add a payment method to your WhatsApp Business account before you go live, otherwise replies can stop once you pass the free allowance."
   },
   {
     q: "Is my customer data safe?",

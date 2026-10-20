@@ -40,9 +40,9 @@ const rows = [
     munshiBetter: true,
   },
   {
-    feature: 'Setup Time',
+    feature: 'Training Time',
     human: 'Weeks of hiring',
-    munshi: '5 minutes',
+    munshi: 'Minutes',
     munshiBetter: true,
   },
   {

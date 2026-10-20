@@ -360,7 +360,7 @@ export default function Hero() {
               </div>
               <div className="trust-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                Setup in 5 minutes
+                Train in minutes
               </div>
               <div className="trust-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>

@@ -587,6 +587,10 @@ export default function OnboardingPage() {
                     <div className="info-num">3</div>
                     <p className="info-text">We'll notify you the moment your number is live</p>
                   </div>
+                  <div className="info-row">
+                    <div className="info-num">4</div>
+                    <p className="info-text">Meta bills WhatsApp messaging separately to <strong style={{ color: '#fff' }}>your own WhatsApp Business account</strong>. It is not part of your Munshi plan, and Munshi never collects or marks it up</p>
+                  </div>
                 </div>
 
                 <div className="btn-row">

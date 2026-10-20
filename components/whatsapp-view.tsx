@@ -230,6 +230,13 @@ export function WhatsAppView() {
                         </div>
                     </div>
 
+                    <div className="p-4 rounded-xl border border-border bg-muted/40 text-sm text-muted-foreground leading-relaxed">
+                        <p className="font-semibold text-foreground mb-1">Meta bills WhatsApp usage separately</p>
+                        <p>
+                            Your number stays in your own WhatsApp Business account. Meta charges for WhatsApp messages directly to that account, separately from your Munshi plan. Munshi never collects or marks up Meta&apos;s charges. Add a payment method in your Meta account before going live, otherwise replies can stop once you pass Meta&apos;s free monthly allowance.
+                        </p>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card className="shadow-none dark:ring-0 border-[var(--chart-1)]/20">
                             <CardHeader className="pb-4">

@@ -76,12 +76,12 @@ const plans = [
     priceUSD: 99,
     period: '/month',
     desc: 'For teams and high-volume businesses.',
-    msgs: '50,000',
+    msgs: '20,000',
     cta: 'Get Pro',
     ctaHref: '/auth/signup',
     ctaPrimary: false,
     features: [
-      '50,000 AI replies/month',
+      '20,000 AI replies/month',
       '1 WhatsApp number',
       'Advanced AI + context memory',
       'Website training (25 pages)',
@@ -204,6 +204,14 @@ export default function Pricing() {
         }
         .plan-price-period { font-size: 13px; color: rgba(196,199,200,0.5); }
 
+        .plan-meta { font-size: 12px; line-height: 1.5; color: rgba(196,199,200,0.55); margin: -8px 0 16px; }
+        .meta-note {
+          max-width: 760px; margin: 28px auto 0; padding: 16px 20px; border-radius: 12px;
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+          font-size: 14px; line-height: 1.6; color: rgba(196,199,200,0.85); text-align: left;
+        }
+        .meta-note strong { color: #fff; }
+        .meta-note a { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
         .plan-msgs {
           font-size: 12px; color: #4ae176; font-weight: 600;
           margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
@@ -316,6 +324,7 @@ export default function Pricing() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 11.5C21 16.7 16.7 21 11.5 21C9.6 21 7.8 20.5 6.3 19.5L3 21L4.5 17.7C3.5 16.2 3 14.4 3 12.5C3 7.3 7.3 3 12.5 3C17.7 3 21 7.3 21 11.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
                   {plan.msgs} messages/month
                 </div>
+                <div className="plan-meta">+ Meta's WhatsApp charges, billed separately by Meta</div>
                 <div className="plan-desc">{plan.desc}</div>
                 <Link href={plan.ctaHref} className={`plan-cta ${plan.ctaPrimary ? 'primary' : 'secondary'}`}>{plan.cta}</Link>
                 <div className="plan-divider" />
@@ -337,15 +346,19 @@ export default function Pricing() {
             ))}
           </div>
 
+          <div className="meta-note">
+            <strong>Two separate bills.</strong> You pay Munshi&apos;s fee (above) to Munshi. Meta&apos;s WhatsApp messaging charges are billed separately by Meta to your own WhatsApp Business account. They are not included in Munshi&apos;s price. Meta charges per message beyond a monthly free allowance per number. Rates are set by Meta, depend on your customer&apos;s country and can change. Munshi never collects, marks up or pays these charges. <a href="https://developers.facebook.com/docs/whatsapp/pricing" target="_blank" rel="noopener noreferrer">See Meta&apos;s current rates</a>.
+          </div>
+
           {/* Enterprise */}
           <div className="enterprise-card" ref={enterpriseRef}>
             <div className="enterprise-left">
               <div className="enterprise-name">Enterprise</div>
               <div className="enterprise-title">Need more? Let's talk.</div>
-              <div className="enterprise-desc">Custom limits, dedicated support, API access, and white-label.</div>
+              <div className="enterprise-desc">Custom limits, support and integrations, scoped to your needs.</div>
             </div>
             <div className="enterprise-feats">
-              {['Unlimited messages', 'Dedicated support', 'Custom integrations', 'White-label option'].map((f, i) => (
+              {['Custom message limits', 'Dedicated support', 'Custom integrations', 'White-label (on request)'].map((f, i) => (
                 <div key={i} className="enterprise-feat">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="#4ae176" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   {f}

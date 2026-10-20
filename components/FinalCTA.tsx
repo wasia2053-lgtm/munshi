@@ -33,7 +33,7 @@ export default function FinalCTA() {
           Your business doesn't sleep.<br />Neither does Munshi.
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px', lineHeight: 1.6, marginBottom: '40px', maxWidth: '480px', margin: '0 auto 40px' }}>
-          Set up in 5 minutes. Start free. Upgrade when you're ready.
+          Train your bot in minutes. Start free. Upgrade when you're ready.
         </p>
 
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -48,8 +48,8 @@ export default function FinalCTA() {
             textDecoration: 'none',
             transition: 'opacity 0.2s'
           }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
             Start for free →
           </Link>
@@ -65,8 +65,8 @@ export default function FinalCTA() {
             border: '1px solid rgba(255,255,255,0.12)',
             transition: 'color 0.2s'
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
           >
             Sign in
           </Link>

@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 const PRICE_TO_PLAN: Record<string, { plan: string; limit: number }> = {
     pri_01kz70m79qzbcxxv4ab8r8q9a5: { plan: 'basic', limit: 1000 },
     pri_01kz70k41x6073ra0z79hvnww7: { plan: 'growth', limit: 5000 },
-    pri_01kz70hzqzay5nywzfs8bbd7ps: { plan: 'pro', limit: 50000 },
+    pri_01kz70hzqzay5nywzfs8bbd7ps: { plan: 'pro', limit: 20000 },
 }
 
 const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET!

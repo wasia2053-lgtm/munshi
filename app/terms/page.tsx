@@ -65,10 +65,14 @@ export default function TermsOfService() {
             <li><strong>Starter:</strong> Free — 50 messages/month</li>
             <li><strong>Basic:</strong> $4/month — 1,000 messages/month</li>
             <li><strong>Growth:</strong> $25/month — 5,000 messages/month</li>
-            <li><strong>Pro:</strong> $99/month — 50,000 messages/month</li>
+            <li><strong>Pro:</strong> $99/month — 20,000 messages/month</li>
           </ul>
           <p>Prices are subject to change with 30 days' notice. Subscriptions auto-renew monthly unless cancelled.
             Message limits reset at the start of each billing cycle. Unused messages do not carry over.</p>
+          <p><strong>WhatsApp (Meta) charges are separate.</strong> The prices above are for Munshi only. Meta bills WhatsApp
+            messaging charges directly to your own WhatsApp Business account. Munshi does not collect, hold, mark up or pay
+            Meta's charges, and they are not included in any Munshi plan. Meta's rates depend on your customers' countries and
+            may change; see Meta's pricing page for current rates.</p>
         </>
       )
     },
